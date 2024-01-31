@@ -1,0 +1,167 @@
+/*
+ * esp-brew-engine
+ * Copyright (C) Dekien Jeroen 2024
+ *
+ */
+#ifndef MAIN_BrewEngine_H_
+#define MAIN_BrewEngine_H_
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+
+#include "esp_log.h"
+#include <esp_http_server.h>
+#include "esp_ota_ops.h"
+#include "driver/gpio.h"
+
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <functional> //function pass
+#include <chrono>
+#include <iomanip>
+#include <ranges>
+#include <map>
+#include <vector>
+
+#include "onewire_bus.h"
+#include "ds18b20.h"
+
+#include "mqtt_client.h"
+
+#include "pidController.hpp"
+
+#include "mash-schedule.h"
+#include "execution-step.h"
+
+#include "settings-manager.h"
+
+#include "nlohmann_json.hpp"
+
+#define ONEWIRE_MAX_DS18B20 10
+
+using namespace std;
+using namespace std::chrono;
+using std::cout;
+using std::endl;
+using json = nlohmann::json;
+
+class BrewEngine
+{
+private:
+    static void readLoop(void *arg);
+    static void pidLoop(void *arg);
+    static void outputLoop(void *arg);
+    static void controlLoop(void *arg);
+    static void stirLoop(void *arg);
+    static void reboot(void *arg);
+
+    void initOneWire();
+    void initMqtt();
+    void readSystemSettings();
+    void readSettings();
+    void saveMashSchedules();
+    void savePIDSettings();
+    void saveSystemSettingsJson(json config);
+    void addDefaultMash();
+    void start();
+    void loadSchedule();
+    void recalculateScheduleAfterOverTime();
+    void stop();
+    void logRemote(string message);
+    json readTempSensorSettings();
+    void saveTempSensorSettings(json data);
+    void startStir(json stirConfig);
+    void stopStir();
+    string bootIntoRecovery();
+
+    string processCommand(string payLoad);
+
+    httpd_handle_t startWebserver(void);
+    void stopWebserver(httpd_handle_t server);
+    static esp_err_t indexGetHandler(httpd_req_t *req);
+    static esp_err_t otherGetHandler(httpd_req_t *req);
+    static esp_err_t apiPostHandler(httpd_req_t *req);
+    static esp_err_t apiOptionsHandler(httpd_req_t *req);
+
+    // small helpers
+    static string to_iso_8601(std::chrono::time_point<std::chrono::system_clock> t);
+
+    SettingsManager *settingsManager;
+    httpd_handle_t server;
+
+    float temperature = 0;                       // average temp
+    float targetTemperature = 0;                 // reuqueste temp
+    std::map<string, float> currentTemperatures; // map with last temp for each sensor
+    std::map<time_t, int> tempLog;               // integer log of averages
+
+    // pid
+    uint8_t pidOutput = 0;
+    std::optional<int> manualOverrideOutput = std::nullopt;
+    double kP = 10;
+    double kI = 1;
+    double kD = 10;
+    uint16_t pidLoopTime = 60; // time in seconds for a full loop,
+    bool resetPitTime = false; // bool to reset pit , we do this when out target changes
+
+    // execution
+    bool run = false;
+    bool controlRun = false; // true when a program is running
+
+    bool inOverTime = false; // when a step time isn't reached we go in overtime, we need this to know that we need recalcualtion
+    string statusText = "Idle";
+    std::map<string, MashSchedule *> mashSchedules;
+    string selectedMashScheduleName;
+    uint16_t currentMashStep;
+
+    std::map<uint16_t, ExecutionStep *> executionSteps; // calculated real steps
+    uint16_t currentExecutionStep = 0;
+    uint16_t executionStepSeconds = 5; // calcualte a substep every x seconds
+    uint16_t runningVersion = 0;       // we increase our version after recalc, so client can keep uptodate with planning
+
+    // IO
+    uint8_t heaterCount = 2; // atm fixed but this could be variable in the future
+    std::vector<bool> heaterOn;
+    uint8_t gpioHigh = 1;
+    uint8_t gpioLow = 0;
+    bool invertOutputs;
+
+    gpio_num_t oneWire_PIN;
+    gpio_num_t heat1_PIN;
+    gpio_num_t heat2_PIN;
+    gpio_num_t stir_PIN;
+
+    string mqttUri;
+
+    // MQTT
+    bool mqttEnabled = false; // when broker is set and connection sucseeds we set this to true
+    esp_mqtt_client_handle_t mqttClient;
+    string mqttTopic = "";
+    string mqttTopicLog = "";
+
+    // stirring/pumping
+    TaskHandle_t stirLoopHandle = NULL;
+    string stirStatusText = "Idle";
+    bool stirRun = false;
+    uint16_t stirTimeSpan = 10; // stir timespan in minutes
+    uint16_t stirIntervalStart = 0;
+    uint16_t stirIntervalStop = 5;
+    system_clock::time_point stirStartCycle;
+
+    // one wire
+    onewire_bus_handle_t obh;
+    std::map<uint64_t, ds18b20_device_handle_t> sensors; // map with sensor id and handle
+
+public:
+    BrewEngine(SettingsManager *settingsManager); // constructor
+    void Init();
+
+    string Hostname;
+
+    // callbacks
+    std::function<json()> GetWifiSettingsJson;
+    std::function<void(json)> SaveWifiSettingsJson;
+};
+
+#endif /* MAIN_BrewEngine_H_ */

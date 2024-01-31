@@ -1,0 +1,53 @@
+{
+    "env": {
+        "defaultIncludePath": [
+            "${env:IDF_PATH}/components/**",
+            "${workspaceFolder}/main/**",
+            "${workspaceFolder}/components/**",
+            "${workspaceFolder}/build/config/*",
+            "${env:IDF_PATH}/examples/common_components/protocol_examples_common/**"
+        ],
+        "defaultBrowsePath": [
+            "${env:IDF_PATH}/components",
+            "${workspaceFolder}/main",
+            "${workspaceFolder}/components",
+            "${workspaceFolder}/build/config",
+            "${env:IDF_PATH}/examples/common_components/protocol_examples_common"
+        ]
+    },
+    "configurations": [
+        {
+            "name": "ESP32-xtensa-esp32",
+            "includePath": [
+                "${defaultIncludePath}",
+                "~/.espressif/tools/xtensa-esp32-elf/esp-12.2.0_20230208/**"
+            ],
+            "browse": {
+                "path": [
+                    "${defaultBrowsePath}"
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            },
+            "compilerPath": "~/.espressif/tools/xtensa-esp32-elf/esp-12.2.0_20230208/xtensa-esp32-elf/bin/xtensa-esp32-elf-gcc",
+            "cStandard": "c23",
+            "cppStandard": "c++23"
+        },
+        {
+            "name": "ESP32-riscv32",
+            "includePath": [
+                "${defaultIncludePath}",
+                "~/.espressif/tools/riscv32-esp-elf/esp-12.2.0_20230208/**"
+            ],
+            "browse": {
+                "path": [
+                    "${defaultBrowsePath}"
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            },
+            "compilerPath": "~/.espressif/tools/riscv32-esp-elf/esp-12.2.0_20230208/riscv32-esp-elf/bin/riscv32-esp-elf-gcc",
+            "cStandard": "c23",
+            "cppStandard": "c++23"
+        }
+    ],
+    "version": 4
+}

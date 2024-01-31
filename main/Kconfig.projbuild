@@ -1,0 +1,70 @@
+menu "BrewEngine Config"
+
+    config WIFI_SSID
+        string "Wifi SSID"
+        default "EspBrewEngine"
+        help
+            Wifi SSID, case sensitive!.
+
+    config WIFI_PASS
+        string "Wifi WPA pass"
+        default "EspBrewEngine123"
+        help
+            Wifi WPA pass.
+
+    config WIFI_AP
+        bool "Use Wifi AP"
+        default y
+        help
+            Starts a wifi Access Point so the user can connect and configure wifi in the web gui.
+
+    config HOSTNAME
+        string "Hostname"
+        default "BrewEngine"
+        help
+            Hostname to use for network.
+
+    config MQTT_URI
+        string "MQTT URI"
+        default ""
+        help
+            
+            When configured esp-brew-engine will log temperatures to mqtt.
+
+            Example:
+            mqtt://user:password@192.168.0.1:1883
+            mqtt://user:password@[fd88:ff06:bbf9:0:aaa1:59ff:fe89:4dcf]:1883
+            
+    config OneWire
+        int "OneWire Pin"
+        default 17
+        help
+            OneWire Pin
+
+    config HEAT1
+        int "HEAT1 Pin"
+        default 32
+        help
+            HEAT1 Pin
+            Must be enabled!
+
+    config HEAT2
+        int "HEAT2 Pin"
+        default 33
+        help
+            HEAT2 Pin
+            Set to 0 to disable!
+    
+    config STIR
+        int "STIR Pin"
+        default 25
+        help
+            STIR Pin
+            Set to 0 to disable!
+
+    config InvertOutputs
+        bool "Invert Outputs"
+        default n
+        help
+            Invert the output direction Low/High
+endmenu

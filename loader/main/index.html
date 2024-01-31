@@ -1,0 +1,112 @@
+<html>
+<header>
+  <style>
+    body {
+      background-color: #242320;
+      color: #ffffff;
+    }
+
+    .progress {
+      margin: 20px 5px 20px 5px;
+      width: 100%;
+      height: 30px;
+      text-align: left;
+      border: 1px solid #ffffff;
+    }
+
+    .progress .progress_bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      background: repeating-linear-gradient(135deg, #336ffc, #336ffc 15px, #1163cf 15px, #1163cf 30px);
+    }
+
+    .status {
+      font-weight: bold;
+      font-size: 2rem;
+    }
+  </style>
+</header>
+
+<script>
+
+  function update() {
+    const data = document.getElementById("file").files[0];
+
+    xhr = new XMLHttpRequest();
+    xhr.open("POST", "/flash", true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+    xhr.upload.addEventListener("progress", function (event) {
+      if (event.lengthComputable) {
+        document.getElementById("progress").style.width = (event.loaded / event.total) * 100 + "%";
+      }
+    });
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        var status = xhr.status;
+        if (status >= 200 && status < 400) {
+          document.getElementById("status").innerHTML = "Upload accepted. Device will reboot.";
+
+          setTimeout(function () {
+            window.location.reload();
+          }, 12000);
+
+        } else {
+          document.getElementById("status").innerHTML = "Upload rejected!";
+        }
+      }
+    }
+
+    xhr.send(data);
+
+  }
+
+  function app() {
+    xhr = new XMLHttpRequest();
+    xhr.open("POST", "/app", true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        document.getElementById("status").innerHTML = "Device will reboot.";
+        setTimeout(function () {
+          window.location.reload();
+        }, 12000);
+      }
+    }
+    xhr.send();
+  }
+
+</script>
+
+<body>
+  <h1>ESP Brew Engine Recovery</h1>
+
+  <h2>Update Firmware</h2>
+  <div class="progress">
+    <div class="progress_bar" id="progress"></div>
+  </div>
+  <div class="status" id="status"></div>
+
+  <form accept-charset="utf-8" action="javascript:void(0);" method="post" enctype="multipart/form-data">
+
+    <label for="file">
+      Select .bin firmware file and click Update.
+    </label>
+    </br>
+    <input type='file' name='file' id='file' placeholder="select file" />
+    <button onclick="update()">Update</button>
+  </form>
+
+  <br />
+  <br />
+
+  <h2>Reboot into App</h2>
+  <label for="file">
+    Click to reboot into main app.
+  </label>
+  <button onclick="app()">Reboot</button>
+</body>
+
+</html>

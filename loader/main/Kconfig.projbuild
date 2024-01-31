@@ -1,0 +1,26 @@
+menu "BrewEngine Config"
+
+    config WIFI_SSID
+        string "Wifi SSID"
+        default "EspBrewEngine"
+        help
+            Wifi SSID, case sensitive!.
+
+    config WIFI_PASS
+        string "Wifi WPA pass"
+        default "EspBrewEngine123"
+        help
+            Wifi WPA pass.
+
+    config WIFI_AP
+        bool "Use Wifi AP"
+        default y
+        help
+            Starts a wifi Access Point so the user can connect and configure wifi in the web gui.
+
+    config HOSTNAME
+        string "Hostname"
+        default "BrewEngine"
+        help
+            Hostname to use for network.
+endmenu
