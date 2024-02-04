@@ -162,6 +162,7 @@ public:
     // callbacks
     std::function<json()> GetWifiSettingsJson;
     std::function<void(json)> SaveWifiSettingsJson;
+    std::function<json()> ScanWifiJson;
 };
 
 #endif /* MAIN_BrewEngine_H_ */

@@ -38,6 +38,7 @@ void WiFiConnectLite::readSettings()
     this->ssid = this->settingsManager->Read("wifi_ssid", (string)CONFIG_WIFI_SSID);
     this->password = this->settingsManager->Read("wifi_password", (string)CONFIG_WIFI_PASS);
     this->Hostname = this->settingsManager->Read("Hostname", (string)CONFIG_HOSTNAME);
+    this->maxWifiPower = this->settingsManager->Read("wifi_max_power", (int8_t)CONFIG_ESP_PHY_MAX_WIFI_TX_POWER);
 
     bool configUseWifiAP = false;
 // is there a cleaner way to do this?, config to bool doesn't seem to work properly
@@ -57,6 +58,7 @@ void WiFiConnectLite::saveSettings()
     this->settingsManager->Write("wifi_ssid", this->ssid);
     this->settingsManager->Write("wifi_password", this->password);
     this->settingsManager->Write("wifi_ap", this->enableAP);
+    this->settingsManager->Write("wifi_max_power", this->maxWifiPower);
     this->settingsManager->Write("Hostname", this->Hostname);
 
     ESP_LOGI(TAG, "Saving Wifi Settings Done");
@@ -127,6 +129,8 @@ void WiFiConnectLite::wifi_init_sta(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+    esp_wifi_set_max_tx_power(this->maxWifiPower);
+
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
 
@@ -181,6 +185,8 @@ void WiFiConnectLite::wifi_init_softap(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+    esp_wifi_set_max_tx_power(this->maxWifiPower);
+
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &this->wifi_event_handler, this, NULL));
 
     wifi_config_t wifi_config = {};
@@ -203,7 +209,7 @@ void WiFiConnectLite::wifi_init_softap(void)
     // other option is captive portal url via dhcp option
     // or wait unitl esp-idf implements proper dns
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 

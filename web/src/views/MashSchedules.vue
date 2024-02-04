@@ -195,15 +195,14 @@ const deleteSchedule = async () => {
           :items-per-page="tableItemsPerPage"
           :headers="tableHeaders"
           :items="tableData"
-          class="elevation-1"
+          density="compact"
           item-value="name"
         >
           <template v-slot:top>
-            <v-toolbar flat>
+            <v-toolbar density="compact">
               <v-toolbar-title>Mash Schedule</v-toolbar-title>
-              <v-divider class="mx-4" inset vertical />
               <v-spacer />
-              <v-btn color="primary" dark class="mb-2" @click="newItem()">
+              <v-btn color="secondary" variant="outlined" @click="newItem()">
                 New Item
               </v-btn>
 

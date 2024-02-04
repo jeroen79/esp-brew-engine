@@ -1358,6 +1358,14 @@ string BrewEngine::processCommand(string payLoad)
 		}
 		message = "Please restart device for changes to have effect!";
 	}
+	else if (command == "ScanWifi")
+	{
+		// scans for networks
+		if (this->ScanWifiJson)
+		{
+			resultData = this->ScanWifiJson();
+		}
+	}
 	else if (command == "GetSystemSettings")
 	{
 		resultData = {

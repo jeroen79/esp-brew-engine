@@ -24,3 +24,9 @@ CONFIG_LOG_BOOTLOADER_LEVEL_ERROR=y
 CONFIG_NEWLIB_NANO_FORMAT=y
 # CONFIG_ETH_USE_ESP32_EMAC=n
 # CONFIG_ETH_USE_SPI_ETHERNET=n
+
+#
+# Wifi, some boards seem to have issues at 20dbm so we default to 15, can later be change in gui
+#
+CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=15
+CONFIG_ESP_PHY_MAX_TX_POWER=15

@@ -53,6 +53,7 @@ private:
 
     string ssid = "";
     string password = "";
+    int8_t maxWifiPower = 15; // seems some boards have issues at 20
 
     string ntpServer = "pool.ntp.org";
     uint8_t apChannel = 7;
@@ -65,6 +66,8 @@ public:
 
     json GetSettingsJson();
     void SaveSettingsJson(json config);
+
+    json Scan();
 
     bool setTime = true;
 

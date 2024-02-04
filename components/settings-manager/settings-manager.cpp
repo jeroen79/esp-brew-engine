@@ -155,6 +155,26 @@ uint8_t SettingsManager::Read(string name, uint8_t defaultValue)
     return value;
 }
 
+int8_t SettingsManager::Read(string name, int8_t defaultValue)
+{
+    int8_t value = 0;
+    esp_err_t err = nvs_get_i8(*this->nvsHandle, name.c_str(), &value);
+
+    if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND)
+    {
+        ESP_LOGE(TAG, "Error reading Setting: %s", name.c_str());
+    }
+
+    if (err == ESP_ERR_NVS_NOT_FOUND)
+    {
+        // does not exist yet, we save the default
+        this->Write(name, defaultValue);
+        return defaultValue;
+    }
+
+    return value;
+}
+
 uint16_t SettingsManager::Read(string name, uint16_t defaultValue)
 {
     uint16_t value = 0;
@@ -212,6 +232,16 @@ void SettingsManager::Write(string name, bool value)
 void SettingsManager::Write(string name, uint8_t value)
 {
     esp_err_t err = nvs_set_u8(*this->nvsHandle, name.c_str(), value);
+
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error writing Setting: %s", name.c_str());
+    }
+}
+
+void SettingsManager::Write(string name, int8_t value)
+{
+    esp_err_t err = nvs_set_i8(*this->nvsHandle, name.c_str(), value);
 
     if (err != ESP_OK)
     {

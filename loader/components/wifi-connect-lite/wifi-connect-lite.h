@@ -32,6 +32,7 @@ private:
     static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
     void wifi_init_sta(void);
     void wifi_init_softap(void);
+
     void gotIP(string Ip);
     void readSettings();
     void saveSettings();
@@ -43,6 +44,7 @@ private:
 
     string ssid = "";
     string password = "";
+    int8_t maxWifiPower = 15; // seems some boards have issues at 20
 
     uint8_t apChannel = 7;
     bool enableAP = true;

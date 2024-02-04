@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, watch, inject, computed, reactive, watchEffect } from 'vue';
+import { ref, onMounted, onBeforeUnmount, inject } from 'vue';
 import { VDataTable } from 'vuetify/labs/VDataTable';
 import { mdiPencil, mdiDelete } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
@@ -98,13 +98,12 @@ const save = async () => {
       <v-data-table
         :headers="tableHeaders"
         :items="tempSensors"
-        class="elevation-1"
+        density="compact"
         item-value="name"
       >
         <template v-slot:top>
-          <v-toolbar flat>
+          <v-toolbar density="compact">
             <v-toolbar-title>Temp Sensors</v-toolbar-title>
-            <v-divider class="mx-4" inset vertical />
             <v-spacer />
 
             <v-dialog v-model="dialog" max-width="500px">
