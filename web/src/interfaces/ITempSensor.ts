@@ -1,5 +1,5 @@
 export interface ITempSensor {
-  id: number;
+  id: string; // js doesn't support uint64_t, so we convert to string
   color: string;
   name: string;
   enabled: boolean;

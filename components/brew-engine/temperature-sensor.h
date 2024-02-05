@@ -21,7 +21,7 @@ public:
     json to_json()
     {
         json jSensor;
-        jSensor["id"] = this->id;
+        jSensor["id"] = to_string(this->id); // js doesn't support uint64_t, so we convert to string
         jSensor["name"] = this->name;
         jSensor["color"] = this->color;
         jSensor["enabled"] = this->enabled;
@@ -34,10 +34,12 @@ public:
 
     void from_json(json jsonData)
     {
+        string stringId = jsonData["id"].get<string>(); // js doesn't support uint64_t, so we convert it from string
+        uint64_t sensorId = std::stoull(stringId);
 
-        this->id = jsonData["id"];
-        this->name = jsonData["name"];
-        this->color = jsonData["color"];
+        this->id = sensorId;
+        this->name = (string)jsonData["name"];
+        this->color = (string)jsonData["color"];
 
         if (!jsonData["enabled"].is_null() && jsonData["enabled"].is_boolean())
         {

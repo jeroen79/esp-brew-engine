@@ -321,20 +321,86 @@ void BrewEngine::readTempSensorSettings()
 		sensor->from_json(jSensor);
 
 		uint64_t sensorId = sensor->id;
+
+		ESP_LOGI(TAG, "Sensor From Settings address: %016llX, ID:%llu", sensorId, sensorId);
+
 		this->sensors.insert_or_assign(sensorId, sensor);
 	}
 }
 
-void BrewEngine::saveTempSensorSettings(json data)
+void BrewEngine::saveTempSensorSettings(json jTempSensors)
 {
 	ESP_LOGI(TAG, "Saving Temp Sensor Settings");
 
+	// update running data
+	// keep running loop ok?, or do we need to stop it?
+
+	for (auto &el : jTempSensors.items())
+	{
+		auto jSensor = el.value();
+		string stringId = jSensor["id"].get<string>();
+		uint64_t sensorId = std::stoull(stringId);
+
+		std::map<uint64_t, TemperatureSensor *>::iterator it;
+		it = this->sensors.find(sensorId);
+
+		if (it == this->sensors.end())
+		{
+			// doesn't exist anymore, just ignore
+			ESP_LOGI(TAG, "doesn't exist anymore, just ignore %llu", sensorId);
+			continue;
+		}
+		else
+		{
+			ESP_LOGI(TAG, "update it %llu", sensorId);
+			// update it
+			TemperatureSensor *sensor = it->second;
+			sensor->name = jSensor["name"];
+			sensor->color = jSensor["color"];
+
+			if (!jSensor["enabled"].is_null() && jSensor["enabled"].is_boolean())
+			{
+				sensor->enabled = jSensor["enabled"];
+			}
+
+			if (!jSensor["offset"].is_null() && jSensor["offset"].is_number())
+			{
+				sensor->offset = (float)jSensor["offset"];
+			}
+		}
+	}
+
+	// We also need to delete sensors that are no longer in the list
+	for (auto const &[key, sensor] : this->sensors)
+	{
+		uint64_t sensorId = sensor->id;
+		string stringId = to_string(sensorId); // json doesn't support unit64 so in out json id is string
+		auto foundSensor = std::find_if(jTempSensors.begin(), jTempSensors.end(), [&stringId](const json &x)
+										{
+											auto it = x.find("id");
+											return it != x.end() and it.value() == stringId; });
+
+		// remove it
+		if (foundSensor == jTempSensors.end())
+		{
+			ESP_LOGI(TAG, "Erasing sensor %llu", sensorId);
+			this->sensors.erase(sensorId);
+		}
+	}
+
+	// // Convert sensors to json and save to nvram
+	json jSensors = json::array({});
+
+	for (auto const &[key, val] : this->sensors)
+	{
+		json jSensor = val->to_json();
+		jSensors.push_back(jSensor);
+	}
+
 	// Serialize to MessagePack for size
-	vector<uint8_t> serialized = json::to_msgpack(data);
+	vector<uint8_t> serialized = json::to_msgpack(jSensors);
 
 	this->settingsManager->Write("tempsensors", serialized);
-
-	// todo update running sensors
 
 	ESP_LOGI(TAG, "Saving Temp Sensor Settings Done");
 }
@@ -394,18 +460,21 @@ void BrewEngine::initOneWire()
 
 void BrewEngine::detectOnewireTemperatureSensors()
 {
-	onewire_device_iter_handle_t iter = NULL;
-	onewire_device_t next_onewire_device;
-	esp_err_t search_result = ESP_OK;
 
 	// sensors are already loaded via json settings, but we need to add handles and status
+	onewire_device_iter_handle_t iter = NULL;
+	esp_err_t search_result = ESP_OK;
 
 	// create 1-wire device iterator, which is used for device search
 	ESP_ERROR_CHECK(onewire_new_device_iter(this->obh, &iter));
 	ESP_LOGI(TAG, "Device iterator created, start searching...");
+
 	int i = 0;
 	do
 	{
+
+		onewire_device_t next_onewire_device = {};
+
 		search_result = onewire_device_iter_get_next(iter, &next_onewire_device);
 		if (search_result == ESP_OK)
 		{ // found a new device, let's check if we can upgrade it to a DS18B20
@@ -415,7 +484,9 @@ void BrewEngine::detectOnewireTemperatureSensors()
 
 			if (ds18b20_new_device(&next_onewire_device, &ds_cfg, &newHandle) == ESP_OK)
 			{
-				ESP_LOGI(TAG, "Found a DS18B20[%d], address: %016llX", i, next_onewire_device.address);
+				uint64_t sensorId = next_onewire_device.address;
+
+				ESP_LOGI(TAG, "Found a DS18B20[%d], address: %016llX ID:%llu", i, sensorId, sensorId);
 				i++;
 
 				if (this->sensors.size() >= ONEWIRE_MAX_DS18B20)
@@ -424,14 +495,13 @@ void BrewEngine::detectOnewireTemperatureSensors()
 					break;
 				}
 
-				uint64_t sensorId = next_onewire_device.address;
-
 				std::map<uint64_t, TemperatureSensor *>::iterator it;
 				it = this->sensors.find(sensorId);
 
-				// MAP::const_iterator pos = this->sensors.find(sensorId);
 				if (it == this->sensors.end())
 				{
+					ESP_LOGI(TAG, "New Sensor");
+
 					// doesn't exist yet, we need to add it
 					auto sensor = new TemperatureSensor();
 					sensor->id = sensorId;
@@ -445,6 +515,7 @@ void BrewEngine::detectOnewireTemperatureSensors()
 				}
 				else
 				{
+					ESP_LOGI(TAG, "Existing Sensor");
 					// just set connected and handle
 					TemperatureSensor *sensor = it->second;
 					sensor->handle = newHandle;
@@ -1549,31 +1620,35 @@ esp_err_t BrewEngine::otherGetHandler(httpd_req_t *req)
 
 esp_err_t BrewEngine::apiPostHandler(httpd_req_t *req)
 {
-	char content[512];
+	string stringBuffer;
+	char buf[256];
+	uint32_t ret;
+	uint32_t remaining = req->content_len;
 
-	/* Truncate if content length larger than the buffer */
-	size_t recv_size = std::min(req->content_len, sizeof(content));
+	while (remaining > 0)
+	{
+		// Read the data
+		int nBytes = (std::min<uint32_t>)(remaining, sizeof(buf));
 
-	int ret = httpd_req_recv(req, content, recv_size);
-	if (ret <= 0)
-	{ /* 0 return value indicates connection closed */
-		/* Check if timeout occurred */
-		if (ret == HTTPD_SOCK_ERR_TIMEOUT)
+		if ((ret = httpd_req_recv(req, buf, nBytes)) <= 0)
 		{
-			/* In case of timeout one can choose to retry calling
-			 * httpd_req_recv(), but to keep it simple, here we
-			 * respond with an HTTP 408 (Request Timeout) error */
-			httpd_resp_send_408(req);
+			if (ret == HTTPD_SOCK_ERR_TIMEOUT)
+			{
+				// Timeout, just continue
+				continue;
+			}
+
+			return ESP_FAIL;
 		}
-		/* In case of error, returning ESP_FAIL will
-		 * ensure that the underlying socket is closed */
-		return ESP_FAIL;
+
+		size_t bytes_read = ret;
+
+		remaining -= bytes_read;
+
+		// append to buffer
+		stringBuffer.append((char *)buf, bytes_read);
 	}
 
-	// char array isn't null terminated, so we need to add this, otherwise we can get extra chars in our string
-	content[req->content_len] = '\0';
-
-	string stringBuffer(content);
 	string commandResult = mainInstance->processCommand(stringBuffer);
 
 	const char *returnBuf = commandResult.c_str();
