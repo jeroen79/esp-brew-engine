@@ -8,6 +8,8 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 file (STRINGS "../version" PROJECT_VER)
 
+set(EXTRA_COMPONENT_DIRS ../shared_components) 
+
 project(esp-brew-engine-loader)
 
 configure_file (main/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/main/version.h @ONLY)

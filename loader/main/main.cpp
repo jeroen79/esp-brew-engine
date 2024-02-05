@@ -4,7 +4,7 @@
  *
  */
 #include "esp_log.h"
-#include "wifi-connect-lite.h"
+#include "wifi-connect.h"
 #include "settings-manager.h"
 #include <esp_http_server.h>
 #include "esp_ota_ops.h"
@@ -12,7 +12,7 @@
 #include "esp_flash_partitions.h"
 #include "esp_image_format.h"
 
-WiFiConnectLite *wifiConnector;
+WiFiConnect *wifiConnector;
 SettingsManager *settingsManager;
 
 static const char *TAG = "Main";
@@ -191,7 +191,8 @@ extern "C" void app_main(void)
   settingsManager->Init();
 
   // WifiConnect is a helper that connects to wifi or starts a wifi ap
-  wifiConnector = new WiFiConnectLite(settingsManager);
+  wifiConnector = new WiFiConnect(settingsManager);
+  wifiConnector->setTime = false;
   wifiConnector->Connect();
 
   startWebserver();
