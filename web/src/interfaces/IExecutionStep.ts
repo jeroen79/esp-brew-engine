@@ -1,5 +1,5 @@
 export interface IExecutionStep {
-  temperature: number,
-  time: number,
-  extendIfNeeded: boolean
+  temperature: number;
+  time: number;
+  extendIfNeeded: boolean;
 }

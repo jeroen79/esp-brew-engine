@@ -25,9 +25,9 @@ registerPlugins(app);
 
 app.use(pinia);
 
-const rootUrl = `${window.location.origin}/`;
+// const rootUrl = `${window.location.origin}/`;
 // temp swap for development
-// const rootUrl = 'http://brewengine/';
+const rootUrl = 'http://brewengine/';
 
 const webConn = new WebConn(rootUrl);
 app.provide('webConn', webConn);

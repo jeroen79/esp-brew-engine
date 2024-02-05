@@ -1,4 +1,4 @@
 export interface IDataPacket {
-  time: number,
-  temp: number
+  time: number;
+  temp: number;
 }

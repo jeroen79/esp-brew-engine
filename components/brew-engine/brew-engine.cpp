@@ -78,7 +78,11 @@ void BrewEngine::Init()
 	// read other settings like maishschedules and pid
 	this->readSettings();
 
+	this->readTempSensorSettings();
+
 	this->initOneWire();
+
+	this->detectOnewireTemperatureSensors();
 
 	this->initMqtt();
 
@@ -302,38 +306,23 @@ void BrewEngine::addDefaultMash()
 	this->mashSchedules.insert_or_assign(ryeMash->name, ryeMash);
 }
 
-json BrewEngine::readTempSensorSettings()
+void BrewEngine::readTempSensorSettings()
 {
 	vector<uint8_t> empty = json::to_msgpack(json::array({}));
 	vector<uint8_t> serialized = this->settingsManager->Read("tempsensors", empty);
 
 	json jTempSensors = json::from_msgpack(serialized);
 
-	// we need to add the missing sensors
-	for (auto const &[key, val] : this->sensors)
+	for (auto &el : jTempSensors.items())
 	{
+		auto jSensor = el.value();
 
-		string stringId = std::to_string(key);
-		// find sensor is json array
-		auto foundSensor = std::find_if(jTempSensors.begin(), jTempSensors.end(), [&stringId](const json &x)
-										{
-											auto it = x.find("id");
-											return it != x.end() and it.value() == stringId;
-											// return x.is_object() and x.value("id", "") == "stringId";
-										});
+		auto sensor = new TemperatureSensor();
+		sensor->from_json(jSensor);
 
-		// add new if it doesn't exit
-		if (foundSensor == jTempSensors.end())
-		{
-			json jSensor;
-			jSensor["id"] = stringId;
-			jSensor["name"] = stringId;
-			jSensor["color"] = "#ffffff";
-			jTempSensors.push_back(jSensor);
-		}
+		uint64_t sensorId = sensor->id;
+		this->sensors.insert_or_assign(sensorId, sensor);
 	}
-
-	return jTempSensors;
 }
 
 void BrewEngine::saveTempSensorSettings(json data)
@@ -344,6 +333,8 @@ void BrewEngine::saveTempSensorSettings(json data)
 	vector<uint8_t> serialized = json::to_msgpack(data);
 
 	this->settingsManager->Write("tempsensors", serialized);
+
+	// todo update running sensors
 
 	ESP_LOGI(TAG, "Saving Temp Sensor Settings Done");
 }
@@ -372,7 +363,7 @@ void BrewEngine::initMqtt()
 	{
 		ESP_LOGW(TAG, "Error Creating MQTT Client");
 		return;
-	};
+	}
 
 	// string iso_datetime = this->to_iso_8601(std::chrono::system_clock::now());
 	// string iso_date = iso_datetime.substr(0, 10);
@@ -398,11 +389,16 @@ void BrewEngine::initOneWire()
 	ESP_ERROR_CHECK(onewire_new_bus_rmt(&bus_config, &rmt_config, &this->obh));
 	ESP_LOGI(TAG, "1-Wire bus installed on GPIO%d", this->oneWire_PIN);
 
+	ESP_LOGI(TAG, "initOneWire: Done");
+}
+
+void BrewEngine::detectOnewireTemperatureSensors()
+{
 	onewire_device_iter_handle_t iter = NULL;
 	onewire_device_t next_onewire_device;
 	esp_err_t search_result = ESP_OK;
 
-	this->sensors.clear();
+	// sensors are already loaded via json settings, but we need to add handles and status
 
 	// create 1-wire device iterator, which is used for device search
 	ESP_ERROR_CHECK(onewire_new_device_iter(this->obh, &iter));
@@ -421,14 +417,42 @@ void BrewEngine::initOneWire()
 			{
 				ESP_LOGI(TAG, "Found a DS18B20[%d], address: %016llX", i, next_onewire_device.address);
 				i++;
+
 				if (this->sensors.size() >= ONEWIRE_MAX_DS18B20)
 				{
 					ESP_LOGI(TAG, "Max DS18B20 number reached, stop searching...");
 					break;
 				}
 
-				uint64_t addr = next_onewire_device.address;
-				this->sensors.insert_or_assign(addr, newHandle);
+				uint64_t sensorId = next_onewire_device.address;
+
+				std::map<uint64_t, TemperatureSensor *>::iterator it;
+				it = this->sensors.find(sensorId);
+
+				// MAP::const_iterator pos = this->sensors.find(sensorId);
+				if (it == this->sensors.end())
+				{
+					// doesn't exist yet, we need to add it
+					auto sensor = new TemperatureSensor();
+					sensor->id = sensorId;
+					sensor->name = to_string(sensorId);
+					sensor->color = "#ffffff";
+					sensor->enabled = true;
+					sensor->connected = true;
+					sensor->offset = 0;
+					sensor->handle = newHandle;
+					this->sensors.insert_or_assign(sensor->id, sensor);
+				}
+				else
+				{
+					// just set connected and handle
+					TemperatureSensor *sensor = it->second;
+					sensor->handle = newHandle;
+					sensor->connected = true;
+				}
+
+				// set resolution for all DS18B20s
+				ds18b20_set_resolution(newHandle, DS18B20_RESOLUTION_12B);
 			}
 			else
 			{
@@ -439,15 +463,6 @@ void BrewEngine::initOneWire()
 
 	ESP_ERROR_CHECK(onewire_del_device_iter(iter));
 	ESP_LOGI(TAG, "Searching done, %d DS18B20 device(s) found", this->sensors.size());
-
-	// set resolution for all DS18B20s
-	for (auto const &[key, val] : this->sensors)
-	{
-		// set resolution
-		ESP_ERROR_CHECK(ds18b20_set_resolution(val, DS18B20_RESOLUTION_12B));
-	}
-
-	ESP_LOGI(TAG, "initOneWire: Done");
 }
 
 void BrewEngine::start()
@@ -753,27 +768,54 @@ void BrewEngine::readLoop(void *arg)
 
 	while (instance->run)
 	{
-		int nrOfSensors = instance->sensors.size();
-		float temperature[nrOfSensors];
+		int nrOfSensors = 0;
 		float sum = 0.0;
 
 		vTaskDelay(pdMS_TO_TICKS(1000));
 
-		int i = 0;
-		for (auto const &[key, val] : instance->sensors)
+		for (auto &[key, sensor] : instance->sensors)
 		{
+			float temperature;
+			ds18b20_device_handle_t handle = sensor->handle;
 			string stringId = std::to_string(key);
 
-			ESP_ERROR_CHECK(ds18b20_trigger_temperature_conversion(val));
-			ESP_ERROR_CHECK(ds18b20_get_temperature(val, &temperature[i]));
-			ESP_LOGD(TAG, "temperature read from [%s]: %.2fC", stringId.c_str(), temperature[i]);
+			// not enabled or connected, continue
+			if (!sensor->enabled || !sensor->handle || !sensor->connected)
+			{
+				continue;
+			}
 
-			sum += temperature[i];
+			esp_err_t err = ds18b20_trigger_temperature_conversion(handle);
+
+			if (err != ESP_OK)
+			{
+				ESP_LOGW(TAG, "Error Reading from [%s], disabling sensor!", stringId.c_str());
+				sensor->connected = false;
+				sensor->lastTemp = 0;
+				instance->currentTemperatures.erase(key);
+				continue;
+			};
+
+			err = ds18b20_get_temperature(handle, &temperature);
+
+			if (err != ESP_OK)
+			{
+				ESP_LOGW(TAG, "Error Reading from [%s], disabling sensor!", stringId.c_str());
+				sensor->connected = false;
+				sensor->lastTemp = 0;
+				instance->currentTemperatures.erase(key);
+				continue;
+			};
+
+			ESP_LOGD(TAG, "temperature read from [%s]: %.2fC", stringId.c_str(), temperature);
+
+			// todo compensate
+			sensor->lastTemp = temperature;
+			sum += temperature;
+			nrOfSensors++;
 
 			// we also add our temps to a map individualy, might be nice to see bottom and top temp in gui
-			instance->currentTemperatures.insert_or_assign(stringId, temperature[i]);
-
-			i++;
+			instance->currentTemperatures.insert_or_assign(key, sensor->lastTemp);
 		}
 
 		float avg = sum / nrOfSensors;
@@ -1166,13 +1208,13 @@ string BrewEngine::processCommand(string payLoad)
 			{
 				json jCurrentTemp;
 				jCurrentTemp["sensor"] = key;
-				jCurrentTemp["temp"] = val;
+				jCurrentTemp["temp"] = (double)((int)(val * 10)) / 10; // round float to 1 digit for display
 				jCurrentTemps.push_back(jCurrentTemp);
 			}
 		}
 
 		resultData = {
-			{"temp", this->temperature},
+			{"temp", (double)((int)(this->temperature * 10)) / 10}, // round float to 1 digit for display
 			{"temps", jCurrentTemps},
 			{"targetTemp", this->targetTemperature},
 			{"output", this->pidOutput},
@@ -1264,8 +1306,6 @@ string BrewEngine::processCommand(string payLoad)
 
 		for (auto const &[key, val] : this->mashSchedules)
 		{
-			ESP_LOGI(TAG, "mashSchedules %s", key.c_str());
-
 			json jSchedule = val->to_json();
 			jSchedules.push_back(jSchedule);
 		}
@@ -1335,7 +1375,16 @@ string BrewEngine::processCommand(string payLoad)
 	}
 	else if (command == "GetTempSettings")
 	{
-		resultData = this->readTempSensorSettings();
+		// Convert sensors to json
+		json jSensors = json::array({});
+
+		for (auto const &[key, val] : this->sensors)
+		{
+			json jSensor = val->to_json();
+			jSensors.push_back(jSensor);
+		}
+
+		resultData = jSensors;
 	}
 	else if (command == "SaveTempSettings")
 	{

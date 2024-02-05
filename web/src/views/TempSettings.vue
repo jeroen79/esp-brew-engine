@@ -13,16 +13,23 @@ const tableHeaders = ref<Array<any>>([
   { title: 'Id', key: 'id', align: 'start' },
   { title: 'Name', key: 'name', align: 'start' },
   { title: 'Color', key: 'color', align: 'start' },
-  { title: 'Actions', key: 'actions', sortable: false },
+  { title: 'Offset', key: 'offset', align: 'start' },
+  { title: 'Enabled', key: 'enabled', align: 'end' },
+  { title: 'Connected', key: 'connected', align: 'end' },
+  { title: 'Last Temp', key: 'lastTemp', align: 'end' },
+  { title: 'Actions', key: 'actions', align: 'end', sortable: false },
 ]);
 
 const dialog = ref<boolean>(false);
 const dialogDelete = ref<boolean>(false);
 
 const defaultSensor:ITempSensor = {
-  id: 'new',
+  id: 0,
   name: 'New Sensor',
   color: '#ffffff',
+  enabled: false,
+  connected: false,
+  offset: 0.0,
 };
 
 const editedItem = ref<ITempSensor>(defaultSensor);
@@ -105,6 +112,9 @@ const save = async () => {
           <v-toolbar density="compact">
             <v-toolbar-title>Temp Sensors</v-toolbar-title>
             <v-spacer />
+            <v-btn color="secondary" variant="outlined" @click="getData()">
+              Refresh
+            </v-btn>
 
             <v-dialog v-model="dialog" max-width="500px">
               <v-card>
@@ -118,10 +128,16 @@ const save = async () => {
                       <v-text-field v-model="editedItem.id" label="Sensor ID" readonly />
                     </v-row>
                     <v-row>
+                      <v-switch v-model="editedItem.enabled" label="Enabled" color="green" />
+                    </v-row>
+                    <v-row>
                       <v-text-field v-model="editedItem.name" label="Name" />
                     </v-row>
                     <v-row>
                       <v-color-picker v-model="editedItem.color" hide-inputs label="Color" />
+                    </v-row>
+                    <v-row>
+                      <v-text-field type="number" v-model.number="editedItem.offset" label="Offset/Correction" />
                     </v-row>
                   </v-container>
                 </v-card-text>
@@ -151,8 +167,13 @@ const save = async () => {
           <v-icon size="small" class="me-2" @click="editItem(item.raw)" :icon="mdiPencil" />
           <v-icon size="small" @click="openDeleteDialog(item.raw)" :icon="mdiDelete" />
         </template>
-        <template v-slot:[`item.extendStepTimeIfNeeded`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.extendStepTimeIfNeeded" disabled />
+        <template v-slot:[`item.enabled`]="{ item }">
+          <!-- <v-checkbox-btn class="align-right justify-center" v-model="item.columns.enabled" disabled /> -->
+          <v-switch v-model="item.columns.enabled" class="align-right" color="green" />
+
+        </template>
+        <template v-slot:[`item.connected`]="{ item }">
+          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.connected" disabled />
         </template>
       </v-data-table>
 

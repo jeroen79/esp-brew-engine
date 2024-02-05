@@ -1,5 +1,9 @@
 export interface ITempSensor {
-  id: string,
-  color: string,
-  name: string
+  id: number;
+  color: string;
+  name: string;
+  enabled: boolean;
+  connected: boolean;
+  offset: number;
+  lastTemp: number;
 }
