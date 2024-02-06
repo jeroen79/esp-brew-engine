@@ -22,7 +22,7 @@
 - Temperature sensor settings have been significantly changed, so it is recommended to do a flash_erase and reflash
 
 ```bash
-idf.py build flash_erase
+idf.py flash_erase
 ``` 
 
 - Flash Loader and firmware a normal.

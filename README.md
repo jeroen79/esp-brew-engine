@@ -16,6 +16,8 @@ It is open source and build in c++ using esp-idf RTOS.
 - Automatic Stirring / Pumping Intervals
 - Temperature logging to MQTT
 - OTA Firmware update
+- Ability to enable/disable/detect sensors at runtime.
+- Ability to specift Absolute and Relative Compensation.
 
 ## Screenshots
 
@@ -136,6 +138,15 @@ idf.py build flash
 *Depending on your device you might need to set it into flash mode, typically: Hold both the BOOT and RESET, then release RESET.
 
 
+## Factory Reset
+
+To factory reset the device and all the settings run the command below, you will then have to reflash the loader and app!
+
+```bash
+idf.py flash_erase
+```
+
+
 ## Build Web (optional)
 
 It is optional since the last build html should also be checked into git.
@@ -198,13 +209,14 @@ To quit Ctrl-T Ctrl-X.
 
 ## Planned Features (possible)
 
-- Dns server so when in AP mode the resolving the hostname works.
+- Add support for ° Fahrenheit 
+- PWA manifest and basic service worker.
 - Make pidLoopTime configurable.
 - Separate Pump controls? or is current functionality sufficient?
 - Backup and Restore config data.
 - Resume maish from custom timepoint.
 - Loading MaishSchedule from beer xml?, or online apps. (brewfather?)
 - Notification of when to add hops or take action? (via webinterface speech?)
-- PWA manifest and basic service worker.
+- Dns server so when in AP mode the resolving the hostname works.
 - HW Display (show temp/target).
 - HW Control Buttons (emergecy stop, stop/start stir?).
