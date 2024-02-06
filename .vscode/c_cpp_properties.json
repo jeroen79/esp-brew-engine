@@ -5,6 +5,8 @@
             "${workspaceFolder}/main/**",
             "${workspaceFolder}/components/**",
             "${workspaceFolder}/build/config/*",
+            "${workspaceFolder}/managed_components/*",
+            "${workspaceFolder}/shared_components/*",
             "${env:IDF_PATH}/examples/common_components/protocol_examples_common/**"
         ],
         "defaultBrowsePath": [
@@ -12,6 +14,8 @@
             "${workspaceFolder}/main",
             "${workspaceFolder}/components",
             "${workspaceFolder}/build/config",
+            "${workspaceFolder}/managed_components/*",
+            "${workspaceFolder}/shared_components/*",
             "${env:IDF_PATH}/examples/common_components/protocol_examples_common"
         ]
     },

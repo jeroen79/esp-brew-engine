@@ -196,12 +196,15 @@ To quit Ctrl-T Ctrl-X.
 ```
 
 
-## Planned Features (todo)
+## Planned Features (possible)
 
-- Abbility to disable/ignore temp sensors.
 - Dns server so when in AP mode the resolving the hostname works.
 - Make pidLoopTime configurable.
 - Separate Pump controls? or is current functionality sufficient?
-- Loading MaishSchedule from beer xml?, or online apps.
-- Notification of when to add hops or take action?
+- Backup and Restore config data.
+- Resume maish from custom timepoint.
+- Loading MaishSchedule from beer xml?, or online apps. (brewfather?)
+- Notification of when to add hops or take action? (via webinterface speech?)
 - PWA manifest and basic service worker.
+- HW Display (show temp/target).
+- HW Control Buttons (emergecy stop, stop/start stir?).

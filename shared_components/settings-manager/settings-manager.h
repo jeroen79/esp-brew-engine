@@ -38,12 +38,14 @@ public:
     vector<uint8_t> Read(string name, vector<uint8_t>);
     bool Read(string name, bool defaultValue);
     uint8_t Read(string name, uint8_t defaultValue);
+    int8_t Read(string name, int8_t defaultValue);
     uint16_t Read(string name, uint16_t defaultValue);
 
     void Write(string name, string value);
     void Write(string name, vector<uint8_t> value);
     void Write(string name, bool value);
     void Write(string name, uint8_t value);
+    void Write(string name, int8_t value);
     void Write(string name, uint16_t value);
 
     string Namespace = "Settings";

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, watch, inject, computed, reactive, watchEffect } from 'vue';
+import { ref, onMounted, onBeforeUnmount, inject } from 'vue';
 import { VDataTable } from 'vuetify/labs/VDataTable';
-import { mdiPencil, mdiDelete } from '@mdi/js';
+import { mdiPencil, mdiDelete, mdiPalette } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { ITempSensor } from '@/interfaces/ITempSensor';
 
@@ -13,16 +13,31 @@ const tableHeaders = ref<Array<any>>([
   { title: 'Id', key: 'id', align: 'start' },
   { title: 'Name', key: 'name', align: 'start' },
   { title: 'Color', key: 'color', align: 'start' },
-  { title: 'Actions', key: 'actions', sortable: false },
+  { title: 'Compensate Absolute (+-)', key: 'compensateAbsolute', align: 'start' },
+  { title: 'Compensate Relative (*)', key: 'compensateRelative', align: 'start' },
+  { title: 'Show', key: 'show', align: 'end' },
+  { title: 'Use for Control', key: 'useForControl', align: 'end' },
+  { title: 'Connected', key: 'connected', align: 'end' },
+  { title: 'Last Temp', key: 'lastTemp', align: 'end' },
+  { title: 'Actions', key: 'actions', align: 'end', sortable: false },
 ]);
 
 const dialog = ref<boolean>(false);
 const dialogDelete = ref<boolean>(false);
 
+const alert = ref<string>('');
+const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+
 const defaultSensor:ITempSensor = {
-  id: 'new',
+  id: '',
   name: 'New Sensor',
   color: '#ffffff',
+  useForControl: false,
+  show: false,
+  connected: false,
+  compensateAbsolute: 0.0,
+  compensateRelative: 1,
+  lastTemp: 0,
 };
 
 const editedItem = ref<ITempSensor>(defaultSensor);
@@ -40,8 +55,27 @@ const getData = async () => {
   }
 
   tempSensors.value = apiResult.data;
+};
 
-  console.log(apiResult.data);
+const detectTempSensors = async () => {
+  const requestData = {
+    command: 'DetectTempSensors',
+    data: null,
+  };
+
+  alert.value = 'Please be patient, scanning in progress...';
+  alertType.value = 'info';
+
+  const apiResult = await webConn?.doPostRequest(requestData);
+
+  alert.value = ''; // clear alert
+
+  if (apiResult === undefined || apiResult.success === false) {
+    return;
+  }
+
+  // after successfull detect get new data
+  getData();
 };
 
 onMounted(() => {
@@ -93,19 +127,25 @@ const save = async () => {
 </script>
 
 <template>
-  <v-container class="spacing-playground pa-6" fluid>
+  <v-container class="pa-6" fluid>
+    <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-data-table
         :headers="tableHeaders"
         :items="tempSensors"
-        class="elevation-1"
+        density="compact"
         item-value="name"
       >
         <template v-slot:top>
-          <v-toolbar flat>
+          <v-toolbar density="compact">
             <v-toolbar-title>Temp Sensors</v-toolbar-title>
-            <v-divider class="mx-4" inset vertical />
             <v-spacer />
+            <v-btn color="secondary" variant="outlined" class="mr-5" @click="getData()">
+              Refresh
+            </v-btn>
+            <v-btn color="secondary" variant="outlined" class="mr-5" @click="detectTempSensors()">
+              Detect
+            </v-btn>
 
             <v-dialog v-model="dialog" max-width="500px">
               <v-card>
@@ -116,13 +156,22 @@ const save = async () => {
                 <v-card-text>
                   <v-container>
                     <v-row>
-                      <v-text-field v-model="editedItem.id" label="Sensor ID" readonly />
-                    </v-row>
-                    <v-row>
                       <v-text-field v-model="editedItem.name" label="Name" />
                     </v-row>
                     <v-row>
+                      <v-switch v-model="editedItem.show" label="Show" color="green" />
+                    </v-row>
+                    <v-row>
+                      <v-switch v-model="editedItem.useForControl" label="Enabled" color="red" />
+                    </v-row>
+                    <v-row>
                       <v-color-picker v-model="editedItem.color" hide-inputs label="Color" />
+                    </v-row>
+                    <v-row>
+                      <v-text-field type="number" v-model.number="editedItem.compensateAbsolute" label="Compensate Absolute (+-)" />
+                    </v-row>
+                    <v-row>
+                      <v-text-field type="number" v-model.number="editedItem.compensateRelative" label="Compensate Relative (*)" />
                     </v-row>
                   </v-container>
                 </v-card-text>
@@ -152,8 +201,17 @@ const save = async () => {
           <v-icon size="small" class="me-2" @click="editItem(item.raw)" :icon="mdiPencil" />
           <v-icon size="small" @click="openDeleteDialog(item.raw)" :icon="mdiDelete" />
         </template>
-        <template v-slot:[`item.extendStepTimeIfNeeded`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.extendStepTimeIfNeeded" disabled />
+        <template v-slot:[`item.useForControl`]="{ item }">
+          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.useForControl" disabled />
+        </template>
+        <template v-slot:[`item.show`]="{ item }">
+          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.show" disabled />
+        </template>
+        <template v-slot:[`item.connected`]="{ item }">
+          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.connected" disabled />
+        </template>
+        <template v-slot:[`item.color`]="{ item }">
+          <v-icon size="small" class="me-2" :icon="mdiPalette" :color="item.columns.color" />
         </template>
       </v-data-table>
 

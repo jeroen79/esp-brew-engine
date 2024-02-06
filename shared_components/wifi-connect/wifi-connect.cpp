@@ -39,6 +39,7 @@ void WiFiConnect::readSettings()
     this->ssid = this->settingsManager->Read("wifi_ssid", (string)CONFIG_WIFI_SSID);
     this->password = this->settingsManager->Read("wifi_password", (string)CONFIG_WIFI_PASS);
     this->Hostname = this->settingsManager->Read("Hostname", (string)CONFIG_HOSTNAME);
+    this->maxWifiPower = this->settingsManager->Read("wifi_max_power", (int8_t)CONFIG_ESP_PHY_MAX_WIFI_TX_POWER);
 
     bool configUseWifiAP = false;
 // is there a cleaner way to do this?, config to bool doesn't seem to work properly
@@ -58,6 +59,7 @@ void WiFiConnect::saveSettings()
     this->settingsManager->Write("wifi_ssid", this->ssid);
     this->settingsManager->Write("wifi_password", this->password);
     this->settingsManager->Write("wifi_ap", this->enableAP);
+    this->settingsManager->Write("wifi_max_power", this->maxWifiPower);
     this->settingsManager->Write("Hostname", this->Hostname);
 
     ESP_LOGI(TAG, "Saving Wifi Settings Done");
@@ -164,6 +166,7 @@ void WiFiConnect::wifi_event_handler(void *arg, esp_event_base_t event_base, int
 
 void WiFiConnect::wifi_init_sta(void)
 {
+
     this->s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_netif_init());
@@ -176,6 +179,8 @@ void WiFiConnect::wifi_init_sta(void)
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    esp_wifi_set_max_tx_power(this->maxWifiPower);
 
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
@@ -231,6 +236,8 @@ void WiFiConnect::wifi_init_softap(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+    esp_wifi_set_max_tx_power(this->maxWifiPower);
+
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &this->wifi_event_handler, this, NULL));
 
     wifi_config_t wifi_config = {};
@@ -253,11 +260,76 @@ void WiFiConnect::wifi_init_softap(void)
     // other option is captive portal url via dhcp option
     // or wait unitl esp-idf implements proper dns
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA)); // ap/station mode, so we can scan for networks
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "Wifi Access Point finished. ssid:%s password:%s channel:%d", this->ssid.c_str(), this->password.c_str(), this->apChannel);
+}
+
+json WiFiConnect::Scan()
+{
+    uint16_t number = CONFIG_WIFI_PROV_SCAN_MAX_ENTRIES;
+    wifi_ap_record_t ap_info[CONFIG_WIFI_PROV_SCAN_MAX_ENTRIES];
+    memset(ap_info, 0, sizeof(ap_info));
+    uint16_t ap_count = 0;
+
+    wifi_scan_config_t scanConfig = {};
+    // run an active scan, a passive scan doesn't find all networks
+    scanConfig.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+    scanConfig.show_hidden = true;
+
+    esp_wifi_scan_start(&scanConfig, true);
+
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
+
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+    ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
+
+    json jNetworks = json::array({});
+
+    for (int idx = 0; (idx < number) && (idx < ap_count); ++idx)
+    {
+        string ssid = (char *)ap_info[idx].ssid;
+
+        string authMode;
+
+        switch (ap_info[idx].authmode)
+        {
+        case WIFI_AUTH_OPEN:
+            authMode = "Open";
+            break;
+        case WIFI_AUTH_WPA_PSK:
+            authMode = "WPA";
+            break;
+        case WIFI_AUTH_WPA2_PSK:
+            authMode = "WPA2";
+            break;
+        case WIFI_AUTH_WPA_WPA2_PSK:
+            authMode = "WPA/WPA2";
+            break;
+        case WIFI_AUTH_WPA3_PSK:
+            authMode = "WPA3";
+            break;
+        case WIFI_AUTH_WPA2_WPA3_PSK:
+            authMode = "WPA2/WPA3";
+            break;
+        default:
+            authMode = "Unsupported";
+            break;
+        }
+
+        ESP_LOGI(TAG, "SSID: %s, RSSI: %d, Channel:%d, AuthMode:%s", ssid.c_str(), ap_info[idx].rssi, ap_info[idx].primary, authMode.c_str());
+
+        json jNetwork;
+        jNetwork["ssid"] = ssid;
+        jNetwork["rssi"] = ap_info[idx].rssi;
+        jNetwork["channel"] = ap_info[idx].primary;
+        jNetwork["authMode"] = authMode;
+        jNetworks.push_back(jNetwork);
+    }
+
+    return jNetworks;
 }
 
 json WiFiConnect::GetSettingsJson()
@@ -266,6 +338,7 @@ json WiFiConnect::GetSettingsJson()
     jWifiSettings["ssid"] = this->ssid;
     jWifiSettings["password"] = this->password;
     jWifiSettings["enableAP"] = this->enableAP;
+    jWifiSettings["maxPower"] = this->maxWifiPower;
 
     return jWifiSettings;
 }
@@ -285,6 +358,11 @@ void WiFiConnect::SaveSettingsJson(json config)
     if (!config["enableAP"].is_null() && config["enableAP"].is_boolean())
     {
         this->enableAP = config["enableAP"];
+    }
+
+    if (!config["maxPower"].is_null() && config["maxPower"].is_number())
+    {
+        this->maxWifiPower = config["maxPower"];
     }
 
     this->saveSettings();
