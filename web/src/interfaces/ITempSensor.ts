@@ -2,8 +2,10 @@ export interface ITempSensor {
   id: string; // js doesn't support uint64_t, so we convert to string
   color: string;
   name: string;
-  enabled: boolean;
+  show: boolean;
+  useForControl: boolean;
   connected: boolean;
-  offset: number;
+  compensateAbsolute: number;
+  compensateRelative: number;
   lastTemp: number;
 }

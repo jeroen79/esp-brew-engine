@@ -332,9 +332,17 @@ void BrewEngine::saveTempSensorSettings(json jTempSensors)
 {
 	ESP_LOGI(TAG, "Saving Temp Sensor Settings");
 
-	// update running data
-	// keep running loop ok?, or do we need to stop it?
+	if (!jTempSensors.is_array())
+	{
+		ESP_LOGW(TAG, "Temp settings must be an array!");
+		return;
+	}
 
+	// we need to temp stop our temp read loop while we change the sensor data
+	this->skipTempLoop = true;
+	vTaskDelay(pdMS_TO_TICKS(2000));
+
+	// update running data
 	for (auto &el : jTempSensors.items())
 	{
 		auto jSensor = el.value();
@@ -352,25 +360,43 @@ void BrewEngine::saveTempSensorSettings(json jTempSensors)
 		}
 		else
 		{
-			ESP_LOGI(TAG, "update it %llu", sensorId);
+			ESP_LOGI(TAG, "Updating Sensor %llu", sensorId);
 			// update it
 			TemperatureSensor *sensor = it->second;
 			sensor->name = jSensor["name"];
 			sensor->color = jSensor["color"];
 
-			if (!jSensor["enabled"].is_null() && jSensor["enabled"].is_boolean())
+			if (!jSensor["useForControl"].is_null() && jSensor["useForControl"].is_boolean())
 			{
-				sensor->enabled = jSensor["enabled"];
+				sensor->useForControl = jSensor["useForControl"];
 			}
 
-			if (!jSensor["offset"].is_null() && jSensor["offset"].is_number())
+			if (!jSensor["show"].is_null() && jSensor["show"].is_boolean())
 			{
-				sensor->offset = (float)jSensor["offset"];
+				sensor->show = jSensor["show"];
+
+				if (!sensor->show)
+				{
+					// when show is disabled we also remove it from current, so it doesn't showup anymore
+					this->currentTemperatures.erase(sensorId);
+				}
+			}
+
+			if (!jSensor["compensateAbsolute"].is_null() && jSensor["compensateAbsolute"].is_number())
+			{
+				sensor->compensateAbsolute = (float)jSensor["compensateAbsolute"];
+			}
+
+			if (!jSensor["compensateRelative"].is_null() && jSensor["compensateRelative"].is_number())
+			{
+				sensor->compensateRelative = (float)jSensor["compensateRelative"];
 			}
 		}
 	}
 
 	// We also need to delete sensors that are no longer in the list
+	vector<uint64_t> sensorsToDelete;
+
 	for (auto const &[key, sensor] : this->sensors)
 	{
 		uint64_t sensorId = sensor->id;
@@ -383,9 +409,16 @@ void BrewEngine::saveTempSensorSettings(json jTempSensors)
 		// remove it
 		if (foundSensor == jTempSensors.end())
 		{
-			ESP_LOGI(TAG, "Erasing sensor %llu", sensorId);
-			this->sensors.erase(sensorId);
+			ESP_LOGI(TAG, "Erasing Sensor %llu", sensorId);
+			sensorsToDelete.push_back(sensorId);
+			this->currentTemperatures.erase(sensorId);
 		}
+	}
+
+	// erase in second loop, we can't mutate wile in auto loop (c++ limitation atm)
+	for (auto &sensorId : sensorsToDelete)
+	{
+		this->sensors.erase(sensorId);
 	}
 
 	// // Convert sensors to json and save to nvram
@@ -401,6 +434,9 @@ void BrewEngine::saveTempSensorSettings(json jTempSensors)
 	vector<uint8_t> serialized = json::to_msgpack(jSensors);
 
 	this->settingsManager->Write("tempsensors", serialized);
+
+	// continue our temp loop
+	this->skipTempLoop = false;
 
 	ESP_LOGI(TAG, "Saving Temp Sensor Settings Done");
 }
@@ -461,6 +497,10 @@ void BrewEngine::initOneWire()
 void BrewEngine::detectOnewireTemperatureSensors()
 {
 
+	// we need to temp stop our temp read loop while we change the sensor data
+	this->skipTempLoop = true;
+	vTaskDelay(pdMS_TO_TICKS(2000));
+
 	// sensors are already loaded via json settings, but we need to add handles and status
 	onewire_device_iter_handle_t iter = NULL;
 	esp_err_t search_result = ESP_OK;
@@ -507,9 +547,11 @@ void BrewEngine::detectOnewireTemperatureSensors()
 					sensor->id = sensorId;
 					sensor->name = to_string(sensorId);
 					sensor->color = "#ffffff";
-					sensor->enabled = true;
+					sensor->useForControl = true;
+					sensor->show = true;
 					sensor->connected = true;
-					sensor->offset = 0;
+					sensor->compensateAbsolute = 0;
+					sensor->compensateRelative = 1;
 					sensor->handle = newHandle;
 					this->sensors.insert_or_assign(sensor->id, sensor);
 				}
@@ -534,6 +576,8 @@ void BrewEngine::detectOnewireTemperatureSensors()
 
 	ESP_ERROR_CHECK(onewire_del_device_iter(iter));
 	ESP_LOGI(TAG, "Searching done, %d DS18B20 device(s) found", this->sensors.size());
+
+	this->skipTempLoop = false;
 }
 
 void BrewEngine::start()
@@ -839,10 +883,16 @@ void BrewEngine::readLoop(void *arg)
 
 	while (instance->run)
 	{
+		vTaskDelay(pdMS_TO_TICKS(1000));
+
+		// When we are changing temp settings we temporarily need to skip our temp loop
+		if (instance->skipTempLoop)
+		{
+			continue;
+		}
+
 		int nrOfSensors = 0;
 		float sum = 0.0;
-
-		vTaskDelay(pdMS_TO_TICKS(1000));
 
 		for (auto &[key, sensor] : instance->sensors)
 		{
@@ -850,8 +900,8 @@ void BrewEngine::readLoop(void *arg)
 			ds18b20_device_handle_t handle = sensor->handle;
 			string stringId = std::to_string(key);
 
-			// not enabled or connected, continue
-			if (!sensor->enabled || !sensor->handle || !sensor->connected)
+			// not useForControl or connected, continue
+			if (!sensor->handle || !sensor->connected)
 			{
 				continue;
 			}
@@ -880,13 +930,29 @@ void BrewEngine::readLoop(void *arg)
 
 			ESP_LOGD(TAG, "temperature read from [%s]: %.2fC", stringId.c_str(), temperature);
 
-			// todo compensate
+			// apply compensation
+			if (sensor->compensateAbsolute != 0)
+			{
+				temperature = temperature + sensor->compensateAbsolute;
+			}
+			if (sensor->compensateRelative != 0 && sensor->compensateRelative != 1)
+			{
+				temperature = temperature * sensor->compensateRelative;
+			}
+
+			if (sensor->useForControl)
+			{
+				sum += temperature;
+				nrOfSensors++;
+			}
+
 			sensor->lastTemp = temperature;
-			sum += temperature;
-			nrOfSensors++;
 
 			// we also add our temps to a map individualy, might be nice to see bottom and top temp in gui
-			instance->currentTemperatures.insert_or_assign(key, sensor->lastTemp);
+			if (sensor->show)
+			{
+				instance->currentTemperatures.insert_or_assign(key, sensor->lastTemp);
+			}
 		}
 
 		float avg = sum / nrOfSensors;
@@ -1271,17 +1337,14 @@ string BrewEngine::processCommand(string payLoad)
 			}
 		}
 
-		// when we have more then 1 sensor also send all current values
+		// currenttemps is an array of current temps, they are not necessarily all used for control
 		json jCurrentTemps = json::array({});
-		if (this->currentTemperatures.size() > 1)
+		for (auto const &[key, val] : this->currentTemperatures)
 		{
-			for (auto const &[key, val] : this->currentTemperatures)
-			{
-				json jCurrentTemp;
-				jCurrentTemp["sensor"] = key;
-				jCurrentTemp["temp"] = (double)((int)(val * 10)) / 10; // round float to 1 digit for display
-				jCurrentTemps.push_back(jCurrentTemp);
-			}
+			json jCurrentTemp;
+			jCurrentTemp["sensor"] = to_string(key);			   // js doesn't support unint64
+			jCurrentTemp["temp"] = (double)((int)(val * 10)) / 10; // round float to 1 digit for display
+			jCurrentTemps.push_back(jCurrentTemp);
 		}
 
 		resultData = {
@@ -1460,6 +1523,10 @@ string BrewEngine::processCommand(string payLoad)
 	else if (command == "SaveTempSettings")
 	{
 		this->saveTempSensorSettings(data);
+	}
+	else if (command == "DetectTempSensors")
+	{
+		this->detectOnewireTemperatureSensors();
 	}
 	else if (command == "GetWifiSettings")
 	{

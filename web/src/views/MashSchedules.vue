@@ -172,7 +172,7 @@ const deleteSchedule = async () => {
 </script>
 
 <template>
-  <v-container class="spacing-playground pa-6" fluid>
+  <v-container class="pa-6" fluid>
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-col cols="3" md="3">
@@ -202,7 +202,7 @@ const deleteSchedule = async () => {
             <v-toolbar density="compact">
               <v-toolbar-title>Mash Schedule</v-toolbar-title>
               <v-spacer />
-              <v-btn color="secondary" variant="outlined" @click="newItem()">
+              <v-btn color="secondary" variant="outlined" class="mr-5" @click="newItem()">
                 New Item
               </v-btn>
 

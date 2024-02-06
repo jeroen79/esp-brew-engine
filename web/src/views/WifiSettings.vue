@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <v-container class="spacing-playground pa-6" fluid>
+  <v-container class="pa-6" fluid>
     <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
 
@@ -190,7 +190,7 @@ onBeforeUnmount(() => {
                 <v-toolbar density="compact">
                   <v-toolbar-title>Found Networks</v-toolbar-title>
                   <v-spacer />
-                  <v-btn color="secondary" variant="outlined" @click="scanForNetworks()">
+                  <v-btn color="secondary" variant="outlined" class="mr-5" @click="scanForNetworks()">
                     Scan
                   </v-btn>
 

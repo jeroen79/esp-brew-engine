@@ -110,7 +110,8 @@ private:
 
     // execution
     bool run = false;
-    bool controlRun = false; // true when a program is running
+    bool controlRun = false;   // true when a program is running
+    bool skipTempLoop = false; // When we are changing temp settings we temporarily need to skip our temp loop
 
     bool inOverTime = false; // when a step time isn't reached we go in overtime, we need this to know that we need recalcualtion
     string statusText = "Idle";

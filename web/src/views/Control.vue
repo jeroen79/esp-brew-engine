@@ -40,8 +40,8 @@ const currentTemps = ref<Array<ITempLog>>([]);
 
 const startDateTime = ref<number>();
 
-const stirInterval = ref<Array<number>>([0, 5]);
-const stirMax = ref<number>(10);
+const stirInterval = ref<Array<number>>([0, 3]);
+const stirMax = ref<number>(6);
 
 const dynamicColor = () => {
   const r = Math.floor(Math.random() * 255);
@@ -111,7 +111,7 @@ const chartData = computed(() => {
 
   let datasets = [
     {
-      label: 'Avg °C',
+      label: 'Control/Avg °C',
       backgroundColor: 'rgba(255, 255, 255, 0.7)',
       borderColor: 'rgba(255, 255, 255, 0.9)',
       lineTension: 0,
@@ -226,7 +226,7 @@ const getData = async () => {
   // if there are more then 1 sensor we also get the raw data per sensor (whitout history)
   const timestampSeconds = Math.floor(Date.now() / 1000);
 
-  if (apiResult.data.temps !== null && apiResult.data.temps.length > 1) {
+  if (apiResult.data.temps !== null) {
     apiResult.data.temps.forEach((t:any) => {
       // find record in templog and add
       const foundRecord = currentTemps.value.find((ct:any) => ct.sensor === t.sensor);

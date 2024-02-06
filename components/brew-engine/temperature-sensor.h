@@ -12,9 +12,11 @@ public:
     uint64_t id;
     string name;
     string color;
-    bool enabled;
+    bool show;
+    bool useForControl;
     bool connected;
-    float offset;
+    float compensateAbsolute;
+    float compensateRelative;
     float lastTemp;
     ds18b20_device_handle_t handle;
 
@@ -24,9 +26,11 @@ public:
         jSensor["id"] = to_string(this->id); // js doesn't support uint64_t, so we convert to string
         jSensor["name"] = this->name;
         jSensor["color"] = this->color;
-        jSensor["enabled"] = this->enabled;
+        jSensor["show"] = this->show;
+        jSensor["useForControl"] = this->useForControl;
         jSensor["connected"] = this->connected;
-        jSensor["offset"] = this->offset;
+        jSensor["compensateAbsolute"] = this->compensateAbsolute;
+        jSensor["compensateRelative"] = this->compensateRelative;
         jSensor["lastTemp"] = (double)((int)(this->lastTemp * 10)) / 10; // round float to 0.1 for display
 
         return jSensor;
@@ -41,23 +45,42 @@ public:
         this->name = (string)jsonData["name"];
         this->color = (string)jsonData["color"];
 
-        if (!jsonData["enabled"].is_null() && jsonData["enabled"].is_boolean())
+        if (!jsonData["show"].is_null() && jsonData["show"].is_boolean())
         {
-            this->enabled = jsonData["enabled"];
+            this->show = jsonData["show"];
         }
         else
         {
-            this->enabled = true;
+            this->show = true;
         }
 
-        if (!jsonData["offset"].is_null() && jsonData["offset"].is_number_float())
+        if (!jsonData["useForControl"].is_null() && jsonData["useForControl"].is_boolean())
         {
-            this->offset = (float)jsonData["offset"];
+            this->useForControl = jsonData["useForControl"];
         }
         else
         {
-            this->offset = 0;
+            this->useForControl = true;
         }
+
+        if (!jsonData["compensateAbsolute"].is_null() && jsonData["compensateAbsolute"].is_number_float())
+        {
+            this->compensateAbsolute = (float)jsonData["compensateAbsolute"];
+        }
+        else
+        {
+            this->compensateAbsolute = 0;
+        }
+
+        if (!jsonData["compensateRelative"].is_null() && jsonData["compensateRelative"].is_number_float())
+        {
+            this->compensateRelative = (float)jsonData["compensateRelative"];
+        }
+        else
+        {
+            this->compensateRelative = 1;
+        }
+
         // will be set by detection
         this->connected = false;
     };
