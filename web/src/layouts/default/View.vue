@@ -19,6 +19,12 @@ const linksSettings = ref([
   [mdiWrenchCogOutline, 'System Settings', 'systemSettings'],
 ]);
 
+const version = ref<string>(import.meta.env.VITE_APP_VERSION);
+
+if (import.meta.env.MODE === 'development') {
+  version.value = `${import.meta.env.VITE_APP_VERSION}_dev`;
+}
+
 </script>
 
 <template>
@@ -27,6 +33,7 @@ const linksSettings = ref([
       <v-app-bar-nav-icon @click="drawer = !drawer" />
       <v-toolbar-title>ESP Brew Engine</v-toolbar-title>
       <v-spacer />
+      <h5 class="mr-10">Version: {{version}}</h5>
     </v-app-bar>
 
     <v-navigation-drawer v-model="drawer">

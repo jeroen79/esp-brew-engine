@@ -25,9 +25,12 @@ registerPlugins(app);
 
 app.use(pinia);
 
-const rootUrl = `${window.location.origin}/`;
-// temp swap for development
-// const rootUrl = 'http://brewengine/';
+let rootUrl = `${window.location.origin}/`;
+
+// swap for development, so we can run localy but send api to brewengine
+if (import.meta.env.MODE === 'development') {
+  rootUrl = 'http://brewengine/';
+}
 
 const webConn = new WebConn(rootUrl);
 app.provide('webConn', webConn);

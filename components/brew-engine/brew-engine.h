@@ -34,6 +34,7 @@
 
 #include "mash-schedule.h"
 #include "execution-step.h"
+#include "temperature-sensor.h"
 
 #include "settings-manager.h"
 
@@ -57,6 +58,8 @@ private:
     static void stirLoop(void *arg);
     static void reboot(void *arg);
 
+    void readTempSensorSettings();
+    void detectOnewireTemperatureSensors();
     void initOneWire();
     void initMqtt();
     void readSystemSettings();
@@ -70,7 +73,7 @@ private:
     void recalculateScheduleAfterOverTime();
     void stop();
     void logRemote(string message);
-    json readTempSensorSettings();
+
     void saveTempSensorSettings(json data);
     void startStir(json stirConfig);
     void stopStir();
@@ -91,14 +94,14 @@ private:
     SettingsManager *settingsManager;
     httpd_handle_t server;
 
-    float temperature = 0;                       // average temp
-    float targetTemperature = 0;                 // reuqueste temp
-    std::map<string, float> currentTemperatures; // map with last temp for each sensor
-    std::map<time_t, int> tempLog;               // integer log of averages
+    float temperature = 0;                         // average temp, we use float beceasue ds18b20_get_temperature returns float, no point in going more percise
+    float targetTemperature = 0;                   // reuqueste temp
+    std::map<uint64_t, float> currentTemperatures; // map with last temp for each sensor
+    std::map<time_t, int8_t> tempLog;              // integer log of averages, only used to show running history on web
 
     // pid
     uint8_t pidOutput = 0;
-    std::optional<int> manualOverrideOutput = std::nullopt;
+    std::optional<int8_t> manualOverrideOutput = std::nullopt;
     double kP = 10;
     double kI = 1;
     double kD = 10;
@@ -107,7 +110,8 @@ private:
 
     // execution
     bool run = false;
-    bool controlRun = false; // true when a program is running
+    bool controlRun = false;   // true when a program is running
+    bool skipTempLoop = false; // When we are changing temp settings we temporarily need to skip our temp loop
 
     bool inOverTime = false; // when a step time isn't reached we go in overtime, we need this to know that we need recalcualtion
     string statusText = "Idle";
@@ -151,7 +155,7 @@ private:
 
     // one wire
     onewire_bus_handle_t obh;
-    std::map<uint64_t, ds18b20_device_handle_t> sensors; // map with sensor id and handle
+    std::map<uint64_t, TemperatureSensor *> sensors; // map with sensor id and handle
 
 public:
     BrewEngine(SettingsManager *settingsManager); // constructor

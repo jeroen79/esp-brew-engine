@@ -198,7 +198,6 @@ To quit Ctrl-T Ctrl-X.
 
 ## Planned Features (possible)
 
-- Abbility to disable/ignore temp sensors.
 - Dns server so when in AP mode the resolving the hostname works.
 - Make pidLoopTime configurable.
 - Separate Pump controls? or is current functionality sufficient?
