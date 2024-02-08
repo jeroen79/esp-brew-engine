@@ -42,6 +42,12 @@
 
 #define ONEWIRE_MAX_DS18B20 10
 
+enum TemperatureScale
+{
+    Celsius = 0,
+    Fahrenheit = 1
+};
+
 using namespace std;
 using namespace std::chrono;
 using std::cout;
@@ -94,6 +100,7 @@ private:
     SettingsManager *settingsManager;
     httpd_handle_t server;
 
+    TemperatureScale temperatureScale = Celsius;
     float temperature = 0;                         // average temp, we use float beceasue ds18b20_get_temperature returns float, no point in going more percise
     float targetTemperature = 0;                   // reuqueste temp
     std::map<uint64_t, float> currentTemperatures; // map with last temp for each sensor

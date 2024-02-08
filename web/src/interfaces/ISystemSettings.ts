@@ -1,3 +1,5 @@
+import TemperatureScale from '@/enums/TemperatureScale';
+
 export interface ISystemSettings {
   onewirePin: number;
   heat1Pin: number;
@@ -5,4 +7,5 @@ export interface ISystemSettings {
   stirPin: number;
   invertOutputs: boolean;
   mqttUri: string;
+  temperatureScale: TemperatureScale;
 }

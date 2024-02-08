@@ -67,4 +67,18 @@ menu "BrewEngine Config"
         default n
         help
             Invert the output direction Low/High
+
+    choice
+        prompt "Default Temperature Scale"
+        config SCALE_CELCIUS
+            bool "Celcius"
+        config SCALE_FAHRENHEIT
+            bool "Fahrenheit"
+    endchoice
+
+    config TEMPERATURE_SCALE
+        int
+        default 0
+        default 0 if SCALE_CELCIUS
+        default 1 if SCALE_FAHRENHEIT
 endmenu

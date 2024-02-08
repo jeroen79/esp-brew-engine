@@ -1,17 +1,21 @@
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, watch, inject, computed } from 'vue';
-import debounce from 'lodash.debounce';
-import { Line } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, LinearScale, LineElement, PointElement, CategoryScale, TimeScale, Filler } from 'chart.js';
-import 'chartjs-adapter-dayjs-4';
+import { CategoryScale, Chart as ChartJS, Filler, Legend, LineElement, LinearScale, PointElement, TimeScale, Title, Tooltip } from 'chart.js';
+import TemperatureScale from '@/enums/TemperatureScale';
 import WebConn from '@/helpers/webConn';
 import { IDataPacket } from '@/interfaces/IDataPacket';
-import { IMashSchedule } from '@/interfaces/IMashSchedule';
 import { IExecutionStep } from '@/interfaces/IExecutionStep';
+import { IMashSchedule } from '@/interfaces/IMashSchedule';
 import { ITempLog } from '@/interfaces/ITempLog';
 import { ITempSensor } from '@/interfaces/ITempSensor';
+import { useAppStore } from '@/store/app';
+import 'chartjs-adapter-dayjs-4';
+import debounce from 'lodash.debounce';
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { Line } from 'vue-chartjs';
 
 const webConn = inject<WebConn>('webConn');
+
+const appStore = useAppStore();
 
 const status = ref<string>();
 const stirStatus = ref<string>();
@@ -111,7 +115,7 @@ const chartData = computed(() => {
 
   let datasets = [
     {
-      label: 'Control/Avg °C',
+      label: `Control/Avg ${appStore.tempUnit}`,
       backgroundColor: 'rgba(255, 255, 255, 0.7)',
       borderColor: 'rgba(255, 255, 255, 0.9)',
       lineTension: 0,
@@ -121,7 +125,7 @@ const chartData = computed(() => {
       data: realData,
     },
     {
-      label: 'Target °C',
+      label: `Target ${appStore.tempUnit}`,
       backgroundColor: 'rgba(0, 158, 85, 0.3)',
       borderColor: 'rgba(0, 158, 85, 0.9)',
       lineTension: 0,
@@ -380,6 +384,15 @@ watch(() => targetTemperatureSet.value, debounceTargetTemp);
 
 const initChart = () => {
   ChartJS.register(Title, Tooltip, Legend, PointElement, LineElement, TimeScale, LinearScale, CategoryScale, Filler);
+
+  let suggestedMin = 60;
+  let suggestedMax = 105;
+  // ajust min max when farenheit
+  if (appStore.temperatureScale === TemperatureScale.Fahrenheit) {
+    suggestedMin = 140;
+    suggestedMax = 220;
+  }
+
   chartOptions.value = {
     responsive: true,
     maintainAspectRatio: false,
@@ -413,12 +426,12 @@ const initChart = () => {
       yAxis: {
         title: {
           display: true,
-          text: '°C',
+          text: appStore.tempUnit,
           color: '#ffffff',
         },
         type: 'linear',
-        suggestedMin: 60,
-        suggestedMax: 105,
+        suggestedMin,
+        suggestedMax,
         ticks: {
           color: '#ffffff',
         },
@@ -457,13 +470,13 @@ onBeforeUnmount(() => {
           <v-text-field v-model="status" readonly label="Status" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="temperature" readonly label="Temperature (°C)" />
+          <v-text-field v-model="temperature" readonly :label="`Temperature (${appStore.tempUnit})`" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperature" readonly label="Target (°C)" />
+          <v-text-field v-model="targetTemperature" readonly :label="`Target (${appStore.tempUnit})`" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperatureSet" type="number" label="Set Target (°C)" />
+          <v-text-field v-model="targetTemperatureSet" type="number" :label="`Set Target (${appStore.tempUnit})`" />
         </v-col>
       </v-row>
       <v-row>
