@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, watch, inject, computed, reactive, watchEffect } from 'vue';
+import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import WebConn from '@/helpers/webConn';
 import { IPidSettings } from '@/interfaces/IPidSettings';
 
@@ -9,6 +9,7 @@ const pidSettings = ref<IPidSettings>({ // add default value, vue heeft issues m
   kP: 0,
   kI: 0,
   kD: 0,
+  pidLoopTime: 60,
 });
 
 const getData = async () => {
@@ -38,6 +39,9 @@ const save = async () => {
     return;
   }
 
+  // force looptime to be int
+  pidSettings.value.pidLoopTime = Math.floor(pidSettings.value.pidLoopTime);
+
   const requestData = {
     command: 'SavePIDSettings',
     data: pidSettings.value,
@@ -55,17 +59,22 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model.number="pidSettings.kP" label="P" />
+          <v-text-field type="number" v-model.number="pidSettings.kP" label="P" />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model.number="pidSettings.kI" label="I" />
+          <v-text-field type="number" v-model.number="pidSettings.kI" label="I" />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model.number="pidSettings.kD" label="D" />
+          <v-text-field type="number" v-model.number="pidSettings.kD" label="D" />
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.pidLoopTime" label="PID Loop Time" />
         </v-col>
       </v-row>
       <v-row>

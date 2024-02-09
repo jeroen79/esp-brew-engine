@@ -35,7 +35,7 @@ menu "BrewEngine Config"
             mqtt://user:password@192.168.0.1:1883
             mqtt://user:password@[fd88:ff06:bbf9:0:aaa1:59ff:fe89:4dcf]:1883
             
-    config OneWire
+    config ONEWIRE
         int "OneWire Pin"
         default 17
         help
@@ -75,5 +75,13 @@ menu "BrewEngine Config"
         config SCALE_FAHRENHEIT
             bool "Fahrenheit"
     endchoice
+
+    config PID_LOOPTIME
+        int "PID Looptime"
+        default 60
+        help
+            PID LOOPTIME
+            Default time between pid calc and ajust, since water heating is a slow proccess this works best at 60sec.
+
 
 endmenu

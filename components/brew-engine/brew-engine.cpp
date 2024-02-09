@@ -98,7 +98,7 @@ void BrewEngine::readSystemSettings()
 	ESP_LOGI(TAG, "Reading BrewEngine Settings");
 
 	// io settings
-	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_OneWire);
+	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
 	this->heat1_PIN = (gpio_num_t)this->settingsManager->Read("heat1Pin", (uint16_t)CONFIG_HEAT1);
 	this->heat2_PIN = (gpio_num_t)this->settingsManager->Read("heat2Pin", (uint16_t)CONFIG_HEAT2);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
@@ -206,6 +206,8 @@ void BrewEngine::readSettings()
 	this->kP = (double)pint / 10;
 	this->kI = (double)iint / 10;
 	this->kD = (double)dint / 10;
+
+	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
 }
 
 void BrewEngine::saveMashSchedules()
@@ -239,6 +241,7 @@ void BrewEngine::savePIDSettings()
 	this->settingsManager->Write("kP", pint);
 	this->settingsManager->Write("kI", iint);
 	this->settingsManager->Write("kD", dint);
+	this->settingsManager->Write("pidLoopTime", this->pidLoopTime);
 
 	ESP_LOGI(TAG, "Saving PID Settings Done");
 }
@@ -1519,6 +1522,7 @@ string BrewEngine::processCommand(string payLoad)
 			{"kP", this->kP},
 			{"kI", this->kI},
 			{"kD", this->kD},
+			{"pidLoopTime", this->pidLoopTime},
 		};
 	}
 	else if (command == "SavePIDSettings")
@@ -1526,6 +1530,7 @@ string BrewEngine::processCommand(string payLoad)
 		this->kP = data["kP"].get<double>();
 		this->kI = data["kI"].get<double>();
 		this->kD = data["kD"].get<double>();
+		this->pidLoopTime = data["pidLoopTime"].get<uint16_t>();
 		this->savePIDSettings();
 	}
 	else if (command == "GetTempSettings")

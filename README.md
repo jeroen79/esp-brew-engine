@@ -9,13 +9,13 @@ It is open source and build in c++ using esp-idf RTOS.
 
 ## Features
 
-- Multiple Configurable Maish Schedules
-- Configurable PID control
-- 1 or 2 heater modes
-- Up to 10 One-wire Sensors
-- Automatic Stirring / Pumping Intervals
-- Temperature logging to MQTT
-- OTA Firmware update
+- Multiple Configurable Maish Schedules.
+- Configurable PID control.
+- 1 or 2 heater modes.
+- Up to 10 One-wire Sensors.
+- Automatic Stirring / Pumping Intervals.
+- Temperature logging to MQTT.
+- OTA Firmware update.
 - Ability to enable/disable/detect sensors at runtime.
 - Ability to specift Absolute and Relative Compensation.
 - Support for Celcius and Fahrenheit.
@@ -211,7 +211,6 @@ To quit Ctrl-T Ctrl-X.
 ## Planned Features (possible)
 
 - PWA manifest and basic service worker.
-- Make pidLoopTime configurable.
 - Separate Pump controls? or is current functionality sufficient?
 - Backup and Restore config data.
 - Resume maish from custom timepoint.
