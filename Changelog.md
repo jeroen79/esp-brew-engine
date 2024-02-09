@@ -12,7 +12,7 @@
 - Allow sensors to be disabled/hidden.
 - Show if sensors are connected in sensor settings.
 - Show Temperature in sensor settings.
-- Addded relative and absolute compensation to sensors.
+- Added relative and absolute compensation to sensors.
 - Round to 0.1.
 - Ability to delete unused sensors.
 - Button to rescan for onewire sensors.

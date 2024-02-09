@@ -102,6 +102,7 @@ void BrewEngine::readSystemSettings()
 	this->heat1_PIN = (gpio_num_t)this->settingsManager->Read("heat1Pin", (uint16_t)CONFIG_HEAT1);
 	this->heat2_PIN = (gpio_num_t)this->settingsManager->Read("heat2Pin", (uint16_t)CONFIG_HEAT2);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
+	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
 
 	bool configInvertOutputs = false;
 // is there a cleaner way to do this?, config to bool doesn't seem to work properly
@@ -112,6 +113,14 @@ void BrewEngine::readSystemSettings()
 
 	// mqtt
 	this->mqttUri = this->settingsManager->Read("mqttUri", (string)CONFIG_MQTT_URI);
+
+	// temperature scale
+	uint8_t defaultConfigScale = 0; // default to celcius
+#if defined(CONFIG_SCALE_FAHRENHEIT)
+	defaultConfigScale = Fahrenheit;
+#endif
+
+	this->temperatureScale = (TemperatureScale)this->settingsManager->Read("tempScale", defaultConfigScale);
 
 	ESP_LOGI(TAG, "Reading BrewEngine Settings Done");
 }
@@ -149,6 +158,12 @@ void BrewEngine::saveSystemSettingsJson(json config)
 	{
 		this->settingsManager->Write("mqttUri", (string)config["mqttUri"]);
 		this->mqttUri = config["mqttUri"];
+	}
+	if (!config["temperatureScale"].is_null() && config["temperatureScale"].is_number())
+	{
+		uint8_t scale = (uint8_t)config["temperatureScale"];
+		this->settingsManager->Write("tempScale", scale); // key is limited to x chars so we shorten it
+		this->temperatureScale = (TemperatureScale)config["temperatureScale"];
 	}
 
 	ESP_LOGI(TAG, "Saving System Settings Done");
@@ -237,7 +252,7 @@ void BrewEngine::addDefaultMash()
 	auto defaultMash_s1 = new MashStep();
 	defaultMash_s1->index = 0;
 	defaultMash_s1->name = "Beta Amylase";
-	defaultMash_s1->temperature = 64;
+	defaultMash_s1->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
 	defaultMash_s1->stepTime = 0;
 	defaultMash_s1->extendStepTimeIfNeeded = true;
 	defaultMash_s1->time = 45;
@@ -246,7 +261,7 @@ void BrewEngine::addDefaultMash()
 	auto defaultMash_s2 = new MashStep();
 	defaultMash_s2->index = 1;
 	defaultMash_s2->name = "Alpha Amylase";
-	defaultMash_s2->temperature = 72;
+	defaultMash_s2->temperature = (this->temperatureScale == Celsius) ? 72 : 160;
 	defaultMash_s2->stepTime = 5;
 	defaultMash_s2->extendStepTimeIfNeeded = true;
 	defaultMash_s2->time = 20;
@@ -255,7 +270,7 @@ void BrewEngine::addDefaultMash()
 	auto defaultMash_s3 = new MashStep();
 	defaultMash_s3->index = 2;
 	defaultMash_s3->name = "Mash Out";
-	defaultMash_s3->temperature = 78;
+	defaultMash_s3->temperature = (this->temperatureScale == Celsius) ? 78 : 170;
 	defaultMash_s3->stepTime = 5;
 	defaultMash_s3->extendStepTimeIfNeeded = true;
 	defaultMash_s3->time = 5;
@@ -270,7 +285,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s1 = new MashStep();
 	ryeMash_s1->index = 0;
 	ryeMash_s1->name = "Beta Glucanase";
-	ryeMash_s1->temperature = 43;
+	ryeMash_s1->temperature = (this->temperatureScale == Celsius) ? 43 : 110;
 	ryeMash_s1->stepTime = 0;
 	ryeMash_s1->extendStepTimeIfNeeded = true;
 	ryeMash_s1->time = 20;
@@ -279,7 +294,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s2 = new MashStep();
 	ryeMash_s2->index = 1;
 	ryeMash_s2->name = "Beta Amylase";
-	ryeMash_s2->temperature = 64;
+	ryeMash_s2->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
 	ryeMash_s2->stepTime = 5;
 	ryeMash_s2->extendStepTimeIfNeeded = true;
 	ryeMash_s2->time = 45;
@@ -288,7 +303,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s3 = new MashStep();
 	ryeMash_s3->index = 2;
 	ryeMash_s3->name = "Alpha Amylase";
-	ryeMash_s3->temperature = 72;
+	ryeMash_s3->temperature = (this->temperatureScale == Celsius) ? 72 : 160;
 	ryeMash_s3->stepTime = 5;
 	ryeMash_s3->extendStepTimeIfNeeded = true;
 	ryeMash_s3->time = 20;
@@ -297,7 +312,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s4 = new MashStep();
 	ryeMash_s4->index = 3;
 	ryeMash_s4->name = "Mash Out";
-	ryeMash_s4->temperature = 78;
+	ryeMash_s4->temperature = (this->temperatureScale == Celsius) ? 78 : 170;
 	ryeMash_s4->stepTime = 5;
 	ryeMash_s4->extendStepTimeIfNeeded = true;
 	ryeMash_s4->time = 5;
@@ -928,7 +943,13 @@ void BrewEngine::readLoop(void *arg)
 				continue;
 			};
 
-			ESP_LOGD(TAG, "temperature read from [%s]: %.2fC", stringId.c_str(), temperature);
+			// conversion needed
+			if (instance->temperatureScale == Fahrenheit)
+			{
+				temperature = (temperature * 1.8) + 32;
+			}
+
+			ESP_LOGD(TAG, "temperature read from [%s]: %.2f°", stringId.c_str(), temperature);
 
 			// apply compensation
 			if (sensor->compensateAbsolute != 0)
@@ -957,7 +978,7 @@ void BrewEngine::readLoop(void *arg)
 
 		float avg = sum / nrOfSensors;
 
-		ESP_LOGD(TAG, "Avg Temperature: %.2fC", avg);
+		ESP_LOGD(TAG, "Avg Temperature: %.2f°", avg);
 
 		instance->temperature = avg;
 
@@ -986,7 +1007,7 @@ void BrewEngine::readLoop(void *arg)
 					// System time: number of seconds since 00:00,
 					instance->tempLog.insert(std::make_pair(current_raw_time, (int)avg));
 
-					ESP_LOGI(TAG, "Logging: %dC", (int)avg);
+					ESP_LOGI(TAG, "Logging: %d°", (int)avg);
 				}
 				else
 				{
@@ -1562,12 +1583,17 @@ string BrewEngine::processCommand(string payLoad)
 			{"stirPin", this->stir_PIN},
 			{"invertOutputs", this->invertOutputs},
 			{"mqttUri", this->mqttUri},
+			{"temperatureScale", this->temperatureScale},
 		};
 	}
 	else if (command == "SaveSystemSettings")
 	{
 		this->saveSystemSettingsJson(data);
 		message = "Please restart device for changes to have effect!";
+	}
+	else if (command == "Reboot")
+	{
+		xTaskCreate(&this->reboot, "reboot_task", 1024, this, 5, NULL);
 	}
 	else if (command == "BootIntoRecovery")
 	{

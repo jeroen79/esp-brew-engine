@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, watch, inject, computed, reactive, watchEffect } from 'vue';
 import { mdiHelp } from '@mdi/js';
+import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import WebConn from '@/helpers/webConn';
 import { ISystemSettings } from '@/interfaces/ISystemSettings';
 
@@ -13,9 +13,17 @@ const systemSettings = ref<ISystemSettings>({ // add default value, vue has issu
   stirPin: 0,
   invertOutputs: false,
   mqttUri: '',
+  temperatureScale: 0,
 });
 
+// is same as enum TemperatureScale, but this wel never change, converting enum to options would be wastefull
+const temperatureScales = [
+  { title: 'Celcius', value: 0 },
+  { title: 'Fahrenheit', value: 1 },
+];
+
 const alert = ref<string>('');
+const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
 
 const getData = async () => {
   const requestData = {
@@ -62,6 +70,7 @@ const recovery = async () => {
 
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
+    alertType.value = 'warning';
     alert.value = result?.message;
   }
 
@@ -72,11 +81,34 @@ const recovery = async () => {
   }
 };
 
+const reboot = async () => {
+  const requestData = {
+    command: 'Reboot',
+  };
+
+  const result = await webConn?.doPostRequest(requestData);
+  if (result?.message != null) {
+    alertType.value = 'warning';
+    alert.value = result?.message;
+  }
+
+  if (result?.success) {
+    setTimeout(() => {
+      document.location.href = '/';
+    }, 10000);
+  }
+};
+
+const scaleChanged = () => {
+  alertType.value = 'info';
+  alert.value = 'Mash Schedules are not automaticly converted, please update then manualy!';
+};
+
 </script>
 
 <template>
   <v-container class="spacing-playground pa-6" fluid>
-    <v-alert type="warning" v-if="alert">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
 
       <v-row>
@@ -165,12 +197,24 @@ const recovery = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
+          <v-select label="Temperature Scale" v-model="systemSettings.temperatureScale" :items="temperatureScales" @blur="scaleChanged" />
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="3">
           <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
         </v-col>
       </v-row>
 
       <v-row>
         <v-col cols="12" md="12" />
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="12">
+          <v-btn name="reboot" color="warning" variant="outlined" class="mt-4 mr-2" @click="reboot"> Reboot </v-btn>
+        </v-col>
       </v-row>
 
       <v-row>

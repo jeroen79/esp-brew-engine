@@ -1,7 +1,7 @@
 // Plugins
-import { fileURLToPath, URL } from 'node:url';
-import * as fs from 'fs';
 import vue from '@vitejs/plugin-vue';
+import * as fs from 'fs';
+import { fileURLToPath, URL } from 'node:url';
 import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify';
 
 // Utilities
@@ -60,47 +60,3 @@ export default defineConfig(({ command, mode }) => {
     // },
   };
 });
-
-// // https://vitejs.dev/config/
-// export default defineConfig({
-//   plugins: [
-//     vue({
-//       template: { transformAssetUrls },
-//     }),
-//     // https://github.com/vuetifyjs/vuetify-loader/tree/next/packages/vite-plugin
-//     vuetify({
-//       autoImport: true,
-//       styles: {
-//         configFile: 'src/styles/settings.scss',
-//       },
-//     }),
-//     viteSingleFile(),
-//   ],
-//   define: {
-//     'process.env': { PACKAGE_VERSION: '1.0.5' },
-//   },
-//   resolve: {
-//     alias: {
-//       '@': fileURLToPath(new URL('./src', import.meta.url)),
-//     },
-//     extensions: [
-//       '.js',
-//       '.json',
-//       '.jsx',
-//       '.mjs',
-//       '.ts',
-//       '.tsx',
-//       '.vue',
-//     ],
-//   },
-//   server: {
-//     port: 3000,
-//   },
-//   // build: {
-//   //   rollupOptions: {
-//   //     output: {
-//   //       manualChunks: undefined,
-//   //     },
-//   //   },
-//   // },
-// });

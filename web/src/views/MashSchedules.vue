@@ -1,12 +1,15 @@
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, watch, inject, computed, reactive, watchEffect } from 'vue';
+import { mdiDelete, mdiPencil } from '@mdi/js';
+import { computed, inject, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
 import { VDataTable } from 'vuetify/labs/VDataTable';
-import { mdiPencil, mdiDelete } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { IMashSchedule } from '@/interfaces/IMashSchedule';
 import { IMashStep } from '@/interfaces/IMashStep';
+import { useAppStore } from '@/store/app';
 
 const webConn = inject<WebConn>('webConn');
+
+const appStore = useAppStore();
 
 const mashSchedules = ref<Array<IMashSchedule>>([]);
 const dialog = ref<boolean>(false);
@@ -31,7 +34,7 @@ const tableItemsPerPage = ref<number>(50);
 const tableHeaders = ref<Array<any>>([
   { title: 'Index', key: 'index', align: 'start' },
   { title: 'Name', key: 'name', align: 'start' },
-  { title: 'Temperature °C', key: 'temperature', align: 'end' },
+  { title: `Temperature ${appStore.tempUnit}`, key: 'temperature', align: 'end' },
   { title: 'Step Time (min)', key: 'stepTime', align: 'end' },
   { title: 'Extend Step Time if Needed', key: 'extendStepTimeIfNeeded', align: 'end' },
   { title: 'Hold Time (min)', key: 'time', align: 'end' },
@@ -221,7 +224,7 @@ const deleteSchedule = async () => {
                         <v-text-field v-model="editedItem.name" label="Name" />
                       </v-row>
                       <v-row>
-                        <v-text-field type="number" v-model.number="editedItem.temperature" label="Temperature °C" />
+                        <v-text-field type="number" v-model.number="editedItem.temperature" :label="`Temperature ${appStore.tempUnit}`" />
                       </v-row>
                       <v-row>
                         <v-text-field type="number" v-model.number="editedItem.stepTime" label="Step Time (min)" />
