@@ -1600,6 +1600,12 @@ string BrewEngine::processCommand(string payLoad)
 	{
 		xTaskCreate(&this->reboot, "reboot_task", 1024, this, 5, NULL);
 	}
+	else if (command == "FactoryReset")
+	{
+		this->FactoryReset();
+		message = "Device will restart shortly, reconnect to factory wifi settings to continue!";
+		xTaskCreate(&this->reboot, "reboot_task", 1024, this, 5, NULL);
+	}
 	else if (command == "BootIntoRecovery")
 	{
 		message = this->bootIntoRecovery();

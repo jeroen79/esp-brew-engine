@@ -49,6 +49,8 @@ extern "C" void app_main(void)
         settingsManager = new SettingsManager();
         settingsManager->Init();
 
+        auto fpFactoryReset = std::bind(&SettingsManager::FactoryReset, settingsManager);
+
         // WifiConnect is a helper that connects to wifi or starts a wifi ap
         wifiConnector = new WiFiConnect(settingsManager);
         wifiConnector->Connect();
@@ -64,6 +66,7 @@ extern "C" void app_main(void)
         brewEngine->GetWifiSettingsJson = fpGetSettingsJson;
         brewEngine->SaveWifiSettingsJson = fpSaveSettingsJson;
         brewEngine->ScanWifiJson = fpScanJson;
+        brewEngine->FactoryReset = fpFactoryReset; // we put this in the settingsmanager, since it is responsable for all settings
         brewEngine->Init();
 
         ESP_LOGI(TAG, "BrewEngine booted");

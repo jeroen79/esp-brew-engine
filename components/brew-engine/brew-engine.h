@@ -63,6 +63,7 @@ private:
     static void controlLoop(void *arg);
     static void stirLoop(void *arg);
     static void reboot(void *arg);
+    static void factoryReset(void *arg);
 
     void readTempSensorSettings();
     void detectOnewireTemperatureSensors();
@@ -174,6 +175,7 @@ public:
     std::function<json()> GetWifiSettingsJson;
     std::function<void(json)> SaveWifiSettingsJson;
     std::function<json()> ScanWifiJson;
+    std::function<void()> FactoryReset;
 };
 
 #endif /* MAIN_BrewEngine_H_ */

@@ -2,9 +2,9 @@
 # Version 1.2.0
 - Support for Celcius and Fahrenheit.
 - PID loopt time is now configurable.
+- Factory Reset button in system settings.
 
 # Version 1.1.0
-
 - Add ability to scan for wifi networks.
 - Make it more clear that wifi is is AP mode or Station.
 - Add ability to Change max power.

@@ -35,6 +35,17 @@ void SettingsManager::Init()
     ESP_ERROR_CHECK(nvs_open(this->Namespace.c_str(), NVS_READWRITE, this->nvsHandle));
 }
 
+void SettingsManager::FactoryReset()
+{
+    // Reset NVS
+    ESP_LOGI(TAG, "FactoryReset: Start");
+
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ESP_ERROR_CHECK(nvs_flash_init());
+
+    ESP_LOGI(TAG, "FactoryReset: Done");
+}
+
 // maby an option for the future, atm it just seems to make it more complex
 // template <typename T>
 // T *SettingsManager::Read(string name, T *defaultValue)

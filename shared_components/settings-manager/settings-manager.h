@@ -28,6 +28,7 @@ private:
 public:
     SettingsManager(); // constructor
     void Init();
+    void FactoryReset();
 
     // maby an option for the future, atm it just seems to make it more complex
     // template <typename T>

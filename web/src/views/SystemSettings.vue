@@ -25,6 +25,8 @@ const temperatureScales = [
 const alert = ref<string>('');
 const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
 
+const dialogFactoryReset = ref<boolean>(false);
+
 const getData = async () => {
   const requestData = {
     command: 'GetSystemSettings',
@@ -85,6 +87,26 @@ const reboot = async () => {
   const requestData = {
     command: 'Reboot',
   };
+
+  const result = await webConn?.doPostRequest(requestData);
+  if (result?.message != null) {
+    alertType.value = 'warning';
+    alert.value = result?.message;
+  }
+
+  if (result?.success) {
+    setTimeout(() => {
+      document.location.href = '/';
+    }, 10000);
+  }
+};
+
+const factoryReset = async () => {
+  const requestData = {
+    command: 'FactoryReset',
+  };
+
+  dialogFactoryReset.value = false;
 
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
@@ -212,8 +234,24 @@ const scaleChanged = () => {
       </v-row>
 
       <v-row>
-        <v-col cols="12" md="12">
+        <v-col cols="3" md="3">
           <v-btn name="reboot" color="warning" variant="outlined" class="mt-4 mr-2" @click="reboot"> Reboot </v-btn>
+        </v-col>
+        <v-col cols="3" md="3">
+          <v-btn name="factoryreset" color="error" variant="outlined" class="mt-4 mr-2" @click="dialogFactoryReset = true"> Factory Reset </v-btn>
+
+          <v-dialog v-model="dialogFactoryReset" max-width="500px">
+            <v-card>
+              <v-card-title class="text-h5">Are you sure?</v-card-title>
+              <v-card-text>Are you sure you want te reset all device settings? <br /> This will also include wifi settings, you will have to reconnect!</v-card-text>
+              <v-card-actions>
+                <v-spacer />
+                <v-btn variant="outlined" @click="dialogFactoryReset = false">No</v-btn>
+                <v-btn variant="outlined" color="red" @click="factoryReset">Yes Wipe All Data</v-btn>
+                <v-spacer />
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
         </v-col>
       </v-row>
 
