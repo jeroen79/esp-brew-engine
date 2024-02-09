@@ -56,3 +56,14 @@ esptool.py --chip $target merge_bin \
   0x40000 loader/build/esp-brew-engine-loader.bin \
   0x35000 loader/build/ota_data_initial.bin
 
+# Combine LoaderFull Release to make it flashable with gui and web, with custom ota boot data to boot ota0
+esptool.py --chip $target merge_bin \
+  -o release/esp-brew-engine-full_${target}_${version_file}.bin \
+  --flash_mode dio \
+  --flash_freq 40m \
+  --flash_size 4MB \
+  0x1000 loader/build/bootloader/bootloader.bin \
+  0x8000 loader/build/partition_table/partition-table.bin \
+  0x40000 loader/build/esp-brew-engine-loader.bin \
+  0x35000 misc/ota_boot_ota0.bin \
+  0x110000 build/esp-brew-engine.bin
