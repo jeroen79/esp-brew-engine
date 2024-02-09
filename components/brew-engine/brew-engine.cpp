@@ -114,7 +114,13 @@ void BrewEngine::readSystemSettings()
 	// mqtt
 	this->mqttUri = this->settingsManager->Read("mqttUri", (string)CONFIG_MQTT_URI);
 
-	this->temperatureScale = (TemperatureScale)this->settingsManager->Read("tempScale", (uint8_t)CONFIG_TEMPERATURE_SCALE);
+	// temperature scale
+	uint8_t defaultConfigScale = 0; // default to celcius
+#if defined(CONFIG_SCALE_FAHRENHEIT)
+	defaultConfigScale = Fahrenheit;
+#endif
+
+	this->temperatureScale = (TemperatureScale)this->settingsManager->Read("tempScale", defaultConfigScale);
 
 	ESP_LOGI(TAG, "Reading BrewEngine Settings Done");
 }

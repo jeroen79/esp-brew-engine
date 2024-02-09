@@ -76,9 +76,4 @@ menu "BrewEngine Config"
             bool "Fahrenheit"
     endchoice
 
-    config TEMPERATURE_SCALE
-        int
-        default 0
-        default 0 if SCALE_CELCIUS
-        default 1 if SCALE_FAHRENHEIT
 endmenu
