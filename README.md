@@ -211,7 +211,6 @@ To quit Ctrl-T Ctrl-X.
 ## Planned Features (possible)
 
 - PWA manifest and basic service worker.
-- Separate Pump controls? or is current functionality sufficient?
 - Backup and Restore config data.
 - Resume maish from custom timepoint.
 - Loading MaishSchedule from beer xml?, or online apps. (brewfather?)

@@ -61,6 +61,21 @@ esp_err_t appHandler(httpd_req_t *req)
   return ESP_FAIL;
 }
 
+esp_err_t resetHandler(httpd_req_t *req)
+{
+  ESP_LOGI(TAG, "Resetting NVS");
+
+  settingsManager->FactoryReset();
+
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+  ESP_LOGI(TAG, "Rebooting");
+
+  esp_restart();
+
+  return ESP_OK;
+}
+
 esp_err_t flashHandler(httpd_req_t *req)
 {
   ESP_LOGI(TAG, "Receiving Flash");
@@ -163,6 +178,11 @@ httpd_handle_t startWebserver(void)
   appUri.method = HTTP_POST;
   appUri.handler = appHandler;
 
+  httpd_uri_t resetUri;
+  resetUri.uri = "/reset";
+  resetUri.method = HTTP_POST;
+  resetUri.handler = resetHandler;
+
   httpd_handle_t server = NULL;
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   // whiout this the esp crashed whitout a proper warning
@@ -176,6 +196,7 @@ httpd_handle_t startWebserver(void)
     httpd_register_uri_handler(server, &indexUri);
     httpd_register_uri_handler(server, &flashUri);
     httpd_register_uri_handler(server, &appUri);
+    httpd_register_uri_handler(server, &resetUri);
     return server;
   }
 

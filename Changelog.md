@@ -3,6 +3,8 @@
 - Support for Celcius and Fahrenheit.
 - PID loopt time is now configurable.
 - Factory Reset button in system settings.
+- Nicer recovery page.
+- Factory Reset button in recovery page.
 
 # Version 1.1.0
 - Add ability to scan for wifi networks.
@@ -22,7 +24,6 @@
 - Button to rescan for onewire sensors.
 
 # Upgrade Instructions 1.1.0
-
 - Temperature sensor settings have been significantly changed, so it is recommended to do a flash_erase and reflash
 
 ```bash
@@ -33,7 +34,6 @@ idf.py flash_erase
 
 
 # Version 1.0.0
-
 - Multiple Configurable Maish Schedules
 - Configurable PID control
 - 1 or 2 heater modes
