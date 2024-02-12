@@ -1,12 +1,12 @@
 {
   "name": "Esp-Brew-Engine",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --fix --ignore-path .gitignore"
+    "lint": "eslint . --fix --ignore-path .gitignore",
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@mdi/js": "^7.2.96",

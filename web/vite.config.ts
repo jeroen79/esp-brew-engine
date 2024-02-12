@@ -1,4 +1,5 @@
 // Plugins
+// eslint-disable-next-line import/order
 import vue from '@vitejs/plugin-vue';
 import * as fs from 'fs';
 import { fileURLToPath, URL } from 'node:url';
@@ -22,7 +23,6 @@ export default defineConfig(({ command, mode }) => {
       vue({
         template: { transformAssetUrls },
       }),
-      // https://github.com/vuetifyjs/vuetify-loader/tree/next/packages/vite-plugin
       vuetify({
         autoImport: true,
         styles: {
@@ -30,6 +30,17 @@ export default defineConfig(({ command, mode }) => {
         },
       }),
       viteSingleFile(),
+      // {
+      //   name: 'build-script',
+      //   closeBundle() {
+      //     if (command === 'build') {
+      //       // add version to service worker, vite doesn't replace vars in js by default
+      //       let swFile = fs.readFileSync('dist/sw.js', 'utf8');
+      //       swFile = swFile.replaceAll('%VITE_APP_VERSION%', packageVersion);
+      //       fs.writeFileSync('dist/sw.js', swFile);
+      //     }
+      //   },
+      // },
     ],
     define: {
       'process.env': env,

@@ -1642,6 +1642,16 @@ httpd_handle_t BrewEngine::startWebserver(void)
 	indexUri.method = HTTP_GET;
 	indexUri.handler = this->indexGetHandler;
 
+	httpd_uri_t logoUri;
+	logoUri.uri = "/logo.svg";
+	logoUri.method = HTTP_GET;
+	logoUri.handler = this->logoGetHandler;
+
+	httpd_uri_t manifestUri;
+	manifestUri.uri = "/manifest.json";
+	manifestUri.method = HTTP_GET;
+	manifestUri.handler = this->manifestGetHandler;
+
 	httpd_uri_t postUri;
 	postUri.uri = "/api";
 	postUri.method = HTTP_POST;
@@ -1669,6 +1679,8 @@ httpd_handle_t BrewEngine::startWebserver(void)
 	{
 		// Set URI handlers
 		httpd_register_uri_handler(server, &indexUri);
+		httpd_register_uri_handler(server, &logoUri);
+		httpd_register_uri_handler(server, &manifestUri);
 		httpd_register_uri_handler(server, &otherUri);
 		httpd_register_uri_handler(server, &postUri);
 		httpd_register_uri_handler(server, &optionsUri);
@@ -1709,6 +1721,29 @@ esp_err_t BrewEngine::indexGetHandler(httpd_req_t *req)
 	httpd_resp_set_type(req, "text/html");
 	httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
 	httpd_resp_send(req, (const char *)index_html_start, index_html_size);
+
+	return ESP_OK;
+}
+
+esp_err_t BrewEngine::logoGetHandler(httpd_req_t *req)
+{
+	extern const unsigned char logo_svg_file_start[] asm("_binary_logo_svg_gz_start");
+	extern const unsigned char logo_svg_file_end[] asm("_binary_logo_svg_gz_end");
+	const size_t logo_svg_file_size = (logo_svg_file_end - logo_svg_file_start);
+	httpd_resp_set_type(req, "image/svg+xml");
+	httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+	httpd_resp_send(req, (const char *)logo_svg_file_start, logo_svg_file_size);
+
+	return ESP_OK;
+}
+
+esp_err_t BrewEngine::manifestGetHandler(httpd_req_t *req)
+{
+	extern const unsigned char manifest_json_file_start[] asm("_binary_manifest_json_start");
+	extern const unsigned char manifest_json_file_end[] asm("_binary_manifest_json_end");
+	const size_t manifest_json_file_size = (manifest_json_file_end - manifest_json_file_start);
+	httpd_resp_set_type(req, "application/json");
+	httpd_resp_send(req, (const char *)manifest_json_file_start, manifest_json_file_size);
 
 	return ESP_OK;
 }

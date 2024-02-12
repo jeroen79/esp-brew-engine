@@ -91,6 +91,8 @@ private:
     httpd_handle_t startWebserver(void);
     void stopWebserver(httpd_handle_t server);
     static esp_err_t indexGetHandler(httpd_req_t *req);
+    static esp_err_t logoGetHandler(httpd_req_t *req);
+    static esp_err_t manifestGetHandler(httpd_req_t *req);
     static esp_err_t otherGetHandler(httpd_req_t *req);
     static esp_err_t apiPostHandler(httpd_req_t *req);
     static esp_err_t apiOptionsHandler(httpd_req_t *req);
