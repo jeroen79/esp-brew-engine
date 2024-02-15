@@ -18,7 +18,7 @@ const systemSettings = ref<ISystemSettings>({ // add default value, vue has issu
 
 // is same as enum TemperatureScale, but this wel never change, converting enum to options would be wastefull
 const temperatureScales = [
-  { title: 'Celcius', value: 0 },
+  { title: 'Celsius', value: 0 },
   { title: 'Fahrenheit', value: 1 },
 ];
 

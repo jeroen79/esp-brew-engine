@@ -70,8 +70,8 @@ menu "BrewEngine Config"
 
     choice
         prompt "Default Temperature Scale"
-        config SCALE_CELCIUS
-            bool "Celcius"
+        config SCALE_CELSIUS
+            bool "Celsius"
         config SCALE_FAHRENHEIT
             bool "Fahrenheit"
     endchoice
