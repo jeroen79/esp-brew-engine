@@ -5,7 +5,7 @@
 - Factory Reset button in system settings.
 - Nicer recovery page.
 - Factory Reset button in recovery page.
-- Added manifest.json and svg icon
+- Added manifest.json and svg icon.
 
 # Version 1.1.0
 - Add ability to scan for wifi networks.

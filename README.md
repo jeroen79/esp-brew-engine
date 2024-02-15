@@ -210,9 +210,10 @@ To quit Ctrl-T Ctrl-X.
 
 ## Planned Features (possible)
 
-- PWA manifest and basic service worker.
+- Configureable Wattage per element.
 - Backup and Restore config data.
 - Resume maish from custom timepoint.
+- Pauze function.
 - Loading MaishSchedule from beer xml?, or online apps. (brewfather?)
 - Notification of when to add hops or take action? (via webinterface speech?)
 - Dns server so when in AP mode the resolving the hostname works.

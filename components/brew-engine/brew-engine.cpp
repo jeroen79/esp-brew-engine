@@ -1602,7 +1602,7 @@ string BrewEngine::processCommand(string payLoad)
 	}
 	else if (command == "FactoryReset")
 	{
-		this->FactoryReset();
+		this->settingsManager->FactoryReset();
 		message = "Device will restart shortly, reconnect to factory wifi settings to continue!";
 		xTaskCreate(&this->reboot, "reboot_task", 1024, this, 5, NULL);
 	}
