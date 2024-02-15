@@ -18,7 +18,7 @@ It is open source and build in c++ using esp-idf RTOS.
 - OTA Firmware update.
 - Ability to enable/disable/detect sensors at runtime.
 - Ability to specift Absolute and Relative Compensation.
-- Support for Celcius and Fahrenheit.
+- Support for Celsius and Fahrenheit.
 
 ## Screenshots
 

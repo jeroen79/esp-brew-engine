@@ -1,6 +1,6 @@
 
 # Version 1.2.0
-- Support for Celcius and Fahrenheit.
+- Support for Celsius and Fahrenheit.
 - PID loopt time is now configurable.
 - Factory Reset button in system settings.
 - Nicer recovery page.

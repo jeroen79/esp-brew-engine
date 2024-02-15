@@ -8,7 +8,7 @@ import { ref } from 'vue';
 export const useAppStore = () => {
   const innerStore = defineStore('app', () => {
     const systemSettingsLoaded = ref(false);
-    const temperatureScale = ref<TemperatureScale>(TemperatureScale.Celcius);
+    const temperatureScale = ref<TemperatureScale>(TemperatureScale.Celsius);
     const tempUnit = ref('°C');
     const rootUrl = ref<string | null>(null);
 
