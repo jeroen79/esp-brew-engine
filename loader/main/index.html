@@ -1,9 +1,35 @@
 <html>
 <header>
   <style>
-    body {
-      background-color: #242320;
+    body,
+    html {
+      background-color: #000;
       color: #ffffff;
+      padding: 0 0 0 0;
+      margin: 0 0 0 0;
+      font-family: Roboto, sans-serif;
+    }
+
+    .toolbar {
+      height: 64px;
+      background-color: #ffa407;
+      display: flex;
+      justify-content: left;
+    }
+
+    .toolbar-title {
+      font-size: 1.25rem;
+      font-weight: 400;
+      letter-spacing: 0;
+      line-height: 1.75rem;
+      color: #000;
+      margin: auto 50 auto 50;
+    }
+
+    .section {
+      background-color: #242320;
+      margin: 20 20 20 20;
+      padding: 5 20 20 20;
     }
 
     .progress {
@@ -22,8 +48,26 @@
     }
 
     .status {
+      padding: 20 20 20 20;
       font-weight: bold;
-      font-size: 2rem;
+      font-size: 1.5rem;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    button,
+    .button {
+      border: 1.5px solid #ffa407;
+      background-color: #242320;
+      color: #ffa407;
+      padding: 7 12 7 12;
+      border-radius: 5px;
+      font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      margin: 5 5 5 5;
     }
   </style>
 </header>
@@ -32,6 +76,16 @@
 
   function update() {
     const data = document.getElementById("file").files[0];
+
+    if (data.name.startsWith("esp-brew-engine-full")) {
+      alert("Wrong file, full binary is not for web flash, download normal bin (esp-brew-engine_esp32*_*_*_*.bin)");
+      return;
+    }
+
+    if (data.name.startsWith("esp-brew-engine-loader")) {
+      alert("Wrong file, loader binary is not for web flash, download normal bin (esp-brew-engine_esp32*_*_*_*.bin)");
+      return;
+    }
 
     xhr = new XMLHttpRequest();
     xhr.open("POST", "/flash", true);
@@ -78,35 +132,62 @@
     xhr.send();
   }
 
+  function reset() {
+    if (!confirm("Are you sure?")) {
+      return;
+    };
+
+    xhr = new XMLHttpRequest();
+    xhr.open("POST", "/reset", true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        document.getElementById("status").innerHTML = "Device will reboot.";
+        setTimeout(function () {
+          window.location.reload();
+        }, 12000);
+      }
+    }
+    xhr.send();
+  }
+
 </script>
 
 <body>
-  <h1>ESP Brew Engine Recovery</h1>
-
-  <h2>Update Firmware</h2>
-  <div class="progress">
-    <div class="progress_bar" id="progress"></div>
+  <div class="toolbar">
+    <div class="toolbar-title">
+      ESP Brew Engine Recovery
+    </div>
   </div>
+
   <div class="status" id="status"></div>
 
-  <form accept-charset="utf-8" action="javascript:void(0);" method="post" enctype="multipart/form-data">
+  <div class="section">
 
-    <label for="file">
-      Select .bin firmware file and click Update.
-    </label>
-    </br>
-    <input type='file' name='file' id='file' placeholder="select file" />
-    <button onclick="update()">Update</button>
-  </form>
+    <h3>Update Firmware</h3>
+    <div class="progress">
+      <div class="progress_bar" id="progress"></div>
+    </div>
+    <form accept-charset="utf-8" action="javascript:void(0);" method="post" enctype="multipart/form-data">
 
-  <br />
-  <br />
+      <label for="file" class="button"> Select File </label>
+      <input type='file' name='file' id='file' placeholder="select file" />
+      <button onclick="update()">Update</button>
+    </form>
 
-  <h2>Reboot into App</h2>
-  <label for="file">
-    Click to reboot into main app.
-  </label>
-  <button onclick="app()">Reboot</button>
+  </div>
+
+
+  <div class="section">
+    <h3>Reboot into App</h3>
+    <button onclick="app()">Reboot</button>
+  </div>
+
+  <div class="section">
+    <h3>Factory Reset</h3>
+    <button onclick="reset()" style="border: 1.5px solid #c91a3a;color:#c91a3a;">Factory Reset</button>
+  </div>
+
 </body>
 
 </html>

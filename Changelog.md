@@ -1,6 +1,13 @@
 
-# Version 1.1.0
+# Version 1.2.0
+- Support for Celcius and Fahrenheit.
+- PID loopt time is now configurable.
+- Factory Reset button in system settings.
+- Nicer recovery page.
+- Factory Reset button in recovery page.
+- Added manifest.json and svg icon.
 
+# Version 1.1.0
 - Add ability to scan for wifi networks.
 - Make it more clear that wifi is is AP mode or Station.
 - Add ability to Change max power.
@@ -12,13 +19,12 @@
 - Allow sensors to be disabled/hidden.
 - Show if sensors are connected in sensor settings.
 - Show Temperature in sensor settings.
-- Addded relative and absolute compensation to sensors.
+- Added relative and absolute compensation to sensors.
 - Round to 0.1.
 - Ability to delete unused sensors.
 - Button to rescan for onewire sensors.
 
 # Upgrade Instructions 1.1.0
-
 - Temperature sensor settings have been significantly changed, so it is recommended to do a flash_erase and reflash
 
 ```bash
@@ -29,7 +35,6 @@ idf.py flash_erase
 
 
 # Version 1.0.0
-
 - Multiple Configurable Maish Schedules
 - Configurable PID control
 - 1 or 2 heater modes

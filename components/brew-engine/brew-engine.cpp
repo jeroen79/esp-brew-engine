@@ -98,9 +98,10 @@ void BrewEngine::readSystemSettings()
 	ESP_LOGI(TAG, "Reading BrewEngine Settings");
 
 	// io settings
-	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_OneWire);
+	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
 	this->heat1_PIN = (gpio_num_t)this->settingsManager->Read("heat1Pin", (uint16_t)CONFIG_HEAT1);
 	this->heat2_PIN = (gpio_num_t)this->settingsManager->Read("heat2Pin", (uint16_t)CONFIG_HEAT2);
+	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
 
 	bool configInvertOutputs = false;
@@ -112,6 +113,14 @@ void BrewEngine::readSystemSettings()
 
 	// mqtt
 	this->mqttUri = this->settingsManager->Read("mqttUri", (string)CONFIG_MQTT_URI);
+
+	// temperature scale
+	uint8_t defaultConfigScale = 0; // default to celcius
+#if defined(CONFIG_SCALE_FAHRENHEIT)
+	defaultConfigScale = Fahrenheit;
+#endif
+
+	this->temperatureScale = (TemperatureScale)this->settingsManager->Read("tempScale", defaultConfigScale);
 
 	ESP_LOGI(TAG, "Reading BrewEngine Settings Done");
 }
@@ -149,6 +158,12 @@ void BrewEngine::saveSystemSettingsJson(json config)
 	{
 		this->settingsManager->Write("mqttUri", (string)config["mqttUri"]);
 		this->mqttUri = config["mqttUri"];
+	}
+	if (!config["temperatureScale"].is_null() && config["temperatureScale"].is_number())
+	{
+		uint8_t scale = (uint8_t)config["temperatureScale"];
+		this->settingsManager->Write("tempScale", scale); // key is limited to x chars so we shorten it
+		this->temperatureScale = (TemperatureScale)config["temperatureScale"];
 	}
 
 	ESP_LOGI(TAG, "Saving System Settings Done");
@@ -191,6 +206,8 @@ void BrewEngine::readSettings()
 	this->kP = (double)pint / 10;
 	this->kI = (double)iint / 10;
 	this->kD = (double)dint / 10;
+
+	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
 }
 
 void BrewEngine::saveMashSchedules()
@@ -224,6 +241,7 @@ void BrewEngine::savePIDSettings()
 	this->settingsManager->Write("kP", pint);
 	this->settingsManager->Write("kI", iint);
 	this->settingsManager->Write("kD", dint);
+	this->settingsManager->Write("pidLoopTime", this->pidLoopTime);
 
 	ESP_LOGI(TAG, "Saving PID Settings Done");
 }
@@ -237,7 +255,7 @@ void BrewEngine::addDefaultMash()
 	auto defaultMash_s1 = new MashStep();
 	defaultMash_s1->index = 0;
 	defaultMash_s1->name = "Beta Amylase";
-	defaultMash_s1->temperature = 64;
+	defaultMash_s1->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
 	defaultMash_s1->stepTime = 0;
 	defaultMash_s1->extendStepTimeIfNeeded = true;
 	defaultMash_s1->time = 45;
@@ -246,7 +264,7 @@ void BrewEngine::addDefaultMash()
 	auto defaultMash_s2 = new MashStep();
 	defaultMash_s2->index = 1;
 	defaultMash_s2->name = "Alpha Amylase";
-	defaultMash_s2->temperature = 72;
+	defaultMash_s2->temperature = (this->temperatureScale == Celsius) ? 72 : 160;
 	defaultMash_s2->stepTime = 5;
 	defaultMash_s2->extendStepTimeIfNeeded = true;
 	defaultMash_s2->time = 20;
@@ -255,7 +273,7 @@ void BrewEngine::addDefaultMash()
 	auto defaultMash_s3 = new MashStep();
 	defaultMash_s3->index = 2;
 	defaultMash_s3->name = "Mash Out";
-	defaultMash_s3->temperature = 78;
+	defaultMash_s3->temperature = (this->temperatureScale == Celsius) ? 78 : 170;
 	defaultMash_s3->stepTime = 5;
 	defaultMash_s3->extendStepTimeIfNeeded = true;
 	defaultMash_s3->time = 5;
@@ -270,7 +288,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s1 = new MashStep();
 	ryeMash_s1->index = 0;
 	ryeMash_s1->name = "Beta Glucanase";
-	ryeMash_s1->temperature = 43;
+	ryeMash_s1->temperature = (this->temperatureScale == Celsius) ? 43 : 110;
 	ryeMash_s1->stepTime = 0;
 	ryeMash_s1->extendStepTimeIfNeeded = true;
 	ryeMash_s1->time = 20;
@@ -279,7 +297,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s2 = new MashStep();
 	ryeMash_s2->index = 1;
 	ryeMash_s2->name = "Beta Amylase";
-	ryeMash_s2->temperature = 64;
+	ryeMash_s2->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
 	ryeMash_s2->stepTime = 5;
 	ryeMash_s2->extendStepTimeIfNeeded = true;
 	ryeMash_s2->time = 45;
@@ -288,7 +306,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s3 = new MashStep();
 	ryeMash_s3->index = 2;
 	ryeMash_s3->name = "Alpha Amylase";
-	ryeMash_s3->temperature = 72;
+	ryeMash_s3->temperature = (this->temperatureScale == Celsius) ? 72 : 160;
 	ryeMash_s3->stepTime = 5;
 	ryeMash_s3->extendStepTimeIfNeeded = true;
 	ryeMash_s3->time = 20;
@@ -297,7 +315,7 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash_s4 = new MashStep();
 	ryeMash_s4->index = 3;
 	ryeMash_s4->name = "Mash Out";
-	ryeMash_s4->temperature = 78;
+	ryeMash_s4->temperature = (this->temperatureScale == Celsius) ? 78 : 170;
 	ryeMash_s4->stepTime = 5;
 	ryeMash_s4->extendStepTimeIfNeeded = true;
 	ryeMash_s4->time = 5;
@@ -928,7 +946,13 @@ void BrewEngine::readLoop(void *arg)
 				continue;
 			};
 
-			ESP_LOGD(TAG, "temperature read from [%s]: %.2fC", stringId.c_str(), temperature);
+			// conversion needed
+			if (instance->temperatureScale == Fahrenheit)
+			{
+				temperature = (temperature * 1.8) + 32;
+			}
+
+			ESP_LOGD(TAG, "temperature read from [%s]: %.2f°", stringId.c_str(), temperature);
 
 			// apply compensation
 			if (sensor->compensateAbsolute != 0)
@@ -957,7 +981,7 @@ void BrewEngine::readLoop(void *arg)
 
 		float avg = sum / nrOfSensors;
 
-		ESP_LOGD(TAG, "Avg Temperature: %.2fC", avg);
+		ESP_LOGD(TAG, "Avg Temperature: %.2f°", avg);
 
 		instance->temperature = avg;
 
@@ -986,7 +1010,7 @@ void BrewEngine::readLoop(void *arg)
 					// System time: number of seconds since 00:00,
 					instance->tempLog.insert(std::make_pair(current_raw_time, (int)avg));
 
-					ESP_LOGI(TAG, "Logging: %dC", (int)avg);
+					ESP_LOGI(TAG, "Logging: %d°", (int)avg);
 				}
 				else
 				{
@@ -1498,6 +1522,7 @@ string BrewEngine::processCommand(string payLoad)
 			{"kP", this->kP},
 			{"kI", this->kI},
 			{"kD", this->kD},
+			{"pidLoopTime", this->pidLoopTime},
 		};
 	}
 	else if (command == "SavePIDSettings")
@@ -1505,6 +1530,7 @@ string BrewEngine::processCommand(string payLoad)
 		this->kP = data["kP"].get<double>();
 		this->kI = data["kI"].get<double>();
 		this->kD = data["kD"].get<double>();
+		this->pidLoopTime = data["pidLoopTime"].get<uint16_t>();
 		this->savePIDSettings();
 	}
 	else if (command == "GetTempSettings")
@@ -1562,12 +1588,23 @@ string BrewEngine::processCommand(string payLoad)
 			{"stirPin", this->stir_PIN},
 			{"invertOutputs", this->invertOutputs},
 			{"mqttUri", this->mqttUri},
+			{"temperatureScale", this->temperatureScale},
 		};
 	}
 	else if (command == "SaveSystemSettings")
 	{
 		this->saveSystemSettingsJson(data);
 		message = "Please restart device for changes to have effect!";
+	}
+	else if (command == "Reboot")
+	{
+		xTaskCreate(&this->reboot, "reboot_task", 1024, this, 5, NULL);
+	}
+	else if (command == "FactoryReset")
+	{
+		this->settingsManager->FactoryReset();
+		message = "Device will restart shortly, reconnect to factory wifi settings to continue!";
+		xTaskCreate(&this->reboot, "reboot_task", 1024, this, 5, NULL);
 	}
 	else if (command == "BootIntoRecovery")
 	{
@@ -1605,6 +1642,16 @@ httpd_handle_t BrewEngine::startWebserver(void)
 	indexUri.method = HTTP_GET;
 	indexUri.handler = this->indexGetHandler;
 
+	httpd_uri_t logoUri;
+	logoUri.uri = "/logo.svg";
+	logoUri.method = HTTP_GET;
+	logoUri.handler = this->logoGetHandler;
+
+	httpd_uri_t manifestUri;
+	manifestUri.uri = "/manifest.json";
+	manifestUri.method = HTTP_GET;
+	manifestUri.handler = this->manifestGetHandler;
+
 	httpd_uri_t postUri;
 	postUri.uri = "/api";
 	postUri.method = HTTP_POST;
@@ -1632,6 +1679,8 @@ httpd_handle_t BrewEngine::startWebserver(void)
 	{
 		// Set URI handlers
 		httpd_register_uri_handler(server, &indexUri);
+		httpd_register_uri_handler(server, &logoUri);
+		httpd_register_uri_handler(server, &manifestUri);
 		httpd_register_uri_handler(server, &otherUri);
 		httpd_register_uri_handler(server, &postUri);
 		httpd_register_uri_handler(server, &optionsUri);
@@ -1672,6 +1721,29 @@ esp_err_t BrewEngine::indexGetHandler(httpd_req_t *req)
 	httpd_resp_set_type(req, "text/html");
 	httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
 	httpd_resp_send(req, (const char *)index_html_start, index_html_size);
+
+	return ESP_OK;
+}
+
+esp_err_t BrewEngine::logoGetHandler(httpd_req_t *req)
+{
+	extern const unsigned char logo_svg_file_start[] asm("_binary_logo_svg_gz_start");
+	extern const unsigned char logo_svg_file_end[] asm("_binary_logo_svg_gz_end");
+	const size_t logo_svg_file_size = (logo_svg_file_end - logo_svg_file_start);
+	httpd_resp_set_type(req, "image/svg+xml");
+	httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+	httpd_resp_send(req, (const char *)logo_svg_file_start, logo_svg_file_size);
+
+	return ESP_OK;
+}
+
+esp_err_t BrewEngine::manifestGetHandler(httpd_req_t *req)
+{
+	extern const unsigned char manifest_json_file_start[] asm("_binary_manifest_json_start");
+	extern const unsigned char manifest_json_file_end[] asm("_binary_manifest_json_end");
+	const size_t manifest_json_file_size = (manifest_json_file_end - manifest_json_file_start);
+	httpd_resp_set_type(req, "application/json");
+	httpd_resp_send(req, (const char *)manifest_json_file_start, manifest_json_file_size);
 
 	return ESP_OK;
 }
