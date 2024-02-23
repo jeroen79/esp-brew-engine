@@ -8,8 +8,6 @@ const webConn = inject<WebConn>('webConn');
 
 const systemSettings = ref<ISystemSettings>({ // add default value, vue has issues with null values atm
   onewirePin: 0,
-  heat1Pin: 0,
-  heat2Pin: 0,
   stirPin: 0,
   invertOutputs: false,
   mqttUri: '',
@@ -138,34 +136,6 @@ const scaleChanged = () => {
           <v-text-field requierd v-model.number="systemSettings.onewirePin" label="Onewire Pin Nr">
             <template v-slot:append>
               <v-tooltip text="IO Number for OneWire">
-                <template v-slot:activator="{ props }">
-                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
-                </template>
-              </v-tooltip>
-            </template>
-          </v-text-field>
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field requierd v-model.number="systemSettings.heat1Pin" label="Heater 1 Pin Nr">
-            <template v-slot:append>
-              <v-tooltip text="IO Number for Heater1">
-                <template v-slot:activator="{ props }">
-                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
-                </template>
-              </v-tooltip>
-            </template>
-          </v-text-field>
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field v-model.number="systemSettings.heat2Pin" label="Heater 2 Pin Nr">
-            <template v-slot:append>
-              <v-tooltip text="IO Number for Heater2 (Optional), Set to 0 to disable">
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>

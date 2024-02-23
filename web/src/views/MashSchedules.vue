@@ -28,7 +28,8 @@ const defaultStep:IMashStep = {
 
 const editIndex = ref<Number>(-1);
 const editedItem = ref<IMashStep>(defaultStep);
-const newName = ref<string>('');
+const currentName = ref<string>('');
+const currentBoil = ref<boolean>(false);
 
 const tableItemsPerPage = ref<number>(50);
 const tableHeaders = ref<Array<any>>([
@@ -70,7 +71,8 @@ const tableData:any = computed(() => {
 // change name, but copy so user can change it
 watchEffect(() => {
   if (selectedMashSchedule.value != null) {
-    newName.value = selectedMashSchedule.value?.name;
+    currentName.value = selectedMashSchedule.value?.name;
+    currentBoil.value = selectedMashSchedule.value?.boil;
   }
 });
 
@@ -136,7 +138,8 @@ const saveSchedule = async () => {
   }
 
   const newSchedule:IMashSchedule = {
-    name: newName.value,
+    name: currentName.value,
+    boil: currentBoil.value,
     steps: [...selectedMashSchedule.value.steps],
   };
 
@@ -147,7 +150,7 @@ const saveSchedule = async () => {
   await webConn?.doPostRequest(requestData);
   // todo capture result and log errors
 
-  if (selectedMashSchedule.value.name !== newName.value) {
+  if (selectedMashSchedule.value.name !== currentName.value) {
     // saved as new, so we refresh to be sure
     getData();
   }
@@ -185,7 +188,10 @@ const deleteSchedule = async () => {
       </v-row>
       <v-row>
         <v-col cols="3" md="3">
-          <v-text-field v-model="newName" label="Name" />
+          <v-text-field v-model="currentName" label="Name" />
+        </v-col>
+        <v-col cols="3" md="3">
+          <v-switch v-model="currentBoil" label="Is Boil Schedule" color="red" />
         </v-col>
         <v-col cols="3" md="3">
           <v-btn color="success" class="mt-4 mr-2" @click="saveSchedule"> Save </v-btn>

@@ -25,6 +25,7 @@ class MashSchedule
 {
 public:
     string name;
+    bool boil; // if true boil else mash
     std::deque<MashStep *> steps;
 
     json to_json()
@@ -33,6 +34,7 @@ public:
 
         json jSchedule;
         jSchedule["name"] = this->name;
+        jSchedule["boil"] = this->boil;
         json jSteps = json::array({});
 
         for (auto const &step : this->steps)
@@ -55,6 +57,16 @@ public:
     void from_json(json jsonData)
     {
         this->name = jsonData["name"];
+
+        if (!jsonData["boil"].is_null() && jsonData["boil"].is_boolean())
+        {
+            this->boil = jsonData["boil"].get<bool>();
+        }
+        else
+        {
+            this->boil = false;
+        }
+
         json steps = jsonData["steps"];
 
         for (auto &el : steps.items())
