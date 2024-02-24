@@ -9,6 +9,9 @@ import { useAppStore } from '@/store/app';
 
 const webConn = inject<WebConn>('webConn');
 
+const alert = ref<string>('');
+const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+
 const appStore = useAppStore();
 
 const mashSchedules = ref<Array<IMashSchedule>>([]);
@@ -28,7 +31,8 @@ const defaultStep:IMashStep = {
 
 const editIndex = ref<Number>(-1);
 const editedItem = ref<IMashStep>(defaultStep);
-const newName = ref<string>('');
+const currentName = ref<string>('');
+const currentBoil = ref<boolean>(false);
 
 const tableItemsPerPage = ref<number>(50);
 const tableHeaders = ref<Array<any>>([
@@ -70,7 +74,8 @@ const tableData:any = computed(() => {
 // change name, but copy so user can change it
 watchEffect(() => {
   if (selectedMashSchedule.value != null) {
-    newName.value = selectedMashSchedule.value?.name;
+    currentName.value = selectedMashSchedule.value?.name;
+    currentBoil.value = selectedMashSchedule.value?.boil;
   }
 });
 
@@ -100,8 +105,12 @@ const editItem = async (item:IMashStep) => {
 };
 
 const newItem = async () => {
-  if (selectedMashSchedule.value == null) {
-    return;
+  if (selectedMashSchedule.value == null) { // create new from scratch when user stats adding steps
+    selectedMashSchedule.value = {
+      name: 'New',
+      boil: false,
+      steps: [],
+    };
   }
 
   const newStep = { ...defaultStep };
@@ -136,7 +145,8 @@ const saveSchedule = async () => {
   }
 
   const newSchedule:IMashSchedule = {
-    name: newName.value,
+    name: currentName.value,
+    boil: currentBoil.value,
     steps: [...selectedMashSchedule.value.steps],
   };
 
@@ -144,10 +154,15 @@ const saveSchedule = async () => {
     command: 'SaveMashSchedule',
     data: newSchedule,
   };
-  await webConn?.doPostRequest(requestData);
-  // todo capture result and log errors
 
-  if (selectedMashSchedule.value.name !== newName.value) {
+  const result = await webConn?.doPostRequest(requestData);
+
+  if (result?.message != null) {
+    alertType.value = 'warning';
+    alert.value = result?.message;
+  }
+
+  if (selectedMashSchedule.value.name !== currentName.value) {
     // saved as new, so we refresh to be sure
     getData();
   }
@@ -176,16 +191,20 @@ const deleteSchedule = async () => {
 
 <template>
   <v-container class="pa-6" fluid>
+    <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-col cols="3" md="3">
-          <v-select label="Mash Schedule" v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
+          <v-select label="Mash/Boil Schedule" v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
         </v-col>
 
       </v-row>
       <v-row>
         <v-col cols="3" md="3">
-          <v-text-field v-model="newName" label="Name" />
+          <v-text-field v-model="currentName" label="Name" />
+        </v-col>
+        <v-col cols="3" md="3">
+          <v-switch v-model="currentBoil" label="Is Boil Schedule" color="red" />
         </v-col>
         <v-col cols="3" md="3">
           <v-btn color="success" class="mt-4 mr-2" @click="saveSchedule"> Save </v-btn>
@@ -203,10 +222,10 @@ const deleteSchedule = async () => {
         >
           <template v-slot:top>
             <v-toolbar density="compact">
-              <v-toolbar-title>Mash Schedule</v-toolbar-title>
+              <v-toolbar-title>Mash/Boil Schedule</v-toolbar-title>
               <v-spacer />
               <v-btn color="secondary" variant="outlined" class="mr-5" @click="newItem()">
-                New Item
+                New Step
               </v-btn>
 
               <v-dialog v-model="dialog" max-width="500px">

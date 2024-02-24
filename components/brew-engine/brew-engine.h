@@ -32,6 +32,8 @@
 
 #include "pidController.hpp"
 
+#include "heater.h"
+
 #include "mash-schedule.h"
 #include "execution-step.h"
 #include "temperature-sensor.h"
@@ -69,6 +71,7 @@ private:
     void detectOnewireTemperatureSensors();
     void initOneWire();
     void initMqtt();
+    void initHeaters();
     void readSystemSettings();
     void readSettings();
     void saveMashSchedules();
@@ -80,6 +83,9 @@ private:
     void recalculateScheduleAfterOverTime();
     void stop();
     void logRemote(string message);
+    void addDefaultHeaters();
+    void readHeaterSettings();
+    void saveHeaterSettings(json jHeaters);
 
     void saveTempSensorSettings(json data);
     void startStir(json stirConfig);
@@ -121,6 +127,7 @@ private:
     // execution
     bool run = false;
     bool controlRun = false;   // true when a program is running
+    bool boilRun = false;      // true when a boil schedule  is running
     bool skipTempLoop = false; // When we are changing temp settings we temporarily need to skip our temp loop
 
     bool inOverTime = false; // when a step time isn't reached we go in overtime, we need this to know that we need recalcualtion
@@ -135,15 +142,13 @@ private:
     uint16_t runningVersion = 0;       // we increase our version after recalc, so client can keep uptodate with planning
 
     // IO
-    uint8_t heaterCount = 2; // atm fixed but this could be variable in the future
-    std::vector<bool> heaterOn;
     uint8_t gpioHigh = 1;
     uint8_t gpioLow = 0;
     bool invertOutputs;
 
+    std::vector<Heater *> heaters; // we support up to 10 heaters
+
     gpio_num_t oneWire_PIN;
-    gpio_num_t heat1_PIN;
-    gpio_num_t heat2_PIN;
     gpio_num_t stir_PIN;
 
     string mqttUri;

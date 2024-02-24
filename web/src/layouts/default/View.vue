@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline } from '@mdi/js';
+import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil } from '@mdi/js';
 
 const drawer = ref(true);
 const linksBrewing = ref([
@@ -12,9 +12,10 @@ const linksTools = ref([
 ]);
 
 const linksSettings = ref([
-  [mdiReceiptTextClock, 'Mash Schedules', 'mashschedules'],
+  [mdiReceiptTextClock, 'Schedules', 'mashschedules'],
   [mdiThermometerLines, 'PID Settings', 'pidsettings'],
   [mdiThermometer, 'Temperature Settings', 'tempsettings'],
+  [mdiHeatingCoil, 'Heater Settings', 'heaterSettings'],
   [mdiWifi, 'Wifi Settings', 'wifiSettings'],
   [mdiWrenchCogOutline, 'System Settings', 'systemSettings'],
 ]);

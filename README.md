@@ -11,7 +11,7 @@ It is open source and build in c++ using esp-idf RTOS.
 
 - Multiple Configurable Maish Schedules.
 - Configurable PID control.
-- 1 or 2 heater modes.
+- Up to 10 Configurable Heaters.
 - Up to 10 One-wire Sensors.
 - Automatic Stirring / Pumping Intervals.
 - Temperature logging to MQTT.
