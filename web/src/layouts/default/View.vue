@@ -12,7 +12,7 @@ const linksTools = ref([
 ]);
 
 const linksSettings = ref([
-  [mdiReceiptTextClock, 'Mash Schedules', 'mashschedules'],
+  [mdiReceiptTextClock, 'Schedules', 'mashschedules'],
   [mdiThermometerLines, 'PID Settings', 'pidsettings'],
   [mdiThermometer, 'Temperature Settings', 'tempsettings'],
   [mdiHeatingCoil, 'Heater Settings', 'heaterSettings'],

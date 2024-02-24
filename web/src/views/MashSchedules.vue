@@ -9,6 +9,9 @@ import { useAppStore } from '@/store/app';
 
 const webConn = inject<WebConn>('webConn');
 
+const alert = ref<string>('');
+const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+
 const appStore = useAppStore();
 
 const mashSchedules = ref<Array<IMashSchedule>>([]);
@@ -102,8 +105,12 @@ const editItem = async (item:IMashStep) => {
 };
 
 const newItem = async () => {
-  if (selectedMashSchedule.value == null) {
-    return;
+  if (selectedMashSchedule.value == null) { // create new from scratch when user stats adding steps
+    selectedMashSchedule.value = {
+      name: 'New',
+      boil: false,
+      steps: [],
+    };
   }
 
   const newStep = { ...defaultStep };
@@ -147,8 +154,13 @@ const saveSchedule = async () => {
     command: 'SaveMashSchedule',
     data: newSchedule,
   };
-  await webConn?.doPostRequest(requestData);
-  // todo capture result and log errors
+
+  const result = await webConn?.doPostRequest(requestData);
+
+  if (result?.message != null) {
+    alertType.value = 'warning';
+    alert.value = result?.message;
+  }
 
   if (selectedMashSchedule.value.name !== currentName.value) {
     // saved as new, so we refresh to be sure
@@ -179,10 +191,11 @@ const deleteSchedule = async () => {
 
 <template>
   <v-container class="pa-6" fluid>
+    <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-col cols="3" md="3">
-          <v-select label="Mash Schedule" v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
+          <v-select label="Mash/Boil Schedule" v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
         </v-col>
 
       </v-row>
@@ -209,10 +222,10 @@ const deleteSchedule = async () => {
         >
           <template v-slot:top>
             <v-toolbar density="compact">
-              <v-toolbar-title>Mash Schedule</v-toolbar-title>
+              <v-toolbar-title>Mash/Boil Schedule</v-toolbar-title>
               <v-spacer />
               <v-btn color="secondary" variant="outlined" class="mr-5" @click="newItem()">
-                New Item
+                New Step
               </v-btn>
 
               <v-dialog v-model="dialog" max-width="500px">

@@ -52,6 +52,15 @@ const getData = async () => {
   HeaterConfigs.value = apiResult.data;
 };
 
+const newItem = async () => {
+  const newHeater = { ...defaultHeater };
+  newHeater.id = Math.max(...HeaterConfigs.value.map((s) => s.id)) + 1;
+  HeaterConfigs.value.push(newHeater);
+
+  editedItem.value = newHeater;
+  dialog.value = true;
+};
+
 onMounted(() => {
   getData();
 });
@@ -94,8 +103,12 @@ const save = async () => {
     data: HeaterConfigs.value,
   };
 
-  await webConn?.doPostRequest(requestData);
-  // todo capture result and log errors
+  const result = await webConn?.doPostRequest(requestData);
+
+  if (result?.message != null) {
+    alertType.value = 'warning';
+    alert.value = result?.message;
+  }
 };
 
 </script>
@@ -114,6 +127,9 @@ const save = async () => {
           <v-toolbar density="compact">
             <v-toolbar-title>Heater Configurations</v-toolbar-title>
             <v-spacer />
+            <v-btn color="secondary" variant="outlined" class="mr-5" @click="newItem()">
+              New Heater
+            </v-btn>
             <v-btn color="secondary" variant="outlined" class="mr-5" @click="getData()">
               Refresh
             </v-btn>

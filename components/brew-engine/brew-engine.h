@@ -142,8 +142,6 @@ private:
     uint16_t runningVersion = 0;       // we increase our version after recalc, so client can keep uptodate with planning
 
     // IO
-    // uint8_t heaterCount = 2; // atm fixed but this could be variable in the future
-    // std::vector<bool> heaterOn;
     uint8_t gpioHigh = 1;
     uint8_t gpioLow = 0;
     bool invertOutputs;
@@ -151,8 +149,6 @@ private:
     std::vector<Heater *> heaters; // we support up to 10 heaters
 
     gpio_num_t oneWire_PIN;
-    // gpio_num_t heat1_PIN;
-    // gpio_num_t heat2_PIN;
     gpio_num_t stir_PIN;
 
     string mqttUri;

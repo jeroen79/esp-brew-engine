@@ -716,8 +716,21 @@ void BrewEngine::start()
 		if (this->selectedMashScheduleName.empty() == false)
 		{
 			this->loadSchedule();
-			this->currentMashStep = 0;
+			this->currentMashStep = 1; // 0 is current temp, so we can start at 1
 			xTaskCreate(&this->controlLoop, "controlloop_task", 4096, this, 5, NULL);
+		}
+		else
+		{
+
+			// if no schedule is selected, we set the boil flag based on temperature
+			if ((this->temperatureScale == Celsius && this->targetTemperature >= 100) || (this->temperatureScale == Fahrenheit && this->targetTemperature >= 212))
+			{
+				this->boilRun = true;
+			}
+			else
+			{
+				this->boilRun = false;
+			}
 		}
 
 		xTaskCreate(&this->pidLoop, "pidloop_task", 8192, this, 5, NULL);
@@ -1176,7 +1189,7 @@ void BrewEngine::pidLoop(void *arg)
 		// output is %
 		int outputPercent = (int)pid.getOutput((double)instance->temperature, (double)instance->targetTemperature);
 		instance->pidOutput = outputPercent;
-		ESP_LOGI(TAG, "Pid Output: %d", instance->pidOutput);
+		ESP_LOGI(TAG, "Pid Output: %d Target: %f", instance->pidOutput, instance->targetTemperature);
 
 		// manual override
 		if (instance->manualOverrideOutput.has_value())
@@ -1225,7 +1238,6 @@ void BrewEngine::pidLoop(void *arg)
 		// we keep going for the desired pidlooptime and set the burn by percent
 		for (int i = 0; i < instance->pidLoopTime; i++)
 		{
-
 			if (!instance->run || !instance->controlRun)
 			{
 				break;
@@ -1322,8 +1334,6 @@ void BrewEngine::controlLoop(void *arg)
 	while (instance->run && instance->controlRun)
 	{
 
-		vTaskDelay(pdMS_TO_TICKS(1000));
-
 		system_clock::time_point now = std::chrono::system_clock::now();
 
 		if (instance->executionSteps.size() >= instance->currentMashStep)
@@ -1389,6 +1399,8 @@ void BrewEngine::controlLoop(void *arg)
 			ESP_LOGI(TAG, "Program Finished");
 			instance->stop();
 		}
+
+		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
 	vTaskDelete(NULL);
