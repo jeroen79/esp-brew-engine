@@ -75,6 +75,7 @@ private:
     void readSystemSettings();
     void readSettings();
     void saveMashSchedules();
+    void setMashSchedule(json jSchedule);
     void savePIDSettings();
     void saveSystemSettingsJson(json config);
     void addDefaultMash();

@@ -6,6 +6,7 @@ import WebConn from '@/helpers/webConn';
 import { IMashSchedule } from '@/interfaces/IMashSchedule';
 import { IMashStep } from '@/interfaces/IMashStep';
 import { useAppStore } from '@/store/app';
+import { INotification } from '@/interfaces/INotification';
 
 const webConn = inject<WebConn>('webConn');
 
@@ -15,7 +16,8 @@ const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
 const appStore = useAppStore();
 
 const mashSchedules = ref<Array<IMashSchedule>>([]);
-const dialog = ref<boolean>(false);
+const editStepDialog = ref<boolean>(false);
+const editNotificationDialog = ref<boolean>(false);
 const dialogDelete = ref<boolean>(false);
 
 const selectedMashSchedule = ref<IMashSchedule | null>(null);
@@ -29,13 +31,13 @@ const defaultStep:IMashStep = {
   extendStepTimeIfNeeded: true,
 };
 
-const editIndex = ref<Number>(-1);
-const editedItem = ref<IMashStep>(defaultStep);
+const editStepsIndex = ref<Number>(-1);
+const editedStepsItem = ref<IMashStep>(defaultStep);
 const currentName = ref<string>('');
 const currentBoil = ref<boolean>(false);
 
 const tableItemsPerPage = ref<number>(50);
-const tableHeaders = ref<Array<any>>([
+const tableStepsHeaders = ref<Array<any>>([
   { title: 'Index', key: 'index', align: 'start' },
   { title: 'Name', key: 'name', align: 'start' },
   { title: `Temperature ${appStore.tempUnit}`, key: 'temperature', align: 'end' },
@@ -45,7 +47,34 @@ const tableHeaders = ref<Array<any>>([
   { title: 'Actions', key: 'actions', sortable: false },
 ]);
 
-const sortBy = ref<Array<any>>([{ key: 'index', order: 'asc' }]);
+const tableStepsData:any = computed(() => {
+  // wait for init init
+  if (selectedMashSchedule.value == null) {
+    return [];
+  }
+
+  // console.log('steps', selectedMashSchedule.value.steps);
+  return [...selectedMashSchedule.value.steps];
+});
+
+const defaultNotification:INotification = {
+  name: 'New Notification',
+  time: 0,
+  buzzer: true,
+};
+
+const tableNotificationsHeaders = ref<Array<any>>([
+  { title: 'Name', key: 'name', align: 'start' },
+  { title: 'Time from Start (min)', key: 'time', align: 'start' },
+  { title: 'Buzzer', key: 'buzzer', align: 'start' },
+  { title: 'Actions', key: 'actions', sortable: false },
+]);
+
+const sortStepsBy = ref<Array<any>>([{ key: 'index', order: 'asc' }]);
+const sortNotificationsBy = ref<Array<any>>([{ key: 'time', order: 'asc' }]);
+
+const editNotificationsIndex = ref<Number>(-1);
+const editedNotificationsItem = ref<INotification>(defaultNotification);
 
 const getData = async () => {
   const requestData = {
@@ -61,14 +90,14 @@ const getData = async () => {
   mashSchedules.value = apiResult.data;
 };
 
-const tableData:any = computed(() => {
+const tableNotificationsData:any = computed(() => {
   // wait for init init
   if (selectedMashSchedule.value == null) {
     return [];
   }
 
   // console.log('steps', selectedMashSchedule.value.steps);
-  return [...selectedMashSchedule.value.steps];
+  return [...selectedMashSchedule.value.notifications];
 });
 
 // change name, but copy so user can change it
@@ -88,54 +117,100 @@ onBeforeUnmount(() => {
 });
 
 const closeDialog = async () => {
-  dialog.value = false;
+  editStepDialog.value = false;
+  editNotificationDialog.value = false;
 };
 
 const closeDeleteDialog = async () => {
   dialogDelete.value = false;
 };
 
-const editItem = async (item:IMashStep) => {
+const editStepsItem = async (item:IMashStep) => {
   if (selectedMashSchedule.value == null) {
     return;
   }
-  editIndex.value = selectedMashSchedule.value.steps.indexOf(item);
-  editedItem.value = item;
-  dialog.value = true;
+  editStepsIndex.value = selectedMashSchedule.value.steps.indexOf(item);
+  editedStepsItem.value = item;
+  editStepDialog.value = true;
 };
 
-const newItem = async () => {
+const newStep = async () => {
   if (selectedMashSchedule.value == null) { // create new from scratch when user stats adding steps
     selectedMashSchedule.value = {
       name: 'New',
       boil: false,
       steps: [],
+      notifications: [],
     };
   }
 
-  const newStep = { ...defaultStep };
-  newStep.index = Math.max(...selectedMashSchedule.value.steps.map((s) => s.index)) + 1;
-  selectedMashSchedule.value.steps.push(newStep);
+  const step = { ...defaultStep };
+  step.index = Math.max(...selectedMashSchedule.value.steps.map((s) => s.index)) + 1;
+  selectedMashSchedule.value.steps.push(step);
 
-  editedItem.value = newStep;
-  dialog.value = true;
+  editedStepsItem.value = step;
+  editStepDialog.value = true;
 };
 
-const openDeleteDialog = async (item:IMashStep) => {
+const openStepsDeleteDialog = async (item:IMashStep) => {
   if (selectedMashSchedule.value == null) {
     return;
   }
-  editIndex.value = selectedMashSchedule.value.steps.indexOf(item);
-  editedItem.value = item;
+  editStepsIndex.value = selectedMashSchedule.value.steps.indexOf(item);
+  editedStepsItem.value = item;
   dialogDelete.value = true;
 };
 
-const deleteItemOk = async () => {
+const stepDeleteItemOk = async () => {
   if (selectedMashSchedule.value == null) {
     return;
   }
-  const index = editIndex.value as number;
+  const index = editStepsIndex.value as number;
   selectedMashSchedule.value.steps.splice(index, 1);
+  closeDeleteDialog();
+};
+
+const editNotificationsItem = async (item:INotification) => {
+  if (selectedMashSchedule.value == null) {
+    return;
+  }
+  editNotificationsIndex.value = selectedMashSchedule.value.notifications.indexOf(item);
+  editedNotificationsItem.value = item;
+  editNotificationDialog.value = true;
+};
+
+const newNotification = async () => {
+  if (selectedMashSchedule.value == null) { // create new from scratch when user stats adding steps
+    selectedMashSchedule.value = {
+      name: 'New',
+      boil: false,
+      steps: [],
+      notifications: [],
+    };
+  }
+
+  const notification = { ...defaultNotification };
+  selectedMashSchedule.value.notifications.push(notification);
+
+  editedNotificationsItem.value = notification;
+  editNotificationDialog.value = true;
+};
+
+const openNotificationsDeleteDialog = async (item:INotification) => {
+  if (selectedMashSchedule.value == null) {
+    return;
+  }
+  editNotificationsIndex.value = selectedMashSchedule.value.notifications.indexOf(item);
+  editedNotificationsItem.value = item;
+  dialogDelete.value = true;
+};
+
+const notificationDeleteItemOk = async () => {
+  if (selectedMashSchedule.value == null) {
+    return;
+  }
+  const index = editNotificationsIndex.value as number;
+  selectedMashSchedule.value.notifications.splice(index, 1);
   closeDeleteDialog();
 };
 
@@ -144,10 +219,18 @@ const saveSchedule = async () => {
     return;
   }
 
+  // atm schedules are in ram so we can't allow crazy amounts, in the future we will need some kinde of cloud storage
+  if (selectedMashSchedule.value.name !== currentName.value && mashSchedules.value.length >= 10) {
+    alert.value = 'Only 10 Schedules allowed!';
+    alertType.value = 'warning';
+    return;
+  }
+
   const newSchedule:IMashSchedule = {
     name: currentName.value,
     boil: currentBoil.value,
     steps: [...selectedMashSchedule.value.steps],
+    notifications: [...selectedMashSchedule.value.notifications],
   };
 
   const requestData = {
@@ -182,16 +265,16 @@ const deleteSchedule = async () => {
 
   selectedMashSchedule.value = null;
 
-  getData();
-
   await webConn?.doPostRequest(requestData);
+
+  getData();
 };
 
 </script>
 
 <template>
   <v-container class="pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-col cols="3" md="3">
@@ -212,83 +295,156 @@ const deleteSchedule = async () => {
         </v-col>
       </v-row>
       <v-row>
-        <v-data-table
-          :sort-by="sortBy"
-          :items-per-page="tableItemsPerPage"
-          :headers="tableHeaders"
-          :items="tableData"
-          density="compact"
-          item-value="name"
-        >
-          <template v-slot:top>
-            <v-toolbar density="compact">
-              <v-toolbar-title>Mash/Boil Schedule</v-toolbar-title>
-              <v-spacer />
-              <v-btn color="secondary" variant="outlined" class="mr-5" @click="newItem()">
-                New Step
-              </v-btn>
+        <v-col cols="12" md="12">
+          <v-data-table
+            :sort-by="sortStepsBy"
+            :items-per-page="tableItemsPerPage"
+            :headers="tableStepsHeaders"
+            :items="tableStepsData"
+            density="compact"
+            item-value="name"
+          >
+            <template v-slot:top>
+              <v-toolbar density="compact">
+                <v-toolbar-title>Steps</v-toolbar-title>
+                <v-spacer />
+                <v-btn color="secondary" variant="outlined" class="mr-5" @click="newStep()">
+                  New Step
+                </v-btn>
 
-              <v-dialog v-model="dialog" max-width="500px">
-                <v-card>
-                  <v-card-title>
-                    <span class="text-h5">Edit</span>
-                  </v-card-title>
+                <v-dialog v-model="editStepDialog" max-width="500px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="text-h5">Edit</span>
+                    </v-card-title>
 
-                  <v-card-text>
-                    <v-container>
-                      <v-row>
-                        <v-text-field type="number" v-model.number="editedItem.index" label="Index name" />
-                      </v-row>
-                      <v-row>
-                        <v-text-field v-model="editedItem.name" label="Name" />
-                      </v-row>
-                      <v-row>
-                        <v-text-field type="number" v-model.number="editedItem.temperature" :label="`Temperature ${appStore.tempUnit}`" />
-                      </v-row>
-                      <v-row>
-                        <v-text-field type="number" v-model.number="editedItem.stepTime" label="Step Time (min)" />
-                      </v-row>
-                      <v-row>
-                        <v-checkbox v-model="editedItem.extendStepTimeIfNeeded" label="Extend Step Time if Needed" />
-                      </v-row>
-                      <v-row>
-                        <v-text-field type="number" v-model.number="editedItem.time" label="Hold Time (min)" />
-                      </v-row>
-                    </v-container>
-                  </v-card-text>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-text-field type="number" v-model.number="editedStepsItem.index" label="Index name" />
+                        </v-row>
+                        <v-row>
+                          <v-text-field v-model="editedStepsItem.name" label="Name" />
+                        </v-row>
+                        <v-row>
+                          <v-text-field type="number" v-model.number="editedStepsItem.temperature" :label="`Temperature ${appStore.tempUnit}`" />
+                        </v-row>
+                        <v-row>
+                          <v-text-field type="number" v-model.number="editedStepsItem.stepTime" label="Step Time (min)" />
+                        </v-row>
+                        <v-row>
+                          <v-checkbox v-model="editedStepsItem.extendStepTimeIfNeeded" label="Extend Step Time if Needed" />
+                        </v-row>
+                        <v-row>
+                          <v-text-field type="number" v-model.number="editedStepsItem.time" label="Hold Time (min)" />
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
 
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
-                      Close
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-              <v-dialog v-model="dialogDelete" max-width="500px">
-                <v-card>
-                  <v-card-title class="text-h5">Are you sure you want to delete this item?</v-card-title>
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>
-                    <v-btn color="blue-darken-1" variant="text" @click="deleteItemOk">OK</v-btn>
-                    <v-spacer />
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-            </v-toolbar>
-          </template>
-          <template v-slot:[`item.actions`]="{ item }">
-            <v-icon size="small" class="me-2" @click="editItem(item.raw)" :icon="mdiPencil" />
-            <v-icon size="small" @click="openDeleteDialog(item.raw)" :icon="mdiDelete" />
-          </template>
-          <template v-slot:[`item.extendStepTimeIfNeeded`]="{ item }">
-            <v-checkbox-btn class="align-right justify-center" v-model="item.columns.extendStepTimeIfNeeded" disabled />
-          </template>
+                    <v-card-actions>
+                      <v-spacer />
+                      <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
+                        Close
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+                <v-dialog v-model="dialogDelete" max-width="500px">
+                  <v-card>
+                    <v-card-title class="text-h5">Are you sure you want to delete this Step?</v-card-title>
+                    <v-card-actions>
+                      <v-spacer />
+                      <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>
+                      <v-btn color="blue-darken-1" variant="text" @click="stepDeleteItemOk">OK</v-btn>
+                      <v-spacer />
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+              </v-toolbar>
+            </template>
+            <template v-slot:[`item.actions`]="{ item }">
+              <v-icon size="small" class="me-2" @click="editStepsItem(item.raw)" :icon="mdiPencil" />
+              <v-icon size="small" @click="openStepsDeleteDialog(item.raw)" :icon="mdiDelete" />
+            </template>
+            <template v-slot:[`item.extendStepTimeIfNeeded`]="{ item }">
+              <v-checkbox-btn class="align-right justify-center" v-model="item.columns.extendStepTimeIfNeeded" disabled />
+            </template>
 
-        </v-data-table>
-
+          </v-data-table>
+        </v-col>
       </v-row>
+
+      <v-row>
+        <v-col cols="12" md="12">
+          <v-data-table
+            :sort-by="sortNotificationsBy"
+            :items-per-page="tableItemsPerPage"
+            :headers="tableNotificationsHeaders"
+            :items="tableNotificationsData"
+            density="compact"
+            item-value="name"
+          >
+            <template v-slot:top>
+              <v-toolbar density="compact">
+                <v-toolbar-title>Notifications</v-toolbar-title>
+                <v-spacer />
+                <v-btn color="secondary" variant="outlined" class="mr-5" @click="newNotification()">
+                  New Notification
+                </v-btn>
+
+                <v-dialog v-model="editNotificationDialog" max-width="500px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="text-h5">Edit</span>
+                    </v-card-title>
+
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-text-field v-model="editedNotificationsItem.name" label="Name" />
+                        </v-row>
+                        <v-row>
+                          <v-text-field type="number" v-model.number="editedNotificationsItem.time" label="Time from Start (min)" />
+                        </v-row>
+                        <v-row>
+                          <v-switch v-model="editedNotificationsItem.buzzer" label="Buzzer" color="red" />
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
+
+                    <v-card-actions>
+                      <v-spacer />
+                      <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
+                        Close
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+                <v-dialog v-model="dialogDelete" max-width="500px">
+                  <v-card>
+                    <v-card-title class="text-h5">Are you sure you want to delete this Notification?</v-card-title>
+                    <v-card-actions>
+                      <v-spacer />
+                      <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>
+                      <v-btn color="blue-darken-1" variant="text" @click="notificationDeleteItemOk">OK</v-btn>
+                      <v-spacer />
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+              </v-toolbar>
+            </template>
+            <template v-slot:[`item.actions`]="{ item }">
+              <v-icon size="small" class="me-2" @click="editNotificationsItem(item.raw)" :icon="mdiPencil" />
+              <v-icon size="small" @click="openNotificationsDeleteDialog(item.raw)" :icon="mdiDelete" />
+            </template>
+            <template v-slot:[`item.buzzer`]="{ item }">
+              <v-checkbox-btn class="align-right justify-center" v-model="item.columns.buzzer" disabled />
+            </template>
+
+          </v-data-table>
+        </v-col>
+      </v-row>
+
     </v-form>
   </v-container>
 </template>

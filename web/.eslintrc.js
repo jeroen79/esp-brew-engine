@@ -11,6 +11,7 @@ module.exports = {
     'vue/max-attributes-per-line': 'off',
     'import/no-unresolved': 'off',
     '@typescript-eslint/no-unused-vars': 'off',
+    'import/order': 'off',
   },
   overrides: [
     {

@@ -80,11 +80,10 @@ void BrewEngine::initHeaters()
 
 void BrewEngine::readSystemSettings()
 {
-	ESP_LOGI(TAG, "Reading BrewEngine Settings");
+	ESP_LOGI(TAG, "Reading System Settings");
 
 	// io settings
 	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
-	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
 
 	bool configInvertOutputs = false;
@@ -105,7 +104,7 @@ void BrewEngine::readSystemSettings()
 
 	this->temperatureScale = (TemperatureScale)this->settingsManager->Read("tempScale", defaultConfigScale);
 
-	ESP_LOGI(TAG, "Reading BrewEngine Settings Done");
+	ESP_LOGI(TAG, "Reading System Settings Done");
 }
 
 void BrewEngine::saveSystemSettingsJson(json config)
@@ -144,7 +143,7 @@ void BrewEngine::saveSystemSettingsJson(json config)
 
 void BrewEngine::readSettings()
 {
-	ESP_LOGI(TAG, "Reading BrewEngine Settings");
+	ESP_LOGI(TAG, "Reading Settings");
 
 	vector<uint8_t> empty = json::to_msgpack(json::array({}));
 	vector<uint8_t> serialized = this->settingsManager->Read("mashschedules", empty);
@@ -183,6 +182,50 @@ void BrewEngine::readSettings()
 	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
 }
 
+void BrewEngine::setMashSchedule(json jSchedule)
+{
+	json newSteps = jSchedule["steps"];
+
+	auto newMash = new MashSchedule();
+	newMash->name = jSchedule["name"].get<string>();
+	newMash->boil = jSchedule["boil"].get<bool>();
+	newMash->steps.clear();
+
+	for (auto &el : newSteps.items())
+	{
+		auto jStep = el.value();
+
+		auto newStep = new MashStep();
+		newStep->index = jStep["index"].get<uint>();
+		newStep->name = jStep["name"].get<string>();
+		newStep->temperature = jStep["temperature"].get<int>();
+		newStep->stepTime = jStep["stepTime"].get<int>();
+		newStep->time = jStep["time"].get<int>();
+		newStep->extendStepTimeIfNeeded = jStep["extendStepTimeIfNeeded"].get<bool>();
+		newMash->steps.push_back(newStep);
+	}
+
+	newMash->sort_steps();
+
+	json newNotifications = jSchedule["notifications"];
+	newMash->notifications.clear();
+
+	for (auto &el : newNotifications.items())
+	{
+		auto jNotification = el.value();
+
+		auto newNotification = new Notification();
+		newNotification->name = jNotification["name"].get<string>();
+		newNotification->time = jNotification["time"].get<int>();
+		newNotification->buzzer = jNotification["buzzer"].get<bool>();
+		newMash->notifications.push_back(newNotification);
+	}
+
+	newMash->sort_notifications();
+
+	this->mashSchedules.insert_or_assign(newMash->name, newMash);
+}
+
 void BrewEngine::saveMashSchedules()
 {
 	ESP_LOGI(TAG, "Saving Mash Schedules");
@@ -196,9 +239,10 @@ void BrewEngine::saveMashSchedules()
 
 	// serialize to MessagePack for size
 	vector<uint8_t> serialized = json::to_msgpack(jSchedules);
+
 	this->settingsManager->Write("mashschedules", serialized);
 
-	ESP_LOGI(TAG, "Saving Mash Schedules Done");
+	ESP_LOGI(TAG, "Saving Mash Schedules Done, %d bytes", serialized.size());
 }
 
 void BrewEngine::savePIDSettings()
@@ -1602,30 +1646,7 @@ string BrewEngine::processCommand(string payLoad)
 	}
 	else if (command == "SaveMashSchedule")
 	{
-		json newSteps = data["steps"];
-
-		auto newMash = new MashSchedule();
-		newMash->name = data["name"].get<string>();
-		newMash->boil = data["boil"].get<bool>();
-		newMash->steps.clear();
-
-		for (auto &el : newSteps.items())
-		{
-			auto jStep = el.value();
-
-			auto newStep = new MashStep();
-			newStep->index = jStep["index"].get<uint>();
-			newStep->name = jStep["name"].get<string>();
-			newStep->temperature = jStep["temperature"].get<int>();
-			newStep->stepTime = jStep["stepTime"].get<int>();
-			newStep->time = jStep["time"].get<int>();
-			newStep->extendStepTimeIfNeeded = jStep["extendStepTimeIfNeeded"].get<bool>();
-			newMash->steps.push_back(newStep);
-		}
-
-		newMash->sort_steps();
-
-		this->mashSchedules.insert_or_assign(newMash->name, newMash);
+		this->setMashSchedule(data);
 
 		this->saveMashSchedules();
 	}
