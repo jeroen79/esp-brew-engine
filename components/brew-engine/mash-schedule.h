@@ -44,9 +44,12 @@ public:
         json jNotifications = json::array({});
         for (auto const &notification : this->notifications)
         {
+            auto seconds = std::chrono::duration_cast<std::chrono::seconds>(notification->timePoint.time_since_epoch()).count();
+
             json jNotification;
             jNotification["name"] = notification->name;
-            jNotification["time"] = notification->time;
+            jNotification["timeFromStart"] = notification->timeFromStart;
+            jNotification["timePoint"] = seconds;
             jNotification["buzzer"] = notification->buzzer;
             jNotifications.push_back(jNotification);
         }
@@ -95,7 +98,8 @@ public:
 
                 auto notification = new Notification();
                 notification->name = jNotification["name"];
-                notification->time = jNotification["time"];
+                notification->timeFromStart = jNotification["timeFromStart"];
+                // notification->timePoint = {};
                 notification->buzzer = jNotification["buzzer"];
                 this->notifications.push_back(notification);
             }
@@ -113,7 +117,7 @@ public:
     {
         // sort our notifications by time
         sort(this->notifications.begin(), this->notifications.end(), [](Notification *n1, Notification *n2)
-             { return (n1->time < n2->time); });
+             { return (n1->timeFromStart < n2->timeFromStart); });
     }
 
 protected:

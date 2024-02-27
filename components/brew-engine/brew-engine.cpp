@@ -48,6 +48,17 @@ void BrewEngine::Init()
 		gpio_set_level(this->stir_PIN, this->gpioLow);
 	}
 
+	if (!this->buzzer_PIN)
+	{
+		ESP_LOGW(TAG, "Buzzer is not configured!");
+	}
+	else
+	{
+		gpio_reset_pin(this->buzzer_PIN);
+		gpio_set_direction(this->buzzer_PIN, GPIO_MODE_OUTPUT);
+		gpio_set_level(this->buzzer_PIN, this->gpioLow);
+	}
+
 	// read other settings like maishschedules and pid
 	this->readSettings();
 
@@ -85,6 +96,8 @@ void BrewEngine::readSystemSettings()
 	// io settings
 	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
+	this->buzzer_PIN = (gpio_num_t)this->settingsManager->Read("buzzerPin", (uint16_t)CONFIG_BUZZER);
+	this->buzzerTime = this->settingsManager->Read("buzzerTime", (uint8_t)2);
 
 	bool configInvertOutputs = false;
 // is there a cleaner way to do this?, config to bool doesn't seem to work properly
@@ -120,6 +133,16 @@ void BrewEngine::saveSystemSettingsJson(json config)
 	{
 		this->settingsManager->Write("stirPin", (uint16_t)config["stirPin"]);
 		this->stir_PIN = (gpio_num_t)config["stirPin"];
+	}
+	if (!config["buzzerPin"].is_null() && config["buzzerPin"].is_number())
+	{
+		this->settingsManager->Write("buzzerPin", (uint16_t)config["buzzerPin"]);
+		this->buzzer_PIN = (gpio_num_t)config["buzzerPin"];
+	}
+	if (!config["buzzerTime"].is_null() && config["buzzerTime"].is_number())
+	{
+		this->settingsManager->Write("buzzerTime", (uint8_t)config["buzzerTime"]);
+		this->buzzerTime = (uint8_t)config["buzzerTime"];
 	}
 	if (!config["invertOutputs"].is_null() && config["invertOutputs"].is_boolean())
 	{
@@ -216,8 +239,9 @@ void BrewEngine::setMashSchedule(json jSchedule)
 
 		auto newNotification = new Notification();
 		newNotification->name = jNotification["name"].get<string>();
-		newNotification->time = jNotification["time"].get<int>();
+		newNotification->timeFromStart = jNotification["timeFromStart"].get<int>();
 		newNotification->buzzer = jNotification["buzzer"].get<bool>();
+		// timePoint is not needed here, its calculated on start
 		newMash->notifications.push_back(newNotification);
 	}
 
@@ -908,6 +932,20 @@ void BrewEngine::loadSchedule()
 		ESP_LOGI(TAG, "Hold Time:%s, Temp:%d ", iso_string2.c_str(), (int)step->temperature);
 	}
 
+	// also add notifications
+	this->notifications.clear();
+	for (auto const &notification : schedule->notifications)
+	{
+		auto notificationTime = execStep0->time + minutes(notification->timeFromStart);
+
+		// copy notification to new map
+		auto newNotification = new Notification();
+		newNotification = notification;
+		newNotification->timePoint = notificationTime;
+
+		this->notifications.push_back(newNotification);
+	}
+
 	// increate version so client can follow changes
 	this->runningVersion++;
 }
@@ -944,6 +982,19 @@ void BrewEngine::recalculateScheduleAfterOverTime()
 		ESP_LOGI(TAG, "Time Changend From: %s, To:%s ", iso_string.c_str(), iso_string2.c_str());
 
 		step->time = newTime;
+	}
+
+	// also increase notifications
+	for (auto &notification : this->notifications)
+	{
+		auto newTime = notification->timePoint + seconds(extraSeconds);
+
+		string iso_string = this->to_iso_8601(notification->timePoint);
+		string iso_string2 = this->to_iso_8601(newTime);
+
+		ESP_LOGI(TAG, "Notification Time Changend From: %s, To:%s ", iso_string.c_str(), iso_string2.c_str());
+
+		notification->timePoint = newTime;
 	}
 
 	// increate version so client can follow changes
@@ -1436,6 +1487,23 @@ void BrewEngine::controlLoop(void *arg)
 				instance->currentMashStep++;
 				instance->resetPitTime = true;
 			}
+
+			// notifications, but only when not in overtime
+			if (!instance->inOverTime)
+			{
+				// they are sorted so we just have to check the first one
+				auto firstTime = instance->notifications.front()->timePoint;
+				if (now > firstTime)
+				{
+					auto notification = instance->notifications.front();
+					ESP_LOGI(TAG, "Notify %s", notification->name.c_str());
+
+					string buzzerName = "buzzer" + notification->name;
+					xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+
+					instance->notifications.pop_front();
+				}
+			}
 		}
 		else
 		{
@@ -1474,6 +1542,21 @@ void BrewEngine::reboot(void *arg)
 {
 	vTaskDelay(2000 / portTICK_PERIOD_MS);
 	esp_restart();
+}
+
+void BrewEngine::buzzer(void *arg)
+{
+	BrewEngine *instance = (BrewEngine *)arg;
+
+	if (instance->buzzer_PIN > 0)
+	{
+		auto buzzerMs = instance->buzzerTime * 1000;
+		gpio_set_level(instance->buzzer_PIN, instance->gpioHigh);
+		vTaskDelay(buzzerMs / portTICK_PERIOD_MS);
+		gpio_set_level(instance->buzzer_PIN, instance->gpioLow);
+	}
+
+	vTaskDelete(NULL);
 }
 
 string BrewEngine::processCommand(string payLoad)
@@ -1760,6 +1843,8 @@ string BrewEngine::processCommand(string payLoad)
 		resultData = {
 			{"onewirePin", this->oneWire_PIN},
 			{"stirPin", this->stir_PIN},
+			{"buzzerPin", this->buzzer_PIN},
+			{"buzzerTime", this->buzzerTime},
 			{"invertOutputs", this->invertOutputs},
 			{"mqttUri", this->mqttUri},
 			{"temperatureScale", this->temperatureScale},

@@ -62,6 +62,12 @@ menu "BrewEngine Config"
             STIR Pin
             Set to 0 to disable!
 
+     config BUZZER
+        int "Buzzer Pin"
+        default 18
+        help
+            Buzzer Pin
+
     config InvertOutputs
         bool "Invert Outputs"
         default n

@@ -37,6 +37,7 @@
 #include "mash-schedule.h"
 #include "execution-step.h"
 #include "temperature-sensor.h"
+#include "notification.h"
 
 #include "settings-manager.h"
 
@@ -66,6 +67,7 @@ private:
     static void stirLoop(void *arg);
     static void reboot(void *arg);
     static void factoryReset(void *arg);
+    static void buzzer(void *arg);
 
     void readTempSensorSettings();
     void detectOnewireTemperatureSensors();
@@ -151,6 +153,11 @@ private:
 
     gpio_num_t oneWire_PIN;
     gpio_num_t stir_PIN;
+    gpio_num_t buzzer_PIN;
+
+    uint8_t buzzerTime; // in seconds
+
+    std::deque<Notification *> notifications;
 
     string mqttUri;
 

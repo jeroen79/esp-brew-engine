@@ -59,13 +59,13 @@ const tableStepsData:any = computed(() => {
 
 const defaultNotification:INotification = {
   name: 'New Notification',
-  time: 0,
+  timeFromStart: 0,
   buzzer: true,
 };
 
 const tableNotificationsHeaders = ref<Array<any>>([
   { title: 'Name', key: 'name', align: 'start' },
-  { title: 'Time from Start (min)', key: 'time', align: 'start' },
+  { title: 'Time from Start (min)', key: 'timeFromStart', align: 'start' },
   { title: 'Buzzer', key: 'buzzer', align: 'start' },
   { title: 'Actions', key: 'actions', sortable: false },
 ]);
@@ -277,25 +277,25 @@ const deleteSchedule = async () => {
     <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-row>
-        <v-col cols="3" md="3">
+        <v-col cols="12" md="3">
           <v-select label="Mash/Boil Schedule" v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
         </v-col>
 
       </v-row>
       <v-row>
-        <v-col cols="3" md="3">
+        <v-col cols="12" md="3">
           <v-text-field v-model="currentName" label="Name" />
         </v-col>
-        <v-col cols="3" md="3">
+        <v-col cols="12" md="3">
           <v-switch v-model="currentBoil" label="Is Boil Schedule" color="red" />
         </v-col>
-        <v-col cols="3" md="3">
+        <v-col cols="12" md="3">
           <v-btn color="success" class="mt-4 mr-2" @click="saveSchedule"> Save </v-btn>
           <v-btn color="error" class="mt-4 mr-2" @click="deleteSchedule"> Delete </v-btn>
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12" md="12">
+        <v-col cols="12">
           <v-data-table
             :sort-by="sortStepsBy"
             :items-per-page="tableItemsPerPage"
@@ -375,7 +375,7 @@ const deleteSchedule = async () => {
       </v-row>
 
       <v-row>
-        <v-col cols="12" md="12">
+        <v-col cols="12">
           <v-data-table
             :sort-by="sortNotificationsBy"
             :items-per-page="tableItemsPerPage"
@@ -404,7 +404,7 @@ const deleteSchedule = async () => {
                           <v-text-field v-model="editedNotificationsItem.name" label="Name" />
                         </v-row>
                         <v-row>
-                          <v-text-field type="number" v-model.number="editedNotificationsItem.time" label="Time from Start (min)" />
+                          <v-text-field type="number" v-model.number="editedNotificationsItem.timeFromStart" label="Time from Start (min)" />
                         </v-row>
                         <v-row>
                           <v-switch v-model="editedNotificationsItem.buzzer" label="Buzzer" color="red" />

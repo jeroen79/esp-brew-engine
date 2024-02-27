@@ -1,5 +1,5 @@
 export interface INotification {
   name: string;
-  time: number;
+  timeFromStart: number;
   buzzer: boolean;
 }
