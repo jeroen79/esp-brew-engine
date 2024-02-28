@@ -29,6 +29,12 @@ const manualOverrideOutput = ref<number | null>(null);
 
 const intervalId = ref<any>();
 
+const notificationDialog = ref<boolean>(false);
+const notificationDialogTitle = ref<string>('');
+const notificationDialogText = ref<string>('');
+
+const notificationTimeouts = ref<Array<number>>([]);
+
 const chartInitDone = ref(false);
 
 const lastGoodDataDate = ref<number | null>(null);
@@ -57,58 +63,112 @@ const dynamicColor = () => {
   return `rgb(${r},${g},${b})`;
 };
 
+const beep = () => {
+  // create web audio api context
+  const audioCtx = new AudioContext();
+
+  // create Oscillator node
+  const oscillator = audioCtx.createOscillator();
+
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.5; // volume at 50% todo make configurable
+  gainNode.connect(audioCtx.destination);
+
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(2000, audioCtx.currentTime); // value in hertz
+
+  oscillator.connect(gainNode);
+
+  oscillator.start(audioCtx.currentTime);
+  oscillator.stop(audioCtx.currentTime + 0.1); // 100ms beep
+};
+
+const speakMessage = (message:string) => {
+  // todo make local settings to configure voices
+  // const synth = window.speechSynthesis;
+  // const ssu = new SpeechSynthesisUtterance(message);
+
+  // const voices = synth.getVoices().sort((a, b) => {
+  //   const aname = a.name.toUpperCase();
+  //   const bname = b.name.toUpperCase();
+
+  //   if (aname < bname) {
+  //     return -1;
+  //   } if (aname === bname) {
+  //     return 0;
+  //   }
+  //   return +1;
+  // });
+  // console.log(voices);
+
+  // // eslint-disable-next-line prefer-destructuring
+  // ssu.voice = voices[0];
+
+  // synth.speak(ssu);
+};
+
+const showNotificaton = (notification:INotification, alert:boolean) => {
+  notificationDialogTitle.value = notification.name;
+  notificationDialogText.value = notification.message.replaceAll('\n', '<br/>');
+  notificationDialog.value = true;
+
+  if (alert) {
+    beep();
+    // speakMessage(notification.message);
+  }
+};
+
 const chartAnnotations = computed(() => {
   // wait for chartjs init
   if (!chartInitDone.value) {
     return null;
   }
 
-  const annotationData:Array<any> = [];
+  let currentNotifications:Array<INotification> = [];
 
   // when we are running notifications come from schedule api call
   if (executionSteps.value != null && executionSteps.value.length > 0) {
-    notifications.value.forEach((notification) => {
-      const notificationTime = notification.timePoint * 1000;
-      const notificationPoint = {
-        type: 'line',
-        xMin: notificationTime,
-        xMax: notificationTime,
-        borderColor: 'rgb(255, 99, 132)',
-        borderWidth: 2,
-        label: {
-          content: notification.name,
-          display: true,
-          yAdjust: -110,
-          position: 'top',
-        },
-      };
-      annotationData.push(notificationPoint);
-    });
+    currentNotifications = [...notifications.value];
   } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value !== undefined) {
     // when we have no steps and we are idle we can compute notifications from the schedule settings
     if (status.value === 'Idle') {
       const scheduleNotifications = [...selectedMashSchedule.value.notifications];
-      scheduleNotifications.forEach((notification) => {
-        let notificationTime = startDateTime.value! * 1000;// + ( * 100);
-        notificationTime += notification.timeFromStart * 60000;
 
-        const notificationPoint = {
-          type: 'line',
-          xMin: notificationTime,
-          xMax: notificationTime,
-          borderColor: 'rgb(255, 99, 132)',
-          borderWidth: 2,
-          label: {
-            content: notification.name,
-            display: true,
-            yAdjust: -110,
-            position: 'top',
-          },
-        };
-        annotationData.push(notificationPoint);
+      currentNotifications = scheduleNotifications.map((notification) => {
+        let notificationTime = startDateTime.value!;
+        notificationTime += notification.timeFromStart * 60;
+
+        const newNotification = { ...notification };
+        newNotification.timePoint = notificationTime;
+        return newNotification;
       });
     }
   }
+
+  const annotationData:Array<any> = [];
+
+  currentNotifications.forEach((notification) => {
+    const notificationTime = notification.timePoint * 1000;
+    const notificationPoint = {
+      type: 'line',
+      xMin: notificationTime,
+      xMax: notificationTime,
+      borderColor: 'rgb(255, 99, 132)',
+      borderWidth: 2,
+      label: {
+        content: notification.name,
+        drawTime: 'afterDatasetsDraw',
+        display: true,
+        yAdjust: -110,
+        position: 'top',
+      },
+      click(context:any, event:any) {
+        showNotificaton(notification, false);
+      },
+    };
+    annotationData.push(notificationPoint);
+  });
+
   return annotationData;
 });
 
@@ -233,6 +293,32 @@ const chartData = computed(() => {
   };
 });
 
+const clearAllNotificationTimeouts = () => {
+  notificationTimeouts.value.forEach((timeOutId) => {
+    window.clearTimeout(timeOutId);
+  });
+
+  notificationTimeouts.value = [];
+};
+
+const setNotifications = (newNotifications:Array<INotification>) => {
+  clearAllNotificationTimeouts();
+
+  const timeoutIds:Array<number> = [];
+
+  newNotifications.forEach((notification) => {
+    const timeTill = (notification.timePoint * 1000) - Date.now();
+    const timeoutId = window.setTimeout(() => {
+      showNotificaton(notification, true);
+    }, timeTill);
+    timeoutIds.push(timeoutId);
+  });
+
+  notificationTimeouts.value = timeoutIds;
+
+  notifications.value = newNotifications;
+};
+
 const getRunningSchedule = async () => {
   const requestData = {
     command: 'GetRunningSchedule',
@@ -246,7 +332,7 @@ const getRunningSchedule = async () => {
   }
 
   executionSteps.value = apiResult.data.steps;
-  notifications.value = apiResult.data.notifications;
+  setNotifications(apiResult.data.notifications as Array<INotification>);
 
   lastRunningVersion.value = apiResult.data.version;
 };
@@ -409,6 +495,8 @@ const stop = async () => {
     data: null,
   };
 
+  clearAllNotificationTimeouts();
+
   webConn?.doPostRequest(requestData);
   // todo capture error
 };
@@ -523,12 +611,30 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  clearAllNotificationTimeouts();
   clearInterval(intervalId.value);
 });
 
 </script>
 
 <template>
+  <v-dialog v-model="notificationDialog" max-width="500px">
+    <v-card>
+      <v-card-title>
+        <span class="text-h5">{{notificationDialogTitle}}</span>
+      </v-card-title>
+
+      <v-card-text v-html="notificationDialogText" />
+
+      <v-card-actions>
+        <v-spacer />
+        <v-btn color="blue-darken-1" variant="text" @click="notificationDialog = false">
+          Close
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-container class="spacing-playground pa-6" fluid>
     <v-form fast-fail @submit.prevent>
       <v-row style="height: 50vh">

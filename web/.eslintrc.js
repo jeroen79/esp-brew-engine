@@ -33,6 +33,7 @@ module.exports = {
         'import/newline-after-import': 'off',
         'array-element-newline': 'off',
         'object-curly-newline': 'off',
+        'vue/no-v-text-v-html-on-component': 'off',
         'vue/max-len': ['error',
           {
             code: 300,

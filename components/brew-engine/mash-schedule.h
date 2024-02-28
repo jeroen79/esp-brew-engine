@@ -67,12 +67,7 @@ public:
             auto jStep = el.value();
 
             auto step = new MashStep();
-            step->index = jStep["index"];
-            step->name = jStep["name"];
-            step->temperature = jStep["temperature"];
-            step->stepTime = jStep["stepTime"];
-            step->time = jStep["time"];
-            step->extendStepTimeIfNeeded = jStep["extendStepTimeIfNeeded"];
+            step->from_json(jStep);
             this->steps.push_back(step);
         }
 
@@ -85,10 +80,7 @@ public:
                 auto jNotification = el.value();
 
                 auto notification = new Notification();
-                notification->name = jNotification["name"];
-                notification->timeFromStart = jNotification["timeFromStart"];
-                // notification->timePoint = {};
-                notification->buzzer = jNotification["buzzer"];
+                notification->from_json(jNotification);
                 this->notifications.push_back(notification);
             }
         }

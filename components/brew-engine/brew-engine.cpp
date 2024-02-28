@@ -219,12 +219,7 @@ void BrewEngine::setMashSchedule(json jSchedule)
 		auto jStep = el.value();
 
 		auto newStep = new MashStep();
-		newStep->index = jStep["index"].get<uint>();
-		newStep->name = jStep["name"].get<string>();
-		newStep->temperature = jStep["temperature"].get<int>();
-		newStep->stepTime = jStep["stepTime"].get<int>();
-		newStep->time = jStep["time"].get<int>();
-		newStep->extendStepTimeIfNeeded = jStep["extendStepTimeIfNeeded"].get<bool>();
+		newStep->from_json(jStep);
 		newMash->steps.push_back(newStep);
 	}
 
@@ -238,10 +233,7 @@ void BrewEngine::setMashSchedule(json jSchedule)
 		auto jNotification = el.value();
 
 		auto newNotification = new Notification();
-		newNotification->name = jNotification["name"].get<string>();
-		newNotification->timeFromStart = jNotification["timeFromStart"].get<int>();
-		newNotification->buzzer = jNotification["buzzer"].get<bool>();
-		// timePoint is not needed here, its calculated on start
+		newNotification->from_json(jNotification);
 		newMash->notifications.push_back(newNotification);
 	}
 

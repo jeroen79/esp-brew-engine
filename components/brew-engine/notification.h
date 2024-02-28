@@ -12,6 +12,7 @@ class Notification
 {
 public:
     string name;
+    string message;
     int timeFromStart;
     system_clock::time_point timePoint;
     bool buzzer;
@@ -26,12 +27,25 @@ public:
 
         json jNotification;
         jNotification["name"] = this->name;
+        jNotification["message"] = this->message;
         jNotification["timeFromStart"] = this->timeFromStart;
         jNotification["timePoint"] = seconds;
         jNotification["buzzer"] = this->buzzer;
 
         return jNotification;
-    };
+    }
+
+    void from_json(json jsonData)
+    {
+        this->name = jsonData["name"].get<string>();
+        this->timeFromStart = jsonData["timeFromStart"].get<int>();
+        this->buzzer = jsonData["buzzer"].get<bool>();
+
+        if (!jsonData["message"].is_null() && jsonData["message"].is_string())
+        {
+            this->message = jsonData["message"];
+        }
+    }
 
 protected:
 private:

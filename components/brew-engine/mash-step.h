@@ -27,7 +27,17 @@ public:
         jStep["extendStepTimeIfNeeded"] = this->extendStepTimeIfNeeded;
 
         return jStep;
-    };
+    }
+
+    void from_json(json jsonData)
+    {
+        this->index = jsonData["index"].get<int>();
+        this->name = jsonData["name"].get<string>();
+        this->temperature = jsonData["temperature"].get<int>();
+        this->stepTime = jsonData["stepTime"].get<int>();
+        this->time = jsonData["time"].get<int>();
+        this->extendStepTimeIfNeeded = jsonData["extendStepTimeIfNeeded"].get<bool>();
+    }
 
 protected:
 private:

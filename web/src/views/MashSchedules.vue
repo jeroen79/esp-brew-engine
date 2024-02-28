@@ -58,6 +58,7 @@ const tableStepsData:any = computed(() => {
 
 const defaultNotification:INotification = {
   name: 'New Notification',
+  message: '',
   timeFromStart: 0,
   timePoint: 0,
   buzzer: true,
@@ -401,13 +402,16 @@ const deleteSchedule = async () => {
                     <v-card-text>
                       <v-container>
                         <v-row>
-                          <v-text-field v-model="editedNotificationsItem.name" label="Name" />
+                          <v-text-field maxlength="25" v-model="editedNotificationsItem.name" label="Name" />
                         </v-row>
                         <v-row>
                           <v-text-field type="number" v-model.number="editedNotificationsItem.timeFromStart" label="Time from Start (min)" />
                         </v-row>
                         <v-row>
                           <v-switch v-model="editedNotificationsItem.buzzer" label="Buzzer" color="red" />
+                        </v-row>
+                        <v-row>
+                          <v-textarea v-model="editedNotificationsItem.message" label="Message" />
                         </v-row>
                       </v-container>
                     </v-card-text>
