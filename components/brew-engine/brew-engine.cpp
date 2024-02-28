@@ -1489,7 +1489,7 @@ void BrewEngine::controlLoop(void *arg)
 			}
 
 			// notifications, but only when not in overtime
-			if (!instance->inOverTime)
+			if (!instance->inOverTime && !instance->notifications.empty())
 			{
 				// they are sorted so we just have to check the first one
 				auto firstTime = instance->notifications.front()->timePoint;
@@ -1658,6 +1658,14 @@ string BrewEngine::processCommand(string payLoad)
 			jExecutionSteps.push_back(jExecutionStep);
 		}
 		jRunningSchedule["steps"] = jExecutionSteps;
+
+		json jNotifications = json::array({});
+		for (auto &notification : this->notifications)
+		{
+			json jNotification = notification->to_json();
+			jNotifications.push_back(jNotification);
+		}
+		jRunningSchedule["notifications"] = jNotifications;
 
 		resultData = jRunningSchedule;
 	}

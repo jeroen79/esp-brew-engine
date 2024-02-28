@@ -29,13 +29,7 @@ public:
 
         for (auto const &step : this->steps)
         {
-            json jStep;
-            jStep["index"] = step->index;
-            jStep["name"] = step->name;
-            jStep["temperature"] = step->temperature;
-            jStep["stepTime"] = step->stepTime;
-            jStep["time"] = step->time;
-            jStep["extendStepTimeIfNeeded"] = step->extendStepTimeIfNeeded;
+            json jStep = step->to_json();
             jSteps.push_back(jStep);
         }
 
@@ -44,13 +38,7 @@ public:
         json jNotifications = json::array({});
         for (auto const &notification : this->notifications)
         {
-            auto seconds = std::chrono::duration_cast<std::chrono::seconds>(notification->timePoint.time_since_epoch()).count();
-
-            json jNotification;
-            jNotification["name"] = notification->name;
-            jNotification["timeFromStart"] = notification->timeFromStart;
-            jNotification["timePoint"] = seconds;
-            jNotification["buzzer"] = notification->buzzer;
+            json jNotification = notification->to_json();
             jNotifications.push_back(jNotification);
         }
 

@@ -53,13 +53,13 @@ const tableStepsData:any = computed(() => {
     return [];
   }
 
-  // console.log('steps', selectedMashSchedule.value.steps);
   return [...selectedMashSchedule.value.steps];
 });
 
 const defaultNotification:INotification = {
   name: 'New Notification',
   timeFromStart: 0,
+  timePoint: 0,
   buzzer: true,
 };
 

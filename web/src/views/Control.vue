@@ -9,9 +9,11 @@ import { ITempLog } from '@/interfaces/ITempLog';
 import { ITempSensor } from '@/interfaces/ITempSensor';
 import { useAppStore } from '@/store/app';
 import 'chartjs-adapter-dayjs-4';
+import annotationPlugin from 'chartjs-plugin-annotation';
 import debounce from 'lodash.debounce';
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Line } from 'vue-chartjs';
+import { INotification } from '@/interfaces/INotification';
 
 const webConn = inject<WebConn>('webConn');
 
@@ -27,7 +29,7 @@ const manualOverrideOutput = ref<number | null>(null);
 
 const intervalId = ref<any>();
 
-const chartOptions = ref<any>(null);
+const chartInitDone = ref(false);
 
 const lastGoodDataDate = ref<number | null>(null);
 const lastRunningVersion = ref<number>(0);
@@ -37,6 +39,7 @@ const rawData = ref<Array<IDataPacket>>([]);
 const mashSchedules = ref<Array<IMashSchedule>>([]);
 const tempSensors = ref<Array<ITempSensor>>([]);
 const executionSteps = ref<Array<IExecutionStep>>([]);
+const notifications = ref<Array<INotification>>([]);
 
 const selectedMashSchedule = ref<IMashSchedule | null>(null);
 
@@ -54,9 +57,64 @@ const dynamicColor = () => {
   return `rgb(${r},${g},${b})`;
 };
 
+const chartAnnotations = computed(() => {
+  // wait for chartjs init
+  if (!chartInitDone.value) {
+    return null;
+  }
+
+  const annotationData:Array<any> = [];
+
+  // when we are running notifications come from schedule api call
+  if (executionSteps.value != null && executionSteps.value.length > 0) {
+    notifications.value.forEach((notification) => {
+      const notificationTime = notification.timePoint * 1000;
+      const notificationPoint = {
+        type: 'line',
+        xMin: notificationTime,
+        xMax: notificationTime,
+        borderColor: 'rgb(255, 99, 132)',
+        borderWidth: 2,
+        label: {
+          content: notification.name,
+          display: true,
+          yAdjust: -110,
+          position: 'top',
+        },
+      };
+      annotationData.push(notificationPoint);
+    });
+  } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value !== undefined) {
+    // when we have no steps and we are idle we can compute notifications from the schedule settings
+    if (status.value === 'Idle') {
+      const scheduleNotifications = [...selectedMashSchedule.value.notifications];
+      scheduleNotifications.forEach((notification) => {
+        let notificationTime = startDateTime.value! * 1000;// + ( * 100);
+        notificationTime += notification.timeFromStart * 60000;
+
+        const notificationPoint = {
+          type: 'line',
+          xMin: notificationTime,
+          xMax: notificationTime,
+          borderColor: 'rgb(255, 99, 132)',
+          borderWidth: 2,
+          label: {
+            content: notification.name,
+            display: true,
+            yAdjust: -110,
+            position: 'top',
+          },
+        };
+        annotationData.push(notificationPoint);
+      });
+    }
+  }
+  return annotationData;
+});
+
 const chartData = computed(() => {
   // wait for chartjs init
-  if (chartOptions.value == null) {
+  if (!chartInitDone.value) {
     return null;
   }
   let scheduleData:Array<any> = [];
@@ -188,6 +246,7 @@ const getRunningSchedule = async () => {
   }
 
   executionSteps.value = apiResult.data.steps;
+  notifications.value = apiResult.data.notifications;
 
   lastRunningVersion.value = apiResult.data.version;
 };
@@ -383,8 +442,11 @@ const debounceTargetTemp = debounce(changeTargetTemp, 1000);
 watch(() => targetTemperatureSet.value, debounceTargetTemp);
 
 const initChart = () => {
-  ChartJS.register(Title, Tooltip, Legend, PointElement, LineElement, TimeScale, LinearScale, CategoryScale, Filler);
+  ChartJS.register(Title, Tooltip, Legend, PointElement, LineElement, TimeScale, LinearScale, CategoryScale, Filler, annotationPlugin);
+  chartInitDone.value = true;
+};
 
+const chartOptions = computed<any>(() => {
   let suggestedMin = 60;
   let suggestedMax = 105;
   // ajust min max when farenheit
@@ -393,7 +455,7 @@ const initChart = () => {
     suggestedMax = 220;
   }
 
-  chartOptions.value = {
+  const options = {
     responsive: true,
     maintainAspectRatio: false,
     animation: false, // Disable all animations, does weird things when adding data
@@ -438,8 +500,15 @@ const initChart = () => {
         grid: { color: '#bdbdbc' },
       },
     },
+    plugins: {
+      annotation: {
+        annotations: chartAnnotations.value,
+      },
+    },
   };
-};
+
+  return options;
+});
 
 onMounted(() => {
   // atm only used to render te schedule at the current time
@@ -463,7 +532,7 @@ onBeforeUnmount(() => {
   <v-container class="spacing-playground pa-6" fluid>
     <v-form fast-fail @submit.prevent>
       <v-row style="height: 50vh">
-        <Line v-if="chartData" :options="chartOptions" :data="chartData" />
+        <Line v-if="chartInitDone && chartData" :options="chartOptions" :data="chartData" />
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
