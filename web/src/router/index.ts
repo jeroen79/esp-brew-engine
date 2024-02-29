@@ -49,6 +49,16 @@ const routes = [
         name: 'SystemSettings',
         component: () => import(/* webpackChunkName: "SystemSettings" */ '@/views/SystemSettings.vue'),
       },
+      {
+        path: 'heaterSettings',
+        name: 'HeaterSettings',
+        component: () => import(/* webpackChunkName: "HeaterSettings" */ '@/views/HeaterSettings.vue'),
+      },
+      {
+        path: 'clientSettings',
+        name: 'ClientSettings',
+        component: () => import(/* webpackChunkName: "ClientSettings" */ '@/views/ClientSettings.vue'),
+      },
     ],
   },
 ];

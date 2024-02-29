@@ -24,6 +24,8 @@ void BrewEngine::Init()
 	// read the post important settings first so when van set outputs asap.
 	this->readSystemSettings();
 
+	this->readHeaterSettings();
+
 	// init gpio as soon as possible
 	if (this->invertOutputs)
 	{
@@ -31,36 +33,7 @@ void BrewEngine::Init()
 		this->gpioLow = 1;
 	}
 
-	this->heaterCount = 0;
-
-	// detect heater count and set the outputs
-	if (this->heat1_PIN)
-	{
-		ESP_LOGI(TAG, "Heater 1 Configured");
-		this->heaterCount = 1;
-		gpio_reset_pin(this->heat1_PIN);
-		gpio_set_direction(this->heat1_PIN, GPIO_MODE_OUTPUT);
-		gpio_set_level(this->heat1_PIN, this->gpioLow);
-
-		if (this->heat2_PIN)
-		{
-			ESP_LOGI(TAG, "Heater 2 Configured");
-			this->heaterCount = 2;
-			gpio_reset_pin(this->heat2_PIN);
-			gpio_set_direction(this->heat2_PIN, GPIO_MODE_OUTPUT);
-			gpio_set_level(this->heat2_PIN, this->gpioLow);
-		}
-	}
-	else
-	{
-		ESP_LOGW(TAG, "You need to configure at least 1 heater");
-	}
-
-	// init heater vector and set to false
-	for (int i = 0; i < heaterCount; i++)
-	{
-		this->heaterOn.push_back(false);
-	}
+	this->initHeaters();
 
 	if (!this->stir_PIN)
 	{
@@ -73,6 +46,17 @@ void BrewEngine::Init()
 		gpio_reset_pin(this->stir_PIN);
 		gpio_set_direction(this->stir_PIN, GPIO_MODE_OUTPUT);
 		gpio_set_level(this->stir_PIN, this->gpioLow);
+	}
+
+	if (!this->buzzer_PIN)
+	{
+		ESP_LOGW(TAG, "Buzzer is not configured!");
+	}
+	else
+	{
+		gpio_reset_pin(this->buzzer_PIN);
+		gpio_set_direction(this->buzzer_PIN, GPIO_MODE_OUTPUT);
+		gpio_set_level(this->buzzer_PIN, this->gpioLow);
 	}
 
 	// read other settings like maishschedules and pid
@@ -93,16 +77,27 @@ void BrewEngine::Init()
 	this->server = this->startWebserver();
 }
 
+void BrewEngine::initHeaters()
+{
+	for (auto const &heater : this->heaters)
+	{
+		ESP_LOGI(TAG, "Heater %s Configured", heater->name.c_str());
+
+		gpio_reset_pin(heater->pinNr);
+		gpio_set_direction(heater->pinNr, GPIO_MODE_OUTPUT);
+		gpio_set_level(heater->pinNr, this->gpioLow);
+	}
+}
+
 void BrewEngine::readSystemSettings()
 {
-	ESP_LOGI(TAG, "Reading BrewEngine Settings");
+	ESP_LOGI(TAG, "Reading System Settings");
 
 	// io settings
 	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
-	this->heat1_PIN = (gpio_num_t)this->settingsManager->Read("heat1Pin", (uint16_t)CONFIG_HEAT1);
-	this->heat2_PIN = (gpio_num_t)this->settingsManager->Read("heat2Pin", (uint16_t)CONFIG_HEAT2);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
-	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
+	this->buzzer_PIN = (gpio_num_t)this->settingsManager->Read("buzzerPin", (uint16_t)CONFIG_BUZZER);
+	this->buzzerTime = this->settingsManager->Read("buzzerTime", (uint8_t)2);
 
 	bool configInvertOutputs = false;
 // is there a cleaner way to do this?, config to bool doesn't seem to work properly
@@ -122,7 +117,7 @@ void BrewEngine::readSystemSettings()
 
 	this->temperatureScale = (TemperatureScale)this->settingsManager->Read("tempScale", defaultConfigScale);
 
-	ESP_LOGI(TAG, "Reading BrewEngine Settings Done");
+	ESP_LOGI(TAG, "Reading System Settings Done");
 }
 
 void BrewEngine::saveSystemSettingsJson(json config)
@@ -134,20 +129,20 @@ void BrewEngine::saveSystemSettingsJson(json config)
 		this->settingsManager->Write("onewirePin", (uint16_t)config["onewirePin"]);
 		this->oneWire_PIN = (gpio_num_t)config["onewirePin"];
 	}
-	if (!config["heat1Pin"].is_null() && config["heat1Pin"].is_number())
-	{
-		this->settingsManager->Write("heat1Pin", (uint16_t)config["heat1Pin"]);
-		this->heat1_PIN = (gpio_num_t)config["heat1Pin"];
-	}
-	if (!config["heat2Pin"].is_null() && config["heat2Pin"].is_number())
-	{
-		this->settingsManager->Write("heat2Pin", (uint16_t)config["heat2Pin"]);
-		this->heat2_PIN = (gpio_num_t)config["heat2Pin"];
-	}
 	if (!config["stirPin"].is_null() && config["stirPin"].is_number())
 	{
 		this->settingsManager->Write("stirPin", (uint16_t)config["stirPin"]);
 		this->stir_PIN = (gpio_num_t)config["stirPin"];
+	}
+	if (!config["buzzerPin"].is_null() && config["buzzerPin"].is_number())
+	{
+		this->settingsManager->Write("buzzerPin", (uint16_t)config["buzzerPin"]);
+		this->buzzer_PIN = (gpio_num_t)config["buzzerPin"];
+	}
+	if (!config["buzzerTime"].is_null() && config["buzzerTime"].is_number())
+	{
+		this->settingsManager->Write("buzzerTime", (uint8_t)config["buzzerTime"]);
+		this->buzzerTime = (uint8_t)config["buzzerTime"];
 	}
 	if (!config["invertOutputs"].is_null() && config["invertOutputs"].is_boolean())
 	{
@@ -171,7 +166,7 @@ void BrewEngine::saveSystemSettingsJson(json config)
 
 void BrewEngine::readSettings()
 {
-	ESP_LOGI(TAG, "Reading BrewEngine Settings");
+	ESP_LOGI(TAG, "Reading Settings");
 
 	vector<uint8_t> empty = json::to_msgpack(json::array({}));
 	vector<uint8_t> serialized = this->settingsManager->Read("mashschedules", empty);
@@ -210,6 +205,43 @@ void BrewEngine::readSettings()
 	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
 }
 
+void BrewEngine::setMashSchedule(json jSchedule)
+{
+	json newSteps = jSchedule["steps"];
+
+	auto newMash = new MashSchedule();
+	newMash->name = jSchedule["name"].get<string>();
+	newMash->boil = jSchedule["boil"].get<bool>();
+	newMash->steps.clear();
+
+	for (auto &el : newSteps.items())
+	{
+		auto jStep = el.value();
+
+		auto newStep = new MashStep();
+		newStep->from_json(jStep);
+		newMash->steps.push_back(newStep);
+	}
+
+	newMash->sort_steps();
+
+	json newNotifications = jSchedule["notifications"];
+	newMash->notifications.clear();
+
+	for (auto &el : newNotifications.items())
+	{
+		auto jNotification = el.value();
+
+		auto newNotification = new Notification();
+		newNotification->from_json(jNotification);
+		newMash->notifications.push_back(newNotification);
+	}
+
+	newMash->sort_notifications();
+
+	this->mashSchedules.insert_or_assign(newMash->name, newMash);
+}
+
 void BrewEngine::saveMashSchedules()
 {
 	ESP_LOGI(TAG, "Saving Mash Schedules");
@@ -223,9 +255,10 @@ void BrewEngine::saveMashSchedules()
 
 	// serialize to MessagePack for size
 	vector<uint8_t> serialized = json::to_msgpack(jSchedules);
+
 	this->settingsManager->Write("mashschedules", serialized);
 
-	ESP_LOGI(TAG, "Saving Mash Schedules Done");
+	ESP_LOGI(TAG, "Saving Mash Schedules Done, %d bytes", serialized.size());
 }
 
 void BrewEngine::savePIDSettings()
@@ -250,13 +283,14 @@ void BrewEngine::addDefaultMash()
 {
 	auto defaultMash = new MashSchedule();
 	defaultMash->name = "Default";
+	defaultMash->boil = false;
 	defaultMash->steps.clear();
 
 	auto defaultMash_s1 = new MashStep();
 	defaultMash_s1->index = 0;
 	defaultMash_s1->name = "Beta Amylase";
 	defaultMash_s1->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
-	defaultMash_s1->stepTime = 0;
+	defaultMash_s1->stepTime = 5;
 	defaultMash_s1->extendStepTimeIfNeeded = true;
 	defaultMash_s1->time = 45;
 	defaultMash->steps.push_back(defaultMash_s1);
@@ -279,17 +313,32 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s3->time = 5;
 	defaultMash->steps.push_back(defaultMash_s3);
 
+	auto defaultMash_n1 = new Notification();
+	defaultMash_n1->name = "Add Grains";
+	defaultMash_n1->message = "Please add Grains";
+	defaultMash_n1->timeFromStart = 5;
+	defaultMash_n1->buzzer = true;
+	defaultMash->notifications.push_back(defaultMash_n1);
+
+	auto defaultMash_n2 = new Notification();
+	defaultMash_n2->name = "Start Lautering";
+	defaultMash_n2->message = "Please Start Lautering/Sparging";
+	defaultMash_n2->timeFromStart = 85;
+	defaultMash_n2->buzzer = true;
+	defaultMash->notifications.push_back(defaultMash_n2);
+
 	this->mashSchedules.insert_or_assign(defaultMash->name, defaultMash);
 
 	auto ryeMash = new MashSchedule();
 	ryeMash->name = "Rye Mash";
+	ryeMash->boil = false;
 	ryeMash->steps.clear();
 
 	auto ryeMash_s1 = new MashStep();
 	ryeMash_s1->index = 0;
 	ryeMash_s1->name = "Beta Glucanase";
 	ryeMash_s1->temperature = (this->temperatureScale == Celsius) ? 43 : 110;
-	ryeMash_s1->stepTime = 0;
+	ryeMash_s1->stepTime = 5;
 	ryeMash_s1->extendStepTimeIfNeeded = true;
 	ryeMash_s1->time = 20;
 	ryeMash->steps.push_back(ryeMash_s1);
@@ -321,7 +370,162 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s4->time = 5;
 	ryeMash->steps.push_back(ryeMash_s4);
 
+	auto ryeMash_n1 = new Notification();
+	ryeMash_n1->name = "Add Grains";
+	ryeMash_n1->message = "Please add Grains";
+	ryeMash_n1->timeFromStart = 5;
+	ryeMash_n1->buzzer = true;
+	ryeMash->notifications.push_back(ryeMash_n1);
+
+	auto ryeMash_n2 = new Notification();
+	ryeMash_n2->name = "Start Lautering";
+	ryeMash_n2->message = "Please Start Lautering/Sparging";
+	ryeMash_n2->timeFromStart = 110;
+	ryeMash_n2->buzzer = true;
+	ryeMash->notifications.push_back(ryeMash_n2);
+
 	this->mashSchedules.insert_or_assign(ryeMash->name, ryeMash);
+
+	auto boil = new MashSchedule();
+	boil->name = "Boil 70 Min";
+	boil->boil = true;
+	boil->steps.clear();
+
+	auto boil_s1 = new MashStep();
+	boil_s1->index = 0;
+	boil_s1->name = "Boil";
+	boil_s1->temperature = (this->temperatureScale == Celsius) ? 101 : 214;
+	boil_s1->stepTime = 0;
+	boil_s1->extendStepTimeIfNeeded = true;
+	boil_s1->time = 70;
+	boil->steps.push_back(boil_s1);
+
+	auto boil_n1 = new Notification();
+	boil_n1->name = "Bittering Hops";
+	boil_n1->message = "Please add Bittering Hops";
+	boil_n1->timeFromStart = 0;
+	boil_n1->buzzer = true;
+	boil->notifications.push_back(boil_n1);
+
+	auto boil_n2 = new Notification();
+	boil_n2->name = "Aroma Hops";
+	boil_n2->message = "Please add Aroma Hops";
+	boil_n2->timeFromStart = 55;
+	boil_n2->buzzer = true;
+	boil->notifications.push_back(boil_n2);
+
+	this->mashSchedules.insert_or_assign(boil->name, boil);
+}
+
+void BrewEngine::addDefaultHeaters()
+{
+	auto defaultHeater1 = new Heater();
+	defaultHeater1->id = 1;
+	defaultHeater1->name = "Heater 1";
+	defaultHeater1->pinNr = (gpio_num_t)CONFIG_HEAT1;
+	defaultHeater1->preference = 1;
+	defaultHeater1->watt = 1500;
+	defaultHeater1->useForMash = true;
+	defaultHeater1->useForBoil = true;
+
+	this->heaters.push_back(defaultHeater1);
+
+	auto defaultHeater2 = new Heater();
+	defaultHeater2->id = 2;
+	defaultHeater2->name = "Heater 2";
+	defaultHeater2->pinNr = (gpio_num_t)CONFIG_HEAT2;
+	defaultHeater2->preference = 2;
+	defaultHeater2->watt = 1500;
+	defaultHeater2->useForMash = true;
+	defaultHeater2->useForBoil = true;
+	this->heaters.push_back(defaultHeater2);
+}
+
+void BrewEngine::readHeaterSettings()
+{
+	vector<uint8_t> empty = json::to_msgpack(json::array({}));
+	vector<uint8_t> serialized = this->settingsManager->Read("heaters", empty);
+
+	json jHeaters = json::from_msgpack(serialized);
+
+	if (jHeaters.empty())
+	{
+		ESP_LOGI(TAG, "Adding Default Heaters");
+		this->addDefaultHeaters();
+	}
+	else
+	{
+
+		for (auto &el : jHeaters.items())
+		{
+			auto jHeater = el.value();
+
+			auto heater = new Heater();
+			heater->from_json(jHeater);
+
+			ESP_LOGI(TAG, "Heater From Settings ID:%d", heater->id);
+
+			this->heaters.push_back(heater);
+		}
+	}
+
+	// Sort on preference
+	sort(this->heaters.begin(), this->heaters.end(), [](Heater *h1, Heater *h2)
+		 { return (h1->preference < h2->preference); });
+}
+
+void BrewEngine::saveHeaterSettings(json jHeaters)
+{
+	ESP_LOGI(TAG, "Saving Heater Settings");
+
+	if (!jHeaters.is_array())
+	{
+		ESP_LOGW(TAG, "Heater settings must be an array!");
+		return;
+	}
+
+	// wait for stop
+	vTaskDelay(pdMS_TO_TICKS(1000));
+
+	// clear
+	this->heaters.clear();
+
+	uint8_t newId = 0;
+
+	// update running data
+	for (auto &el : jHeaters.items())
+	{
+		newId++;
+
+		if (newId > 10)
+		{
+			ESP_LOGE(TAG, "Only 10 heaters supported!");
+			continue;
+		}
+
+		auto jHeater = el.value();
+		jHeater["id"] = newId;
+
+		auto heater = new Heater();
+		heater->from_json(jHeater);
+		heater->id = newId;
+
+		this->heaters.push_back(heater);
+	}
+
+	// Sort on preference
+	sort(this->heaters.begin(), this->heaters.end(), [](Heater *h1, Heater *h2)
+		 { return (h1->preference < h2->preference); });
+
+	// Serialize to MessagePack for size
+	vector<uint8_t> serialized = json::to_msgpack(jHeaters);
+
+	this->settingsManager->Write("heaters", serialized);
+
+	// re-init so they can be used
+	this->initHeaters();
+
+	ESP_LOGI(TAG, "Saving Heater Settings Done");
 }
 
 void BrewEngine::readTempSensorSettings()
@@ -604,9 +808,6 @@ void BrewEngine::start()
 	if (!this->controlRun)
 	{
 		this->controlRun = true;
-		xTaskCreate(&this->pidLoop, "pidloop_task", 8192, this, 5, NULL);
-
-		xTaskCreate(&this->outputLoop, "outputloop_task", 4096, this, 5, NULL);
 
 		// clear old temp log
 		this->tempLog.clear();
@@ -617,9 +818,26 @@ void BrewEngine::start()
 		if (this->selectedMashScheduleName.empty() == false)
 		{
 			this->loadSchedule();
-			this->currentMashStep = 0;
+			this->currentMashStep = 1; // 0 is current temp, so we can start at 1
 			xTaskCreate(&this->controlLoop, "controlloop_task", 4096, this, 5, NULL);
 		}
+		else
+		{
+
+			// if no schedule is selected, we set the boil flag based on temperature
+			if ((this->temperatureScale == Celsius && this->targetTemperature >= 100) || (this->temperatureScale == Fahrenheit && this->targetTemperature >= 212))
+			{
+				this->boilRun = true;
+			}
+			else
+			{
+				this->boilRun = false;
+			}
+		}
+
+		xTaskCreate(&this->pidLoop, "pidloop_task", 8192, this, 5, NULL);
+
+		xTaskCreate(&this->outputLoop, "outputloop_task", 4096, this, 5, NULL);
 
 		this->statusText = "Running";
 	}
@@ -639,6 +857,7 @@ void BrewEngine::loadSchedule()
 	system_clock::time_point prevTime = std::chrono::system_clock::now();
 	this->executionSteps.clear();
 	this->currentExecutionStep = 0;
+	this->boilRun = schedule->boil;
 	int stepIndex = 0;
 
 	int prevTemp = (int)this->temperature;
@@ -747,6 +966,20 @@ void BrewEngine::loadSchedule()
 		ESP_LOGI(TAG, "Hold Time:%s, Temp:%d ", iso_string2.c_str(), (int)step->temperature);
 	}
 
+	// also add notifications
+	this->notifications.clear();
+	for (auto const &notification : schedule->notifications)
+	{
+		auto notificationTime = execStep0->time + minutes(notification->timeFromStart);
+
+		// copy notification to new map
+		auto newNotification = new Notification();
+		newNotification = notification;
+		newNotification->timePoint = notificationTime;
+
+		this->notifications.push_back(newNotification);
+	}
+
 	// increate version so client can follow changes
 	this->runningVersion++;
 }
@@ -783,6 +1016,19 @@ void BrewEngine::recalculateScheduleAfterOverTime()
 		ESP_LOGI(TAG, "Time Changend From: %s, To:%s ", iso_string.c_str(), iso_string2.c_str());
 
 		step->time = newTime;
+	}
+
+	// also increase notifications
+	for (auto &notification : this->notifications)
+	{
+		auto newTime = notification->timePoint + seconds(extraSeconds);
+
+		string iso_string = this->to_iso_8601(notification->timePoint);
+		string iso_string2 = this->to_iso_8601(newTime);
+
+		ESP_LOGI(TAG, "Notification Time Changend From: %s, To:%s ", iso_string.c_str(), iso_string2.c_str());
+
+		notification->timePoint = newTime;
 	}
 
 	// increate version so client can follow changes
@@ -1043,99 +1289,117 @@ void BrewEngine::pidLoop(void *arg)
 	PIDController pid(instance->kP, instance->kI, instance->kD);
 	pid.setMin(0);
 	pid.setMax(100);
-	pid.debug = true;
+	pid.debug = false;
+
+	uint totalWattage = 0;
+
+	// we calculate the total wattage we have availible, depens on heaters and on mash or boil
+	for (auto &heater : instance->heaters)
+	{
+
+		if (instance->boilRun && heater->useForBoil)
+		{
+			totalWattage += heater->watt;
+			heater->enabled = true;
+		}
+		else if (!instance->boilRun && heater->useForMash)
+		{
+			totalWattage += heater->watt;
+			heater->enabled = true;
+		}
+		else
+		{
+			heater->enabled = false;
+		}
+	}
 
 	while (instance->run && instance->controlRun)
 	{
-
-		int output = (int)pid.getOutput((double)instance->temperature, (double)instance->targetTemperature);
-		instance->pidOutput = output;
-		ESP_LOGI(TAG, "Pid Output: %d", instance->pidOutput);
+		// output is %
+		int outputPercent = (int)pid.getOutput((double)instance->temperature, (double)instance->targetTemperature);
+		instance->pidOutput = outputPercent;
+		ESP_LOGI(TAG, "Pid Output: %d Target: %f", instance->pidOutput, instance->targetTemperature);
 
 		// manual override
 		if (instance->manualOverrideOutput.has_value())
 		{
-			output = instance->manualOverrideOutput.value();
+			outputPercent = instance->manualOverrideOutput.value();
 		}
 
-		// init array and set all to 0
-		int burn[instance->heaterCount];
-		for (int j = 0; j < instance->heaterCount; j++)
+		// set all to 0
+		for (auto &heater : instance->heaters)
 		{
-			burn[j] = 0;
+			heater->burnTime = 0;
 		}
 
-		// instance->logRemote("Pid Output " + to_string(instance->pidOutput) + "%");
+		// calc the wattage we need
+		int outputWatt = (totalWattage / 100) * outputPercent;
 
 		// we need to calculate our burn time per output
-		for (int j = 0; j < instance->heaterCount; j++)
+		for (auto &heater : instance->heaters)
 		{
-			if (output < 0)
+			if (!heater->enabled)
+			{
+				continue;
+			}
+
+			if (outputWatt < 0)
 			{
 				break;
 			}
 
-			if (output < (100 / instance->heaterCount))
+			// we can complete it with this heater
+			if (heater->watt > outputWatt)
 			{
-				// we can complete it with this heater
-				burn[j] = output * instance->heaterCount;
-
-				output = 0;
-
-				// instance->logRemote("Pid Calc Heater " + to_string(j) + " burn: " + to_string(burn[j]) + "%");
-				ESP_LOGD(TAG, "Pid Calc Heater %d: Burn: %d", j, burn[j]);
+				heater->burnTime = (int)(((double)outputWatt / (double)heater->watt) * 100);
+				ESP_LOGD(TAG, "Pid Calc Heater %s: OutputWatt: %d Burn: %d", heater->name.c_str(), outputWatt, heater->burnTime);
 				break;
 			}
 			else
 			{
 				// we can't complete it, take out part and continue
-				burn[j] = 100; // full burn
-				// remove from output
-				output = output - (100 / instance->heaterCount);
-
-				// instance->logRemote("Pid Calc Heater " + to_string(j) + " burn: " + to_string(burn[j]) + "%");
-				ESP_LOGD(TAG, "Pid Calc Heater %d: Burn: %d", j, burn[j]);
+				outputWatt -= heater->watt;
+				heater->burnTime = 100;
+				ESP_LOGD(TAG, "Pid Calc Heater %s: OutputWatt: %d Burn: 100", heater->name.c_str(), outputWatt);
 			}
 		}
 
 		// we keep going for the desired pidlooptime and set the burn by percent
 		for (int i = 0; i < instance->pidLoopTime; i++)
 		{
-
 			if (!instance->run || !instance->controlRun)
 			{
 				break;
 			}
 
-			vTaskDelay(pdMS_TO_TICKS(1000));
-
-			for (int j = 0; j < instance->heaterCount; j++)
+			for (auto &heater : instance->heaters)
 			{
+				if (!heater->enabled)
+				{
+					continue;
+				}
+
 				int burnUntil = 0;
 
-				if (burn[j] > 0)
+				if (heater->burnTime > 0)
 				{
-					burnUntil = ((double)burn[j] / 100) * (double)instance->pidLoopTime; // convert % back to seconds
+					burnUntil = ((double)heater->burnTime / 100) * (double)instance->pidLoopTime; // convert % back to seconds
 				}
 
-				// ESP_LOGI(TAG, "Tick j:%d burnUntil:%d", j, burnUntil);
-
-				if (burnUntil > i)
-				{									   // on
-					if (instance->heaterOn[j] != true) // only when not current, we don't want to spam the logs
+				if (burnUntil > i) // on
+				{
+					if (heater->burn != true) // only when not current, we don't want to spam the logs
 					{
-						instance->heaterOn[j] = true;
-						ESP_LOGD(TAG, "Heater %d: On", j);
-						// instance->logRemote("Heater " + to_string(j) + ": On");
+						heater->burn = true;
+						ESP_LOGD(TAG, "Heater %s: On", heater->name.c_str());
 					}
 				}
-				else
-				{										// off
-					if (instance->heaterOn[j] != false) // only when not current, we don't want to spam the logs
+				else // off
+				{
+					if (heater->burn != false) // only when not current, we don't want to spam the logs
 					{
-						instance->heaterOn[j] = false;
-						ESP_LOGD(TAG, "Heater %d: Off", j);
-						// instance->logRemote("Heater " + to_string(j) + ": Off");
+						heater->burn = false;
+						ESP_LOGD(TAG, "Heater %s: Off", heater->name.c_str());
 					}
 				}
 			}
@@ -1143,11 +1407,15 @@ void BrewEngine::pidLoop(void *arg)
 			// when our target changes we also update our pid target
 			if (instance->resetPitTime)
 			{
+				ESP_LOGD(TAG, "Reset Pid Timer");
 				instance->resetPitTime = false;
 				break;
 			}
+
+			vTaskDelay(pdMS_TO_TICKS(1000));
 		}
 	}
+
 	vTaskDelete(NULL);
 }
 
@@ -1155,44 +1423,35 @@ void BrewEngine::outputLoop(void *arg)
 {
 	BrewEngine *instance = (BrewEngine *)arg;
 
-	// atm we use 2 heaters fixed, maby this can be variable in the future
-	gpio_set_level(instance->heat1_PIN, instance->gpioLow);
-	gpio_set_level(instance->heat2_PIN, instance->gpioLow);
+	for (auto const &heater : instance->heaters)
+	{
+		gpio_set_level(heater->pinNr, instance->gpioLow);
+	}
 
 	while (instance->run && instance->controlRun)
 	{
 		vTaskDelay(pdMS_TO_TICKS(1000));
 
-		if (instance->heaterOn[0])
+		for (auto const &heater : instance->heaters)
 		{
-			ESP_LOGD(TAG, "Output1: On");
-			// instance->logRemote("Output1: On");
-			gpio_set_level(instance->heat1_PIN, instance->gpioHigh);
-		}
-		else
-		{
-			ESP_LOGD(TAG, "Output1: Off");
-			// instance->logRemote("Output1: Off");
-			gpio_set_level(instance->heat1_PIN, instance->gpioLow);
-		}
-
-		if (instance->heaterOn[1])
-		{
-			ESP_LOGD(TAG, "Output2: On");
-			// instance->logRemote("Output2: On");
-			gpio_set_level(instance->heat2_PIN, instance->gpioHigh);
-		}
-		else
-		{
-			ESP_LOGD(TAG, "Output2: Off");
-			// instance->logRemote("Output2: Off");
-			gpio_set_level(instance->heat2_PIN, instance->gpioLow);
+			if (heater->burn)
+			{
+				ESP_LOGD(TAG, "Output %s: On", heater->name.c_str());
+				gpio_set_level(heater->pinNr, instance->gpioHigh);
+			}
+			else
+			{
+				ESP_LOGD(TAG, "Output %s: Off", heater->name.c_str());
+				gpio_set_level(heater->pinNr, instance->gpioLow);
+			}
 		}
 	}
 
 	// set outputs off and quit thread
-	gpio_set_level(instance->heat1_PIN, instance->gpioLow);
-	gpio_set_level(instance->heat2_PIN, instance->gpioLow);
+	for (auto const &heater : instance->heaters)
+	{
+		gpio_set_level(heater->pinNr, instance->gpioLow);
+	}
 
 	vTaskDelete(NULL);
 }
@@ -1203,8 +1462,6 @@ void BrewEngine::controlLoop(void *arg)
 
 	while (instance->run && instance->controlRun)
 	{
-
-		vTaskDelay(pdMS_TO_TICKS(1000));
 
 		system_clock::time_point now = std::chrono::system_clock::now();
 
@@ -1264,6 +1521,23 @@ void BrewEngine::controlLoop(void *arg)
 				instance->currentMashStep++;
 				instance->resetPitTime = true;
 			}
+
+			// notifications, but only when not in overtime
+			if (!instance->inOverTime && !instance->notifications.empty())
+			{
+				// they are sorted so we just have to check the first one
+				auto firstTime = instance->notifications.front()->timePoint;
+				if (now > firstTime)
+				{
+					auto notification = instance->notifications.front();
+					ESP_LOGI(TAG, "Notify %s", notification->name.c_str());
+
+					string buzzerName = "buzzer" + notification->name;
+					xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+
+					instance->notifications.pop_front();
+				}
+			}
 		}
 		else
 		{
@@ -1271,6 +1545,8 @@ void BrewEngine::controlLoop(void *arg)
 			ESP_LOGI(TAG, "Program Finished");
 			instance->stop();
 		}
+
+		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
 	vTaskDelete(NULL);
@@ -1300,6 +1576,21 @@ void BrewEngine::reboot(void *arg)
 {
 	vTaskDelay(2000 / portTICK_PERIOD_MS);
 	esp_restart();
+}
+
+void BrewEngine::buzzer(void *arg)
+{
+	BrewEngine *instance = (BrewEngine *)arg;
+
+	if (instance->buzzer_PIN > 0)
+	{
+		auto buzzerMs = instance->buzzerTime * 1000;
+		gpio_set_level(instance->buzzer_PIN, instance->gpioHigh);
+		vTaskDelay(buzzerMs / portTICK_PERIOD_MS);
+		gpio_set_level(instance->buzzer_PIN, instance->gpioLow);
+	}
+
+	vTaskDelete(NULL);
 }
 
 string BrewEngine::processCommand(string payLoad)
@@ -1382,6 +1673,7 @@ string BrewEngine::processCommand(string payLoad)
 			{"lastLogDateTime", lastLogDateTime},
 			{"tempLog", jTempLog},
 			{"runningVersion", this->runningVersion},
+			{"inOverTime", this->inOverTime},
 		};
 
 		if (this->manualOverrideOutput.has_value())
@@ -1401,6 +1693,14 @@ string BrewEngine::processCommand(string payLoad)
 			jExecutionSteps.push_back(jExecutionStep);
 		}
 		jRunningSchedule["steps"] = jExecutionSteps;
+
+		json jNotifications = json::array({});
+		for (auto &notification : this->notifications)
+		{
+			json jNotification = notification->to_json();
+			jNotifications.push_back(jNotification);
+		}
+		jRunningSchedule["notifications"] = jNotifications;
 
 		resultData = jRunningSchedule;
 	}
@@ -1472,30 +1772,7 @@ string BrewEngine::processCommand(string payLoad)
 	}
 	else if (command == "SaveMashSchedule")
 	{
-		string newName = (string)data["name"];
-		json newSteps = data["steps"];
-
-		auto newMash = new MashSchedule();
-		newMash->name = newName;
-		newMash->steps.clear();
-
-		for (auto &el : newSteps.items())
-		{
-			auto jStep = el.value();
-
-			auto newStep = new MashStep();
-			newStep->index = jStep["index"].get<uint>();
-			newStep->name = jStep["name"];
-			newStep->temperature = jStep["temperature"].get<int>();
-			newStep->stepTime = jStep["stepTime"].get<int>();
-			newStep->time = jStep["time"].get<int>();
-			newStep->extendStepTimeIfNeeded = jStep["extendStepTimeIfNeeded"].get<bool>();
-			newMash->steps.push_back(newStep);
-		}
-
-		newMash->sort_steps();
-
-		this->mashSchedules.insert_or_assign(newMash->name, newMash);
+		this->setMashSchedule(data);
 
 		this->saveMashSchedules();
 	}
@@ -1554,6 +1831,31 @@ string BrewEngine::processCommand(string payLoad)
 	{
 		this->detectOnewireTemperatureSensors();
 	}
+	else if (command == "GetHeaterSettings")
+	{
+		// Convert heaters to json
+		json jHeaters = json::array({});
+
+		for (auto const &heater : this->heaters)
+		{
+			json jHeater = heater->to_json();
+			jHeaters.push_back(jHeater);
+		}
+
+		resultData = jHeaters;
+	}
+	else if (command == "SaveHeaterSettings")
+	{
+		if (this->controlRun)
+		{
+			message = "You cannot save heater settings while running!";
+			success = false;
+		}
+		else
+		{
+			this->saveHeaterSettings(data);
+		}
+	}
 	else if (command == "GetWifiSettings")
 	{
 		// get data from wifi-connect
@@ -1583,9 +1885,9 @@ string BrewEngine::processCommand(string payLoad)
 	{
 		resultData = {
 			{"onewirePin", this->oneWire_PIN},
-			{"heat1Pin", this->heat1_PIN},
-			{"heat2Pin", this->heat2_PIN},
 			{"stirPin", this->stir_PIN},
+			{"buzzerPin", this->buzzer_PIN},
+			{"buzzerTime", this->buzzerTime},
 			{"invertOutputs", this->invertOutputs},
 			{"mqttUri", this->mqttUri},
 			{"temperatureScale", this->temperatureScale},

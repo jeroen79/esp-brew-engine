@@ -33,6 +33,16 @@ void SettingsManager::Init()
     ESP_LOGI(TAG, "NVS partition Init: Done");
 
     ESP_ERROR_CHECK(nvs_open(this->Namespace.c_str(), NVS_READWRITE, this->nvsHandle));
+
+    nvs_stats_t nvs_stats;
+    nvs_get_stats("nvs", &nvs_stats);
+
+    ESP_LOGI(TAG, "NVS Used:%d Free:%d Total:%d", nvs_stats.used_entries, nvs_stats.free_entries, nvs_stats.total_entries);
+
+    size_t used;
+    nvs_get_used_entry_count(*this->nvsHandle, &used);
+
+    ESP_LOGI(TAG, "NVS Used:%d", used);
 }
 
 void SettingsManager::FactoryReset()
@@ -111,6 +121,8 @@ vector<uint8_t> SettingsManager::Read(string name, vector<uint8_t> defaultValue)
         this->Write(name, defaultValue);
         return defaultValue;
     }
+
+    ESP_LOGD(TAG, "Size: %d", size);
 
     uint8_t blob[size];
 

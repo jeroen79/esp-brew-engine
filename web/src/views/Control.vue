@@ -9,13 +9,17 @@ import { ITempLog } from '@/interfaces/ITempLog';
 import { ITempSensor } from '@/interfaces/ITempSensor';
 import { useAppStore } from '@/store/app';
 import 'chartjs-adapter-dayjs-4';
+import annotationPlugin from 'chartjs-plugin-annotation';
 import debounce from 'lodash.debounce';
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Line } from 'vue-chartjs';
+import { INotification } from '@/interfaces/INotification';
+import { useClientStore } from '@/store/client';
 
 const webConn = inject<WebConn>('webConn');
 
 const appStore = useAppStore();
+const clientStore = useClientStore();
 
 const status = ref<string>();
 const stirStatus = ref<string>();
@@ -24,25 +28,33 @@ const outputPercent = ref<number>();
 const targetTemperature = ref<number>();
 const targetTemperatureSet = ref<number>();
 const manualOverrideOutput = ref<number | null>(null);
+const inOverTime = ref<boolean>(false);
 
 const intervalId = ref<any>();
 
-const chartOptions = ref<any>(null);
+const notificationDialog = ref<boolean>(false);
+const notificationDialogTitle = ref<string>('');
+const notificationDialogText = ref<string>('');
+
+const notificationTimeouts = ref<Array<number>>([]);
+
+const chartInitDone = ref(false);
 
 const lastGoodDataDate = ref<number | null>(null);
 const lastRunningVersion = ref<number>(0);
 
 const rawData = ref<Array<IDataPacket>>([]);
 
-const mashSchedules = ref<Array<IMashSchedule>>([]);
 const tempSensors = ref<Array<ITempSensor>>([]);
 const executionSteps = ref<Array<IExecutionStep>>([]);
+const notifications = ref<Array<INotification>>([]);
 
 const selectedMashSchedule = ref<IMashSchedule | null>(null);
 
 const currentTemps = ref<Array<ITempLog>>([]);
 
 const startDateTime = ref<number>();
+const speechVoice = ref<SpeechSynthesisVoice | null>(null);
 
 const stirInterval = ref<Array<number>>([0, 3]);
 const stirMax = ref<number>(6);
@@ -54,9 +66,131 @@ const dynamicColor = () => {
   return `rgb(${r},${g},${b})`;
 };
 
+const beep = async () => {
+  // create web audio api context
+  const audioCtx = new AudioContext();
+
+  // create Oscillator node
+  const oscillator = audioCtx.createOscillator();
+
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = clientStore.clientSettings.beepVolume; // volume
+  gainNode.connect(audioCtx.destination);
+
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(2000, audioCtx.currentTime); // value in hertz
+
+  oscillator.connect(gainNode);
+
+  oscillator.start(audioCtx.currentTime);
+  oscillator.stop(audioCtx.currentTime + 0.1); // 100ms beep
+};
+
+const speakMessage = async (message:string) => {
+  if (clientStore.clientSettings.voiceUri == null) {
+    return;
+  }
+
+  const synth = window.speechSynthesis;
+  // the first time we get the voice and store it in a ref
+  if (speechVoice.value == null) {
+    const foundVoice = synth.getVoices().find((v) => v.voiceURI === clientStore.clientSettings.voiceUri);
+    if (foundVoice !== undefined) {
+      speechVoice.value = foundVoice;
+    }
+  }
+
+  // unable to get a valid voice
+  if (speechVoice.value == null) {
+    return;
+  }
+
+  const ssu = new SpeechSynthesisUtterance(message);
+  ssu.voice = speechVoice.value;
+  ssu.pitch = 1;
+  ssu.rate = clientStore.clientSettings.speechRate;
+  ssu.volume = clientStore.clientSettings.speechVolume;
+  synth.speak(ssu);
+};
+
+const showNotificaton = async (notification:INotification, alert:boolean) => {
+  notificationDialogTitle.value = notification.name;
+  notificationDialogText.value = notification.message.replaceAll('\n', '<br/>');
+  notificationDialog.value = true;
+
+  if (alert && clientStore.clientSettings.beepEnabled) {
+    beep();
+  }
+
+  if (alert && clientStore.clientSettings.speechEnabled) {
+    // when beep and speech add a small pauze
+    if (clientStore.clientSettings.beepEnabled) {
+      setTimeout(() => {
+        speakMessage(notification.message);
+      }, 1500);
+    } else {
+      speakMessage(notification.message);
+    }
+  }
+};
+
+const chartAnnotations = computed(() => {
+  // wait for chartjs init
+  if (!chartInitDone.value) {
+    return null;
+  }
+
+  let currentNotifications:Array<INotification> = [];
+
+  // when we are running notifications come from schedule api call
+  if (executionSteps.value != null && executionSteps.value.length > 0) {
+    currentNotifications = [...notifications.value];
+  } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value != null) {
+    // when we have no steps and we are idle we can compute notifications from the schedule settings
+    if (status.value === 'Idle') {
+      const scheduleNotifications = [...selectedMashSchedule.value.notifications];
+
+      currentNotifications = scheduleNotifications.map((notification) => {
+        let notificationTime = startDateTime.value!;
+        notificationTime += notification.timeFromStart * 60;
+
+        const newNotification = { ...notification };
+        newNotification.timePoint = notificationTime;
+        return newNotification;
+      });
+    }
+  }
+
+  const annotationData:Array<any> = [];
+
+  currentNotifications.forEach((notification) => {
+    const notificationTime = notification.timePoint * 1000;
+    const notificationPoint = {
+      type: 'line',
+      xMin: notificationTime,
+      xMax: notificationTime,
+      borderColor: 'rgb(255, 99, 132)',
+      borderWidth: 2,
+      label: {
+        content: notification.name,
+        drawTime: 'afterDatasetsDraw',
+        display: true,
+        yAdjust: -110,
+        position: 'top',
+      },
+      click(context:any, event:any) {
+        showNotificaton(notification, false);
+      },
+    };
+    annotationData.push(notificationPoint);
+  });
+
+  return annotationData;
+});
+
 const chartData = computed(() => {
   // wait for chartjs init
-  if (chartOptions.value == null) {
+  if (!chartInitDone.value) {
     return null;
   }
   let scheduleData:Array<any> = [];
@@ -66,7 +200,7 @@ const chartData = computed(() => {
       x: step.time * 1000,
       y: step.temperature,
     }));
-  } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value !== undefined) {
+  } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value != null) {
     // when we have no steps and we are idle we can show the slected mash schedule
     // if the status is idle we can just project the selectes mash shedule
     if (status.value === 'Idle') {
@@ -175,6 +309,32 @@ const chartData = computed(() => {
   };
 });
 
+const clearAllNotificationTimeouts = () => {
+  notificationTimeouts.value.forEach((timeOutId) => {
+    window.clearTimeout(timeOutId);
+  });
+
+  notificationTimeouts.value = [];
+};
+
+const setNotifications = (newNotifications:Array<INotification>) => {
+  clearAllNotificationTimeouts();
+
+  const timeoutIds:Array<number> = [];
+
+  newNotifications.forEach((notification) => {
+    const timeTill = (notification.timePoint * 1000) - Date.now();
+    const timeoutId = window.setTimeout(() => {
+      showNotificaton(notification, true);
+    }, timeTill);
+    timeoutIds.push(timeoutId);
+  });
+
+  notificationTimeouts.value = timeoutIds;
+
+  notifications.value = newNotifications;
+};
+
 const getRunningSchedule = async () => {
   const requestData = {
     command: 'GetRunningSchedule',
@@ -188,6 +348,7 @@ const getRunningSchedule = async () => {
   }
 
   executionSteps.value = apiResult.data.steps;
+  setNotifications(apiResult.data.notifications as Array<INotification>);
 
   lastRunningVersion.value = apiResult.data.version;
 };
@@ -213,7 +374,13 @@ const getData = async () => {
   manualOverrideOutput.value = apiResult.data.manualOverrideOutput;
   targetTemperature.value = apiResult.data.targetTemp;
   lastGoodDataDate.value = apiResult.data.lastLogDateTime;
+  inOverTime.value = apiResult.data.inOverTime;
   const serverRunningVersion = apiResult.data.runningVersion;
+
+  // notifications move with overtime and will be re-added when it is done
+  if (inOverTime.value) {
+    clearAllNotificationTimeouts();
+  }
 
   if (status.value === 'Running' && lastRunningVersion.value !== serverRunningVersion) {
     // the schedule has changed, we need to update
@@ -256,21 +423,6 @@ const getData = async () => {
         );
       }
     });
-  }
-
-  // we only need to get the mashschedules once
-  if (mashSchedules.value == null || mashSchedules.value.length === 0) {
-    const requestData2 = {
-      command: 'GetMashSchedules',
-      data: null,
-    };
-    const apiResult2 = await webConn?.doPostRequest(requestData2);
-
-    if (apiResult2 === undefined || apiResult2.success === false) {
-      return;
-    }
-
-    mashSchedules.value = apiResult2.data;
   }
 
   // we only need to get the tempsensort once
@@ -326,6 +478,11 @@ const changeOverrideOutput = (event:any) => {
   // todo capture error
 };
 
+const setStartDateNow = () => {
+  const now = new Date();
+  startDateTime.value = Math.floor(now.getTime() / 1000);
+};
+
 const start = async () => {
   const requestData = {
     command: 'Start',
@@ -333,6 +490,12 @@ const start = async () => {
       selectedMashSchedule: null as string | null,
     },
   };
+
+  // reset all our data so we can start over
+  currentTemps.value = [];
+  executionSteps.value = [];
+  rawData.value = [];
+  setStartDateNow();
 
   if (selectedMashSchedule.value != null) {
     requestData.data.selectedMashSchedule = selectedMashSchedule.value?.name;
@@ -349,6 +512,8 @@ const stop = async () => {
     command: 'Stop',
     data: null,
   };
+
+  clearAllNotificationTimeouts();
 
   webConn?.doPostRequest(requestData);
   // todo capture error
@@ -382,9 +547,20 @@ const debounceTargetTemp = debounce(changeTargetTemp, 1000);
 
 watch(() => targetTemperatureSet.value, debounceTargetTemp);
 
-const initChart = () => {
-  ChartJS.register(Title, Tooltip, Legend, PointElement, LineElement, TimeScale, LinearScale, CategoryScale, Filler);
+watch(selectedMashSchedule, () => {
+  // reset all our data so we can start over
+  currentTemps.value = [];
+  executionSteps.value = [];
+  rawData.value = [];
+  setStartDateNow();
+});
 
+const initChart = () => {
+  ChartJS.register(Title, Tooltip, Legend, PointElement, LineElement, TimeScale, LinearScale, CategoryScale, Filler, annotationPlugin);
+  chartInitDone.value = true;
+};
+
+const chartOptions = computed<any>(() => {
   let suggestedMin = 60;
   let suggestedMax = 105;
   // ajust min max when farenheit
@@ -393,7 +569,7 @@ const initChart = () => {
     suggestedMax = 220;
   }
 
-  chartOptions.value = {
+  const options = {
     responsive: true,
     maintainAspectRatio: false,
     animation: false, // Disable all animations, does weird things when adding data
@@ -438,13 +614,19 @@ const initChart = () => {
         grid: { color: '#bdbdbc' },
       },
     },
+    plugins: {
+      annotation: {
+        annotations: chartAnnotations.value,
+      },
+    },
   };
-};
+
+  return options;
+});
 
 onMounted(() => {
   // atm only used to render te schedule at the current time
-  const now = new Date();
-  startDateTime.value = Math.floor(now.getTime() / 1000);
+  setStartDateNow();
 
   intervalId.value = setInterval(() => {
     getData();
@@ -454,16 +636,34 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  clearAllNotificationTimeouts();
   clearInterval(intervalId.value);
 });
 
 </script>
 
 <template>
+  <v-dialog v-model="notificationDialog" max-width="500px">
+    <v-card>
+      <v-card-title>
+        <span class="text-h5">{{notificationDialogTitle}}</span>
+      </v-card-title>
+
+      <v-card-text v-html="notificationDialogText" />
+
+      <v-card-actions>
+        <v-spacer />
+        <v-btn color="blue-darken-1" variant="text" @click="notificationDialog = false">
+          Close
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-container class="spacing-playground pa-6" fluid>
     <v-form fast-fail @submit.prevent>
       <v-row style="height: 50vh">
-        <Line v-if="chartData" :options="chartOptions" :data="chartData" />
+        <Line v-if="chartInitDone && chartData" :options="chartOptions" :data="chartData" />
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
@@ -481,7 +681,7 @@ onBeforeUnmount(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-select label="Mash Schedule" v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
+          <v-select label="Mash/Boil Schedule" :readonly="status != 'Idle'" v-model="selectedMashSchedule" :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules" :clearable="status == 'Idle'" return-object />
         </v-col>
         <v-col cols="12" md="3">
           <v-btn color="success" class="mt-4" block @click="start"> Start </v-btn>

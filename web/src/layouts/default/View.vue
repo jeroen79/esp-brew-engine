@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline } from '@mdi/js';
+import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit } from '@mdi/js';
 
 const drawer = ref(true);
 const linksBrewing = ref([
@@ -12,18 +12,40 @@ const linksTools = ref([
 ]);
 
 const linksSettings = ref([
-  [mdiReceiptTextClock, 'Mash Schedules', 'mashschedules'],
+  [mdiReceiptTextClock, 'Schedules', 'mashschedules'],
   [mdiThermometerLines, 'PID Settings', 'pidsettings'],
   [mdiThermometer, 'Temperature Settings', 'tempsettings'],
+  [mdiHeatingCoil, 'Heater Settings', 'heaterSettings'],
   [mdiWifi, 'Wifi Settings', 'wifiSettings'],
   [mdiWrenchCogOutline, 'System Settings', 'systemSettings'],
+  [mdiCookieSettingsOutline, 'Client Settings', 'clientSettings'],
 ]);
 
 const version = ref<string>(import.meta.env.VITE_APP_VERSION);
 
+const fullscreen = ref<boolean>(false);
+
 if (import.meta.env.MODE === 'development') {
   version.value = `${import.meta.env.VITE_APP_VERSION}_dev`;
 }
+
+const enterFullscreen = () => {
+  console.log('Going fullscreen');
+  const elem = document.documentElement;
+
+  elem.requestFullscreen({ navigationUI: 'hide' })
+    .then(() => {
+      fullscreen.value = true;
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+};
+
+const exitFullscreen = () => {
+  document.exitFullscreen();
+  fullscreen.value = false;
+};
 
 </script>
 
@@ -34,6 +56,13 @@ if (import.meta.env.MODE === 'development') {
       <v-toolbar-title>ESP Brew Engine</v-toolbar-title>
       <v-spacer />
       <h5 class="mr-10">Version: {{version}}</h5>
+
+      <v-btn icon v-if="!fullscreen" @click="enterFullscreen">
+        <v-icon>{{mdiFullscreen}}</v-icon>
+      </v-btn>
+      <v-btn icon v-if="fullscreen" @click="exitFullscreen">
+        <v-icon>{{mdiFullscreenExit}}</v-icon>
+      </v-btn>
     </v-app-bar>
 
     <v-navigation-drawer v-model="drawer">
@@ -68,7 +97,13 @@ if (import.meta.env.MODE === 'development') {
     </v-navigation-drawer>
 
     <v-main style="min-height: 300px;">
-      <router-view />
+
+      <router-view v-slot="{ Component }">
+        <keep-alive include="Control">
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
+
     </v-main>
   </v-app>
 </template>

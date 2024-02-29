@@ -2,9 +2,9 @@ import TemperatureScale from '@/enums/TemperatureScale';
 
 export interface ISystemSettings {
   onewirePin: number;
-  heat1Pin: number;
-  heat2Pin: number;
   stirPin: number;
+  buzzerPin: number;
+  buzzerTime: number;
   invertOutputs: boolean;
   mqttUri: string;
   temperatureScale: TemperatureScale;
