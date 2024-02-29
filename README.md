@@ -17,8 +17,11 @@ It is open source and build in c++ using esp-idf RTOS.
 - Temperature logging to MQTT.
 - OTA Firmware update.
 - Ability to enable/disable/detect sensors at runtime.
-- Ability to specift Absolute and Relative Compensation.
+- Ability to specify Absolute and Relative Compensation.
 - Support for Celsius and Fahrenheit.
+- Support for Buzzer.
+- Support for Notifications.
+- Speech Notificaitons via webinterface.
 
 ## Screenshots
 
@@ -27,7 +30,7 @@ It is open source and build in c++ using esp-idf RTOS.
 
 ## Supported Devices
 
-It should work with pretty much with esp32 controller, but the easyest way is to buy a esp board wich already has 4 relais on it.
+It should work with most esp32 controllers, but the easiest way is to use an esp board which already has 4 relays on it.
 
 ![Alt text](images/example_board.png "Relais Board X4")
 

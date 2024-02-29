@@ -9,6 +9,8 @@ const webConn = inject<WebConn>('webConn');
 const systemSettings = ref<ISystemSettings>({ // add default value, vue has issues with null values atm
   onewirePin: 0,
   stirPin: 0,
+  buzzerPin: 0,
+  buzzerTime: 2,
   invertOutputs: false,
   mqttUri: '',
   temperatureScale: 0,
@@ -128,7 +130,7 @@ const scaleChanged = () => {
 
 <template>
   <v-container class="spacing-playground pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
 
       <v-row>
@@ -150,6 +152,31 @@ const scaleChanged = () => {
           <v-text-field v-model.number="systemSettings.stirPin" label="Stir/Pump Pin Nr">
             <template v-slot:append>
               <v-tooltip text="IO Number for Stir/Pump (Optional), Set to 0 to disable">
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field v-model.number="systemSettings.buzzerPin" label="Buzzer Pin Nr">
+            <template v-slot:append>
+              <v-tooltip text="IO Number for Buzzer (Optional), Set to 0 to disable">
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field v-model.number="systemSettings.buzzerTime" label="Buzzer Time(s)">
+            <template v-slot:append>
+              <v-tooltip text="Time in seconds to buzz">
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>

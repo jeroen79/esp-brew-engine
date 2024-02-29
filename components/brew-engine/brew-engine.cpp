@@ -48,6 +48,17 @@ void BrewEngine::Init()
 		gpio_set_level(this->stir_PIN, this->gpioLow);
 	}
 
+	if (!this->buzzer_PIN)
+	{
+		ESP_LOGW(TAG, "Buzzer is not configured!");
+	}
+	else
+	{
+		gpio_reset_pin(this->buzzer_PIN);
+		gpio_set_direction(this->buzzer_PIN, GPIO_MODE_OUTPUT);
+		gpio_set_level(this->buzzer_PIN, this->gpioLow);
+	}
+
 	// read other settings like maishschedules and pid
 	this->readSettings();
 
@@ -80,12 +91,13 @@ void BrewEngine::initHeaters()
 
 void BrewEngine::readSystemSettings()
 {
-	ESP_LOGI(TAG, "Reading BrewEngine Settings");
+	ESP_LOGI(TAG, "Reading System Settings");
 
 	// io settings
 	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
-	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
+	this->buzzer_PIN = (gpio_num_t)this->settingsManager->Read("buzzerPin", (uint16_t)CONFIG_BUZZER);
+	this->buzzerTime = this->settingsManager->Read("buzzerTime", (uint8_t)2);
 
 	bool configInvertOutputs = false;
 // is there a cleaner way to do this?, config to bool doesn't seem to work properly
@@ -105,7 +117,7 @@ void BrewEngine::readSystemSettings()
 
 	this->temperatureScale = (TemperatureScale)this->settingsManager->Read("tempScale", defaultConfigScale);
 
-	ESP_LOGI(TAG, "Reading BrewEngine Settings Done");
+	ESP_LOGI(TAG, "Reading System Settings Done");
 }
 
 void BrewEngine::saveSystemSettingsJson(json config)
@@ -121,6 +133,16 @@ void BrewEngine::saveSystemSettingsJson(json config)
 	{
 		this->settingsManager->Write("stirPin", (uint16_t)config["stirPin"]);
 		this->stir_PIN = (gpio_num_t)config["stirPin"];
+	}
+	if (!config["buzzerPin"].is_null() && config["buzzerPin"].is_number())
+	{
+		this->settingsManager->Write("buzzerPin", (uint16_t)config["buzzerPin"]);
+		this->buzzer_PIN = (gpio_num_t)config["buzzerPin"];
+	}
+	if (!config["buzzerTime"].is_null() && config["buzzerTime"].is_number())
+	{
+		this->settingsManager->Write("buzzerTime", (uint8_t)config["buzzerTime"]);
+		this->buzzerTime = (uint8_t)config["buzzerTime"];
 	}
 	if (!config["invertOutputs"].is_null() && config["invertOutputs"].is_boolean())
 	{
@@ -144,7 +166,7 @@ void BrewEngine::saveSystemSettingsJson(json config)
 
 void BrewEngine::readSettings()
 {
-	ESP_LOGI(TAG, "Reading BrewEngine Settings");
+	ESP_LOGI(TAG, "Reading Settings");
 
 	vector<uint8_t> empty = json::to_msgpack(json::array({}));
 	vector<uint8_t> serialized = this->settingsManager->Read("mashschedules", empty);
@@ -183,6 +205,43 @@ void BrewEngine::readSettings()
 	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
 }
 
+void BrewEngine::setMashSchedule(json jSchedule)
+{
+	json newSteps = jSchedule["steps"];
+
+	auto newMash = new MashSchedule();
+	newMash->name = jSchedule["name"].get<string>();
+	newMash->boil = jSchedule["boil"].get<bool>();
+	newMash->steps.clear();
+
+	for (auto &el : newSteps.items())
+	{
+		auto jStep = el.value();
+
+		auto newStep = new MashStep();
+		newStep->from_json(jStep);
+		newMash->steps.push_back(newStep);
+	}
+
+	newMash->sort_steps();
+
+	json newNotifications = jSchedule["notifications"];
+	newMash->notifications.clear();
+
+	for (auto &el : newNotifications.items())
+	{
+		auto jNotification = el.value();
+
+		auto newNotification = new Notification();
+		newNotification->from_json(jNotification);
+		newMash->notifications.push_back(newNotification);
+	}
+
+	newMash->sort_notifications();
+
+	this->mashSchedules.insert_or_assign(newMash->name, newMash);
+}
+
 void BrewEngine::saveMashSchedules()
 {
 	ESP_LOGI(TAG, "Saving Mash Schedules");
@@ -196,9 +255,10 @@ void BrewEngine::saveMashSchedules()
 
 	// serialize to MessagePack for size
 	vector<uint8_t> serialized = json::to_msgpack(jSchedules);
+
 	this->settingsManager->Write("mashschedules", serialized);
 
-	ESP_LOGI(TAG, "Saving Mash Schedules Done");
+	ESP_LOGI(TAG, "Saving Mash Schedules Done, %d bytes", serialized.size());
 }
 
 void BrewEngine::savePIDSettings()
@@ -230,7 +290,7 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s1->index = 0;
 	defaultMash_s1->name = "Beta Amylase";
 	defaultMash_s1->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
-	defaultMash_s1->stepTime = 0;
+	defaultMash_s1->stepTime = 5;
 	defaultMash_s1->extendStepTimeIfNeeded = true;
 	defaultMash_s1->time = 45;
 	defaultMash->steps.push_back(defaultMash_s1);
@@ -253,6 +313,20 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s3->time = 5;
 	defaultMash->steps.push_back(defaultMash_s3);
 
+	auto defaultMash_n1 = new Notification();
+	defaultMash_n1->name = "Add Grains";
+	defaultMash_n1->message = "Please add Grains";
+	defaultMash_n1->timeFromStart = 5;
+	defaultMash_n1->buzzer = true;
+	defaultMash->notifications.push_back(defaultMash_n1);
+
+	auto defaultMash_n2 = new Notification();
+	defaultMash_n2->name = "Start Lautering";
+	defaultMash_n2->message = "Please Start Lautering/Sparging";
+	defaultMash_n2->timeFromStart = 85;
+	defaultMash_n2->buzzer = true;
+	defaultMash->notifications.push_back(defaultMash_n2);
+
 	this->mashSchedules.insert_or_assign(defaultMash->name, defaultMash);
 
 	auto ryeMash = new MashSchedule();
@@ -264,7 +338,7 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s1->index = 0;
 	ryeMash_s1->name = "Beta Glucanase";
 	ryeMash_s1->temperature = (this->temperatureScale == Celsius) ? 43 : 110;
-	ryeMash_s1->stepTime = 0;
+	ryeMash_s1->stepTime = 5;
 	ryeMash_s1->extendStepTimeIfNeeded = true;
 	ryeMash_s1->time = 20;
 	ryeMash->steps.push_back(ryeMash_s1);
@@ -296,6 +370,20 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s4->time = 5;
 	ryeMash->steps.push_back(ryeMash_s4);
 
+	auto ryeMash_n1 = new Notification();
+	ryeMash_n1->name = "Add Grains";
+	ryeMash_n1->message = "Please add Grains";
+	ryeMash_n1->timeFromStart = 5;
+	ryeMash_n1->buzzer = true;
+	ryeMash->notifications.push_back(ryeMash_n1);
+
+	auto ryeMash_n2 = new Notification();
+	ryeMash_n2->name = "Start Lautering";
+	ryeMash_n2->message = "Please Start Lautering/Sparging";
+	ryeMash_n2->timeFromStart = 110;
+	ryeMash_n2->buzzer = true;
+	ryeMash->notifications.push_back(ryeMash_n2);
+
 	this->mashSchedules.insert_or_assign(ryeMash->name, ryeMash);
 
 	auto boil = new MashSchedule();
@@ -311,6 +399,20 @@ void BrewEngine::addDefaultMash()
 	boil_s1->extendStepTimeIfNeeded = true;
 	boil_s1->time = 70;
 	boil->steps.push_back(boil_s1);
+
+	auto boil_n1 = new Notification();
+	boil_n1->name = "Bittering Hops";
+	boil_n1->message = "Please add Bittering Hops";
+	boil_n1->timeFromStart = 0;
+	boil_n1->buzzer = true;
+	boil->notifications.push_back(boil_n1);
+
+	auto boil_n2 = new Notification();
+	boil_n2->name = "Aroma Hops";
+	boil_n2->message = "Please add Aroma Hops";
+	boil_n2->timeFromStart = 55;
+	boil_n2->buzzer = true;
+	boil->notifications.push_back(boil_n2);
 
 	this->mashSchedules.insert_or_assign(boil->name, boil);
 }
@@ -864,6 +966,20 @@ void BrewEngine::loadSchedule()
 		ESP_LOGI(TAG, "Hold Time:%s, Temp:%d ", iso_string2.c_str(), (int)step->temperature);
 	}
 
+	// also add notifications
+	this->notifications.clear();
+	for (auto const &notification : schedule->notifications)
+	{
+		auto notificationTime = execStep0->time + minutes(notification->timeFromStart);
+
+		// copy notification to new map
+		auto newNotification = new Notification();
+		newNotification = notification;
+		newNotification->timePoint = notificationTime;
+
+		this->notifications.push_back(newNotification);
+	}
+
 	// increate version so client can follow changes
 	this->runningVersion++;
 }
@@ -900,6 +1016,19 @@ void BrewEngine::recalculateScheduleAfterOverTime()
 		ESP_LOGI(TAG, "Time Changend From: %s, To:%s ", iso_string.c_str(), iso_string2.c_str());
 
 		step->time = newTime;
+	}
+
+	// also increase notifications
+	for (auto &notification : this->notifications)
+	{
+		auto newTime = notification->timePoint + seconds(extraSeconds);
+
+		string iso_string = this->to_iso_8601(notification->timePoint);
+		string iso_string2 = this->to_iso_8601(newTime);
+
+		ESP_LOGI(TAG, "Notification Time Changend From: %s, To:%s ", iso_string.c_str(), iso_string2.c_str());
+
+		notification->timePoint = newTime;
 	}
 
 	// increate version so client can follow changes
@@ -1392,6 +1521,23 @@ void BrewEngine::controlLoop(void *arg)
 				instance->currentMashStep++;
 				instance->resetPitTime = true;
 			}
+
+			// notifications, but only when not in overtime
+			if (!instance->inOverTime && !instance->notifications.empty())
+			{
+				// they are sorted so we just have to check the first one
+				auto firstTime = instance->notifications.front()->timePoint;
+				if (now > firstTime)
+				{
+					auto notification = instance->notifications.front();
+					ESP_LOGI(TAG, "Notify %s", notification->name.c_str());
+
+					string buzzerName = "buzzer" + notification->name;
+					xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+
+					instance->notifications.pop_front();
+				}
+			}
 		}
 		else
 		{
@@ -1430,6 +1576,21 @@ void BrewEngine::reboot(void *arg)
 {
 	vTaskDelay(2000 / portTICK_PERIOD_MS);
 	esp_restart();
+}
+
+void BrewEngine::buzzer(void *arg)
+{
+	BrewEngine *instance = (BrewEngine *)arg;
+
+	if (instance->buzzer_PIN > 0)
+	{
+		auto buzzerMs = instance->buzzerTime * 1000;
+		gpio_set_level(instance->buzzer_PIN, instance->gpioHigh);
+		vTaskDelay(buzzerMs / portTICK_PERIOD_MS);
+		gpio_set_level(instance->buzzer_PIN, instance->gpioLow);
+	}
+
+	vTaskDelete(NULL);
 }
 
 string BrewEngine::processCommand(string payLoad)
@@ -1512,6 +1673,7 @@ string BrewEngine::processCommand(string payLoad)
 			{"lastLogDateTime", lastLogDateTime},
 			{"tempLog", jTempLog},
 			{"runningVersion", this->runningVersion},
+			{"inOverTime", this->inOverTime},
 		};
 
 		if (this->manualOverrideOutput.has_value())
@@ -1531,6 +1693,14 @@ string BrewEngine::processCommand(string payLoad)
 			jExecutionSteps.push_back(jExecutionStep);
 		}
 		jRunningSchedule["steps"] = jExecutionSteps;
+
+		json jNotifications = json::array({});
+		for (auto &notification : this->notifications)
+		{
+			json jNotification = notification->to_json();
+			jNotifications.push_back(jNotification);
+		}
+		jRunningSchedule["notifications"] = jNotifications;
 
 		resultData = jRunningSchedule;
 	}
@@ -1602,30 +1772,7 @@ string BrewEngine::processCommand(string payLoad)
 	}
 	else if (command == "SaveMashSchedule")
 	{
-		json newSteps = data["steps"];
-
-		auto newMash = new MashSchedule();
-		newMash->name = data["name"].get<string>();
-		newMash->boil = data["boil"].get<bool>();
-		newMash->steps.clear();
-
-		for (auto &el : newSteps.items())
-		{
-			auto jStep = el.value();
-
-			auto newStep = new MashStep();
-			newStep->index = jStep["index"].get<uint>();
-			newStep->name = jStep["name"].get<string>();
-			newStep->temperature = jStep["temperature"].get<int>();
-			newStep->stepTime = jStep["stepTime"].get<int>();
-			newStep->time = jStep["time"].get<int>();
-			newStep->extendStepTimeIfNeeded = jStep["extendStepTimeIfNeeded"].get<bool>();
-			newMash->steps.push_back(newStep);
-		}
-
-		newMash->sort_steps();
-
-		this->mashSchedules.insert_or_assign(newMash->name, newMash);
+		this->setMashSchedule(data);
 
 		this->saveMashSchedules();
 	}
@@ -1739,6 +1886,8 @@ string BrewEngine::processCommand(string payLoad)
 		resultData = {
 			{"onewirePin", this->oneWire_PIN},
 			{"stirPin", this->stir_PIN},
+			{"buzzerPin", this->buzzer_PIN},
+			{"buzzerTime", this->buzzerTime},
 			{"invertOutputs", this->invertOutputs},
 			{"mqttUri", this->mqttUri},
 			{"temperatureScale", this->temperatureScale},

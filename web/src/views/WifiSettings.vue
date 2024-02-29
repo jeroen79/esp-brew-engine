@@ -128,7 +128,7 @@ onBeforeUnmount(() => {
 
 <template>
   <v-container class="pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
 
       <v-row>
