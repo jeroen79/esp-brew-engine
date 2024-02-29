@@ -62,6 +62,8 @@ const save = async () => {
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
     alert.value = result?.message;
+    alertType.value = 'warning';
+    window.scrollTo(0, 0);
   }
 };
 
@@ -74,6 +76,7 @@ const recovery = async () => {
   if (result?.message != null) {
     alertType.value = 'warning';
     alert.value = result?.message;
+    window.scrollTo(0, 0);
   }
 
   if (result?.success) {
@@ -92,6 +95,7 @@ const reboot = async () => {
   if (result?.message != null) {
     alertType.value = 'warning';
     alert.value = result?.message;
+    window.scrollTo(0, 0);
   }
 
   if (result?.success) {
@@ -112,6 +116,7 @@ const factoryReset = async () => {
   if (result?.message != null) {
     alertType.value = 'warning';
     alert.value = result?.message;
+    window.scrollTo(0, 0);
   }
 
   if (result?.success) {
