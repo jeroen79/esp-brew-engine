@@ -6,7 +6,7 @@
 - Schedules have a new flag to set then as boil/mash.
 - Support for Buzzer.
 - Support for Notifications.
-- Speech Notificaitons via webinterface.
+- Speech Notifications via webinterface.
 - Added Client/Browser Settings.
 - Control Screen stays active while in settings.
 - Fullscreen button.
