@@ -54,6 +54,11 @@ const routes = [
         name: 'HeaterSettings',
         component: () => import(/* webpackChunkName: "HeaterSettings" */ '@/views/HeaterSettings.vue'),
       },
+      {
+        path: 'clientSettings',
+        name: 'ClientSettings',
+        component: () => import(/* webpackChunkName: "ClientSettings" */ '@/views/ClientSettings.vue'),
+      },
     ],
   },
 ];

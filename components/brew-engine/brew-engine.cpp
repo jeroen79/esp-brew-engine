@@ -290,7 +290,7 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s1->index = 0;
 	defaultMash_s1->name = "Beta Amylase";
 	defaultMash_s1->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
-	defaultMash_s1->stepTime = 0;
+	defaultMash_s1->stepTime = 5;
 	defaultMash_s1->extendStepTimeIfNeeded = true;
 	defaultMash_s1->time = 45;
 	defaultMash->steps.push_back(defaultMash_s1);
@@ -313,6 +313,20 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s3->time = 5;
 	defaultMash->steps.push_back(defaultMash_s3);
 
+	auto defaultMash_n1 = new Notification();
+	defaultMash_n1->name = "Add Grains";
+	defaultMash_n1->message = "Please add Grains";
+	defaultMash_n1->timeFromStart = 5;
+	defaultMash_n1->buzzer = true;
+	defaultMash->notifications.push_back(defaultMash_n1);
+
+	auto defaultMash_n2 = new Notification();
+	defaultMash_n2->name = "Start Lautering";
+	defaultMash_n2->message = "Please Start Lautering/Sparging";
+	defaultMash_n2->timeFromStart = 85;
+	defaultMash_n2->buzzer = true;
+	defaultMash->notifications.push_back(defaultMash_n2);
+
 	this->mashSchedules.insert_or_assign(defaultMash->name, defaultMash);
 
 	auto ryeMash = new MashSchedule();
@@ -324,7 +338,7 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s1->index = 0;
 	ryeMash_s1->name = "Beta Glucanase";
 	ryeMash_s1->temperature = (this->temperatureScale == Celsius) ? 43 : 110;
-	ryeMash_s1->stepTime = 0;
+	ryeMash_s1->stepTime = 5;
 	ryeMash_s1->extendStepTimeIfNeeded = true;
 	ryeMash_s1->time = 20;
 	ryeMash->steps.push_back(ryeMash_s1);
@@ -356,6 +370,20 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s4->time = 5;
 	ryeMash->steps.push_back(ryeMash_s4);
 
+	auto ryeMash_n1 = new Notification();
+	ryeMash_n1->name = "Add Grains";
+	ryeMash_n1->message = "Please add Grains";
+	ryeMash_n1->timeFromStart = 5;
+	ryeMash_n1->buzzer = true;
+	ryeMash->notifications.push_back(ryeMash_n1);
+
+	auto ryeMash_n2 = new Notification();
+	ryeMash_n2->name = "Start Lautering";
+	ryeMash_n2->message = "Please Start Lautering/Sparging";
+	ryeMash_n2->timeFromStart = 110;
+	ryeMash_n2->buzzer = true;
+	ryeMash->notifications.push_back(ryeMash_n2);
+
 	this->mashSchedules.insert_or_assign(ryeMash->name, ryeMash);
 
 	auto boil = new MashSchedule();
@@ -371,6 +399,20 @@ void BrewEngine::addDefaultMash()
 	boil_s1->extendStepTimeIfNeeded = true;
 	boil_s1->time = 70;
 	boil->steps.push_back(boil_s1);
+
+	auto boil_n1 = new Notification();
+	boil_n1->name = "Bittering Hops";
+	boil_n1->message = "Please add Bittering Hops";
+	boil_n1->timeFromStart = 0;
+	boil_n1->buzzer = true;
+	boil->notifications.push_back(boil_n1);
+
+	auto boil_n2 = new Notification();
+	boil_n2->name = "Aroma Hops";
+	boil_n2->message = "Please add Aroma Hops";
+	boil_n2->timeFromStart = 55;
+	boil_n2->buzzer = true;
+	boil->notifications.push_back(boil_n2);
 
 	this->mashSchedules.insert_or_assign(boil->name, boil);
 }
@@ -1631,6 +1673,7 @@ string BrewEngine::processCommand(string payLoad)
 			{"lastLogDateTime", lastLogDateTime},
 			{"tempLog", jTempLog},
 			{"runningVersion", this->runningVersion},
+			{"inOverTime", this->inOverTime},
 		};
 
 		if (this->manualOverrideOutput.has_value())

@@ -38,6 +38,7 @@ module.exports = {
           {
             code: 300,
             template: 300,
+            comments: 300,
             ignoreTemplateLiterals: true,
             ignoreUrls: true,
             ignoreStrings: true,

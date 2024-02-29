@@ -15,7 +15,11 @@ const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
 
 const appStore = useAppStore();
 
-const mashSchedules = ref<Array<IMashSchedule>>([]);
+// copy settings, we don't want them applied until save is clicked
+const mashSchedules = ref<Array<IMashSchedule>>([...appStore.mashSchedules]);
+
+console.log(mashSchedules.value);
+
 const editStepDialog = ref<boolean>(false);
 const editNotificationDialog = ref<boolean>(false);
 const dialogDelete = ref<boolean>(false);
@@ -78,17 +82,8 @@ const editNotificationsIndex = ref<Number>(-1);
 const editedNotificationsItem = ref<INotification>(defaultNotification);
 
 const getData = async () => {
-  const requestData = {
-    command: 'GetMashSchedules',
-    data: null,
-  };
-
-  const apiResult = await webConn?.doPostRequest(requestData);
-
-  if (apiResult === undefined || apiResult.success === false) {
-    return;
-  }
-  mashSchedules.value = apiResult.data;
+  await appStore.getMashSchedules();
+  mashSchedules.value = [...appStore.mashSchedules];
 };
 
 const tableNotificationsData:any = computed(() => {
@@ -107,14 +102,6 @@ watchEffect(() => {
     currentName.value = selectedMashSchedule.value?.name;
     currentBoil.value = selectedMashSchedule.value?.boil;
   }
-});
-
-onMounted(() => {
-  getData();
-});
-
-onBeforeUnmount(() => {
-
 });
 
 const closeDialog = async () => {

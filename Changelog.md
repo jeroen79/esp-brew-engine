@@ -4,6 +4,19 @@
 - Configurable wattage per heater.
 - Heaters can now be enabled/disabled for boil/mash.
 - Schedules have a new flag to set then as boil/mash.
+- Support for Buzzer.
+- Support for Notifications.
+- Speech Notificaitons via webinterface.
+- Added Client/Browser Settings.
+- Control Screen stays active while in settings.
+- Fullscreen button.
+
+# Upgrade Instructions 1.3.0
+- Its recommended to do a full erase or factory reset.
+
+```bash
+idf.py flash-erase
+``` 
 
 # Version 1.2.0
 - Support for Celsius and Fahrenheit.
