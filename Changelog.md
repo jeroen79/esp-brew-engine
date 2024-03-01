@@ -1,4 +1,9 @@
 
+# Version 1.4.0
+- Extra setting to configure stepInterval.
+- Optimized sub steps calculation.
+
+
 # Version 1.3.0
 - Heaters are now fully dynamic, up to 10!.
 - Configurable wattage per heater.

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
+import { mdiHelp } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { IPidSettings } from '@/interfaces/IPidSettings';
 
@@ -10,6 +11,7 @@ const pidSettings = ref<IPidSettings>({ // add default value, vue heeft issues m
   kI: 0,
   kD: 0,
   pidLoopTime: 60,
+  stepInterval: 60,
 });
 
 const getData = async () => {
@@ -74,7 +76,28 @@ const save = async () => {
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field type="number" v-model.number="pidSettings.pidLoopTime" label="PID Loop Time" />
+          <v-text-field type="number" v-model.number="pidSettings.pidLoopTime" label="PID Loop Time">
+            <template v-slot:append>
+              <v-tooltip text="The time in seconds between PID calculations, since water heating is a slow process this also works best when slow ex. 60sec">
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.stepInterval" label="Steps every x seconds">
+            <template v-slot:append>
+              <v-tooltip text="The time between steps less means more substeps will be added">
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
         </v-col>
       </v-row>
       <v-row>

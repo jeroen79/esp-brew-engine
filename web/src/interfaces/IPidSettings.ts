@@ -3,4 +3,5 @@ export interface IPidSettings {
   kI: number;
   kD: number;
   pidLoopTime: number;
+  stepInterval: number;
 }
