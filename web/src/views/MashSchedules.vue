@@ -22,7 +22,8 @@ console.log(mashSchedules.value);
 
 const editStepDialog = ref<boolean>(false);
 const editNotificationDialog = ref<boolean>(false);
-const dialogDelete = ref<boolean>(false);
+const stepDialogDelete = ref<boolean>(false);
+const notificationDialogDelete = ref<boolean>(false);
 
 const selectedMashSchedule = ref<IMashSchedule | null>(null);
 
@@ -110,7 +111,8 @@ const closeDialog = async () => {
 };
 
 const closeDeleteDialog = async () => {
-  dialogDelete.value = false;
+  stepDialogDelete.value = false;
+  notificationDialogDelete.value = false;
 };
 
 const editStepsItem = async (item:IMashStep) => {
@@ -133,7 +135,12 @@ const newStep = async () => {
   }
 
   const step = { ...defaultStep };
-  step.index = Math.max(...selectedMashSchedule.value.steps.map((s) => s.index)) + 1;
+
+  // increment index if there are already steps, otherwise default 0 is ok
+  if (selectedMashSchedule.value.steps.length > 0) {
+    step.index = Math.max(...selectedMashSchedule.value.steps.map((s) => s.index)) + 1;
+  }
+
   selectedMashSchedule.value.steps.push(step);
 
   editedStepsItem.value = step;
@@ -146,7 +153,7 @@ const openStepsDeleteDialog = async (item:IMashStep) => {
   }
   editStepsIndex.value = selectedMashSchedule.value.steps.indexOf(item);
   editedStepsItem.value = item;
-  dialogDelete.value = true;
+  stepDialogDelete.value = true;
 };
 
 const stepDeleteItemOk = async () => {
@@ -190,7 +197,7 @@ const openNotificationsDeleteDialog = async (item:INotification) => {
   }
   editNotificationsIndex.value = selectedMashSchedule.value.notifications.indexOf(item);
   editedNotificationsItem.value = item;
-  dialogDelete.value = true;
+  notificationDialogDelete.value = true;
 };
 
 const notificationDeleteItemOk = async () => {
@@ -309,7 +316,7 @@ const deleteSchedule = async () => {
                     <v-card-text>
                       <v-container>
                         <v-row>
-                          <v-text-field type="number" v-model.number="editedStepsItem.index" label="Index name" />
+                          <v-text-field type="number" v-model.number="editedStepsItem.index" label="Index" />
                         </v-row>
                         <v-row>
                           <v-text-field v-model="editedStepsItem.name" label="Name" />
@@ -337,7 +344,7 @@ const deleteSchedule = async () => {
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialogDelete" max-width="500px">
+                <v-dialog v-model="stepDialogDelete" max-width="500px">
                   <v-card>
                     <v-card-title class="text-h5">Are you sure you want to delete this Step?</v-card-title>
                     <v-card-actions>
@@ -411,7 +418,7 @@ const deleteSchedule = async () => {
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialogDelete" max-width="500px">
+                <v-dialog v-model="notificationDialogDelete" max-width="500px">
                   <v-card>
                     <v-card-title class="text-h5">Are you sure you want to delete this Notification?</v-card-title>
                     <v-card-actions>
