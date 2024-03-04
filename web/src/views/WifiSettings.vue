@@ -132,7 +132,7 @@ onBeforeUnmount(() => {
     <v-form fast-fail @submit.prevent>
 
       <v-row>
-        <v-col cols="3" md="3">
+        <v-col cols="12" md="6">
           <v-switch
             v-model="wifiSettings.enableAP"
             label="Access Point Mode"
@@ -151,10 +151,10 @@ onBeforeUnmount(() => {
       </v-row>
 
       <v-row>
-        <v-col cols="6" md="6" v-if="!wifiSettings.enableAP">
+        <v-col cols="12" md="6" v-if="!wifiSettings.enableAP">
           <v-text-field v-model="wifiSettings.ssid" label="Join Network (SSID)" />
         </v-col>
-        <v-col cols="6" md="6" v-if="wifiSettings.enableAP">
+        <v-col cols="12" md="6" v-if="wifiSettings.enableAP">
           <v-text-field v-model="wifiSettings.ssid" label="Access Point Name (SSID)" />
         </v-col>
       </v-row>

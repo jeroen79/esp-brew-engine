@@ -236,10 +236,10 @@ const scaleChanged = () => {
       </v-row>
 
       <v-row>
-        <v-col cols="3" md="3">
+        <v-col cols="12" md="3">
           <v-btn name="reboot" color="warning" variant="outlined" class="mt-4 mr-2" @click="reboot"> Reboot </v-btn>
         </v-col>
-        <v-col cols="3" md="3">
+        <v-col cols="12" md="3">
           <v-btn name="factoryreset" color="error" variant="outlined" class="mt-4 mr-2" @click="dialogFactoryReset = true"> Factory Reset </v-btn>
 
           <v-dialog v-model="dialogFactoryReset" max-width="500px">
