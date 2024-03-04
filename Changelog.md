@@ -1,3 +1,7 @@
+# Version 1.3.1
+- Bugfix: One cannot delete steps.
+- Bugfix: Wifi settings one phone responsiveness is wrong.
+- Bugfix: Potetial memory leak due to missing delete's.
 
 # Version 1.4.0
 - Extra setting to configure stepInterval.

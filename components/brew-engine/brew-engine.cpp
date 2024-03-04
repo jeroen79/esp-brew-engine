@@ -171,7 +171,6 @@ void BrewEngine::readSettings()
 	vector<uint8_t> empty = json::to_msgpack(json::array({}));
 	vector<uint8_t> serialized = this->settingsManager->Read("mashschedules", empty);
 
-	this->mashSchedules.clear();
 	json jSchedules = json::from_msgpack(serialized);
 
 	if (jSchedules.empty())
@@ -213,6 +212,11 @@ void BrewEngine::setMashSchedule(json jSchedule)
 	auto newMash = new MashSchedule();
 	newMash->name = jSchedule["name"].get<string>();
 	newMash->boil = jSchedule["boil"].get<bool>();
+
+	for (auto const &step : newMash->steps)
+	{
+		delete step;
+	}
 	newMash->steps.clear();
 
 	for (auto &el : newSteps.items())
@@ -227,6 +231,10 @@ void BrewEngine::setMashSchedule(json jSchedule)
 	newMash->sort_steps();
 
 	json newNotifications = jSchedule["notifications"];
+	for (auto const &notification : newMash->notifications)
+	{
+		delete notification;
+	}
 	newMash->notifications.clear();
 
 	for (auto &el : newNotifications.items())
@@ -286,7 +294,6 @@ void BrewEngine::addDefaultMash()
 	auto defaultMash = new MashSchedule();
 	defaultMash->name = "Default";
 	defaultMash->boil = false;
-	defaultMash->steps.clear();
 
 	auto defaultMash_s1 = new MashStep();
 	defaultMash_s1->index = 0;
@@ -334,7 +341,6 @@ void BrewEngine::addDefaultMash()
 	auto ryeMash = new MashSchedule();
 	ryeMash->name = "Rye Mash";
 	ryeMash->boil = false;
-	ryeMash->steps.clear();
 
 	auto ryeMash_s1 = new MashStep();
 	ryeMash_s1->index = 0;
@@ -391,7 +397,6 @@ void BrewEngine::addDefaultMash()
 	auto boil = new MashSchedule();
 	boil->name = "Boil 70 Min";
 	boil->boil = true;
-	boil->steps.clear();
 
 	auto boil_s1 = new MashStep();
 	boil_s1->index = 0;
@@ -490,6 +495,10 @@ void BrewEngine::saveHeaterSettings(json jHeaters)
 	vTaskDelay(pdMS_TO_TICKS(1000));
 
 	// clear
+	for (auto const &heater : this->heaters)
+	{
+		delete heater;
+	}
 	this->heaters.clear();
 
 	uint8_t newId = 0;
@@ -815,6 +824,10 @@ void BrewEngine::start()
 		this->tempLog.clear();
 
 		// also clear old steps
+		for (auto const &step : this->executionSteps)
+		{
+			delete step.second;
+		}
 		this->executionSteps.clear();
 
 		if (this->selectedMashScheduleName.empty() == false)
@@ -857,7 +870,13 @@ void BrewEngine::loadSchedule()
 	auto schedule = pos->second;
 
 	system_clock::time_point prevTime = std::chrono::system_clock::now();
+
+	for (auto const &step : this->executionSteps)
+	{
+		delete step.second;
+	}
 	this->executionSteps.clear();
+
 	this->currentExecutionStep = 0;
 	this->boilRun = schedule->boil;
 	int stepIndex = 0;
@@ -972,14 +991,21 @@ void BrewEngine::loadSchedule()
 	}
 
 	// also add notifications
+	for (auto const &notification : this->notifications)
+	{
+		delete notification;
+	}
 	this->notifications.clear();
+
 	for (auto const &notification : schedule->notifications)
 	{
 		auto notificationTime = execStep0->time + minutes(notification->timeFromStart);
 
 		// copy notification to new map
 		auto newNotification = new Notification();
-		newNotification = notification;
+		newNotification->name = notification->name;
+		newNotification->message = notification->message;
+		newNotification->timeFromStart = notification->timeFromStart;
 		newNotification->timePoint = notificationTime;
 
 		this->notifications.push_back(newNotification);
