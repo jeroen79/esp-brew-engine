@@ -2,7 +2,7 @@
 # Version 1.4.0
 - Extra setting to configure stepInterval.
 - Optimized sub steps calculation.
-
+- Optimized control loop, trigger pid faster after target changes.
 
 # Version 1.3.0
 - Heaters are now fully dynamic, up to 10!.
