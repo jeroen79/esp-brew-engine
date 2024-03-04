@@ -18,8 +18,6 @@ const appStore = useAppStore();
 // copy settings, we don't want them applied until save is clicked
 const mashSchedules = ref<Array<IMashSchedule>>([...appStore.mashSchedules]);
 
-console.log(mashSchedules.value);
-
 const editStepDialog = ref<boolean>(false);
 const editNotificationDialog = ref<boolean>(false);
 const stepDialogDelete = ref<boolean>(false);
