@@ -193,13 +193,21 @@ void BrewEngine::readSettings()
 	}
 
 	// we save and load pid doubles as unit16 becease nvs doesnt' have double support, and we are happy with only 1 decimal
-	uint16_t pint = this->settingsManager->Read("kP", (uint16_t)(this->kP * 10));
-	uint16_t iint = this->settingsManager->Read("kI", (uint16_t)(this->kI * 10));
-	uint16_t dint = this->settingsManager->Read("kD", (uint16_t)(this->kD * 10));
+	uint16_t pint = this->settingsManager->Read("kP", (uint16_t)(this->mashkP * 10));
+	uint16_t iint = this->settingsManager->Read("kI", (uint16_t)(this->mashkI * 10));
+	uint16_t dint = this->settingsManager->Read("kD", (uint16_t)(this->mashkD * 10));
 
-	this->kP = (double)pint / 10;
-	this->kI = (double)iint / 10;
-	this->kD = (double)dint / 10;
+	this->mashkP = (double)pint / 10;
+	this->mashkI = (double)iint / 10;
+	this->mashkD = (double)dint / 10;
+
+	uint16_t bpint = this->settingsManager->Read("boilkP", (uint16_t)(this->boilkP * 10));
+	uint16_t biint = this->settingsManager->Read("boilkI", (uint16_t)(this->boilkI * 10));
+	uint16_t bdint = this->settingsManager->Read("boilkD", (uint16_t)(this->boilkD * 10));
+
+	this->boilkP = (double)bpint / 10;
+	this->boilkI = (double)biint / 10;
+	this->boilkD = (double)bdint / 10;
 
 	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
 	this->stepInterval = this->settingsManager->Read("stepInterval", (uint16_t)CONFIG_PID_LOOPTIME); // we use same as pidloop time
@@ -274,15 +282,22 @@ void BrewEngine::savePIDSettings()
 {
 	ESP_LOGI(TAG, "Saving PID Settings");
 
-	uint16_t pint = static_cast<uint16_t>(this->kP * 10);
-	uint16_t iint = static_cast<uint16_t>(this->kI * 10);
-	uint16_t dint = static_cast<uint16_t>(this->kD * 10);
-
-	ESP_LOGI(TAG, "Save Pid: %d %d %d", pint, iint, dint);
+	uint16_t pint = static_cast<uint16_t>(this->mashkP * 10);
+	uint16_t iint = static_cast<uint16_t>(this->mashkI * 10);
+	uint16_t dint = static_cast<uint16_t>(this->mashkD * 10);
 
 	this->settingsManager->Write("kP", pint);
 	this->settingsManager->Write("kI", iint);
 	this->settingsManager->Write("kD", dint);
+
+	uint16_t bpint = static_cast<uint16_t>(this->boilkP * 10);
+	uint16_t biint = static_cast<uint16_t>(this->boilkI * 10);
+	uint16_t bdint = static_cast<uint16_t>(this->boilkD * 10);
+
+	this->settingsManager->Write("boilkP", bpint);
+	this->settingsManager->Write("boilkI", biint);
+	this->settingsManager->Write("boilkD", bdint);
+
 	this->settingsManager->Write("pidLoopTime", this->pidLoopTime);
 	this->settingsManager->Write("stepInterval", this->stepInterval);
 
@@ -1317,7 +1332,21 @@ void BrewEngine::pidLoop(void *arg)
 {
 	BrewEngine *instance = (BrewEngine *)arg;
 
-	PIDController pid(instance->kP, instance->kI, instance->kD);
+	double kP, kI, kD;
+	if (instance->boilRun)
+	{
+		kP = instance->boilkP;
+		kI = instance->boilkI;
+		kD = instance->boilkD;
+	}
+	else
+	{
+		kP = instance->mashkP;
+		kI = instance->mashkI;
+		kD = instance->mashkD;
+	}
+
+	PIDController pid(kP, kI, kD);
 	pid.setMin(0);
 	pid.setMax(100);
 	pid.debug = false;
@@ -1837,18 +1866,24 @@ string BrewEngine::processCommand(string payLoad)
 	else if (command == "GetPIDSettings")
 	{
 		resultData = {
-			{"kP", this->kP},
-			{"kI", this->kI},
-			{"kD", this->kD},
+			{"kP", this->mashkP},
+			{"kI", this->mashkI},
+			{"kD", this->mashkD},
+			{"boilkP", this->boilkP},
+			{"boilkI", this->boilkI},
+			{"boilkD", this->boilkD},
 			{"pidLoopTime", this->pidLoopTime},
 			{"stepInterval", this->stepInterval},
 		};
 	}
 	else if (command == "SavePIDSettings")
 	{
-		this->kP = data["kP"].get<double>();
-		this->kI = data["kI"].get<double>();
-		this->kD = data["kD"].get<double>();
+		this->mashkP = data["kP"].get<double>();
+		this->mashkI = data["kI"].get<double>();
+		this->mashkD = data["kD"].get<double>();
+		this->boilkP = data["boilkP"].get<double>();
+		this->boilkI = data["boilkI"].get<double>();
+		this->boilkD = data["boilkD"].get<double>();
 		this->pidLoopTime = data["pidLoopTime"].get<uint16_t>();
 		this->stepInterval = data["stepInterval"].get<uint16_t>();
 		this->savePIDSettings();

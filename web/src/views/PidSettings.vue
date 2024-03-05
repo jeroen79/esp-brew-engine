@@ -10,6 +10,9 @@ const pidSettings = ref<IPidSettings>({ // add default value, vue heeft issues m
   kP: 0,
   kI: 0,
   kD: 0,
+  boilkP: 0,
+  boilkI: 0,
+  boilkD: 0,
   pidLoopTime: 60,
   stepInterval: 60,
 });
@@ -61,21 +64,6 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field type="number" v-model.number="pidSettings.kP" label="P" />
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field type="number" v-model.number="pidSettings.kI" label="I" />
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field type="number" v-model.number="pidSettings.kD" label="D" />
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="12" md="3">
           <v-text-field type="number" v-model.number="pidSettings.pidLoopTime" label="PID Loop Time">
             <template v-slot:append>
               <v-tooltip text="The time in seconds between PID calculations, since water heating is a slow process this also works best when slow ex. 60sec">
@@ -87,6 +75,7 @@ const save = async () => {
           </v-text-field>
         </v-col>
       </v-row>
+
       <v-row>
         <v-col cols="12" md="3">
           <v-text-field type="number" v-model.number="pidSettings.stepInterval" label="Steps every x seconds">
@@ -100,6 +89,39 @@ const save = async () => {
           </v-text-field>
         </v-col>
       </v-row>
+
+      <div class="text-subtitle-2 mt-4 mb-2">Mash</div>
+
+      <v-divider :thickness="7" />
+
+      <v-row class="mt-4 mb-2">
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.kP" label="P" />
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.kI" label="I" />
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.kD" label="D" />
+        </v-col>
+      </v-row>
+
+      <div class="text-subtitle-2 mt-4 mb-2">Boil</div>
+
+      <v-divider :thickness="7" />
+
+      <v-row class="mt-4 mb-2">
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.boilkP" label="P" />
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.boilkI" label="I" />
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.boilkD" label="D" />
+        </v-col>
+      </v-row>
+
       <v-row>
         <v-col cols="12" md="3">
           <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
