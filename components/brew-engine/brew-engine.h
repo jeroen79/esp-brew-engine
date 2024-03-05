@@ -126,6 +126,7 @@ private:
     double kD = 10;
     uint16_t pidLoopTime = 60; // time in seconds for a full loop,
     bool resetPitTime = false; // bool to reset pit , we do this when out target changes
+    float tempMargin = 0.5;    // we don't want to nitpick about 0.5°C, water heating is not that percise
 
     // execution
     bool run = false;
@@ -141,8 +142,8 @@ private:
 
     std::map<uint16_t, ExecutionStep *> executionSteps; // calculated real steps
     uint16_t currentExecutionStep = 0;
-    uint16_t executionStepSeconds = 5; // calcualte a substep every x seconds
-    uint16_t runningVersion = 0;       // we increase our version after recalc, so client can keep uptodate with planning
+    uint16_t stepInterval = 60;  // calcualte a substep every x seconds
+    uint16_t runningVersion = 0; // we increase our version after recalc, so client can keep uptodate with planning
 
     // IO
     uint8_t gpioHigh = 1;
