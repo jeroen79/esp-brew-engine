@@ -19,7 +19,18 @@ const convertGravityToPlato = (gravity: number): number => {
   return plato;
 };
 
-const calcFGFromPlato = (startPlato: number, endPlato: number) => 1 + 0.006276 * endPlato - 0.002349 * startPlato;
+const convertGravityToBrix = (gravity:number) => (((182.4601 * gravity - 775.6821) * gravity + 1262.7794) * gravity - 669.5622);
+
+const calcFBFromBrix = (startBrix:number, endBrix:number) => {
+  const fg = (1.001843
+    - 0.002318474 * startBrix
+    - 0.000007775 * (startBrix * startBrix)
+    - 0.000000034 * (startBrix * startBrix * startBrix)
+    + 0.00574 * endBrix
+    + 0.00003344 * (endBrix * endBrix)
+    + 0.000000086 * (endBrix * endBrix * endBrix));
+  return fg;
+};
 
 const calcABVPapazian = (startSG: number, endSG: number) => {
   const abv = (startSG - endSG) * 131.25;
@@ -28,9 +39,6 @@ const calcABVPapazian = (startSG: number, endSG: number) => {
 
 const calcABVDaniels = (startSG: number, endSG: number) => {
   const abv = ((76.08 * (startSG - endSG)) / (1.775 - startSG)) * (endSG / 0.794);
-  // return abv;
-  // const abw = 76.08 * (startSG - endSG) / (1.775 - startSG);
-  // const abv = abw * (endSG / 0.794);
   return abv;
 };
 
@@ -67,6 +75,13 @@ const ogSg = computed(() => {
   return sg;
 });
 
+const ogBrix = computed(() => {
+  if (ogType.value === 'Brix') {
+    return ogInputCorrected.value;
+  }
+  return convertGravityToBrix(ogInputCorrected.value);
+});
+
 const ogPlatoRouned = computed(() => Math.round(ogPlato.value * 10) / 10);
 const ogSgRouned = computed(() => Math.round(ogSg.value * 1000) / 1000);
 
@@ -76,11 +91,12 @@ const fgPlato = computed(() => {
 });
 
 const fgSG = computed(() => {
-  const fg = calcFGFromPlato(ogPlato.value, fgPlato.value);
+  const fg = calcFBFromBrix(ogBrix.value, fgInput.value);
   return fg;
 });
 
 const fgPlatoRounded = computed(() => Math.round(fgPlato.value * 10) / 10);
+
 const fgRounded = computed(() => Math.round(fgSG.value * 1000) / 1000);
 
 const abv = computed(() => {
@@ -93,6 +109,10 @@ const abv = computed(() => {
 });
 
 const abvRounded = computed(() => Math.round(abv.value * 100) / 100);
+
+const abvPrimed = computed(() => abv.value + 0.3);
+
+const abvPrimedRounded = computed(() => Math.round(abvPrimed.value * 100) / 100);
 
 </script>
 
@@ -142,9 +162,14 @@ const abvRounded = computed(() => Math.round(abv.value * 100) / 100);
         </v-col>
 
         <v-col cols="12" md="3">
-          <v-select
-            v-model="abvCalcMethod" :items="abvCalcMethods" item-text="caption" item-value="key"
-            label="Method" />
+          <v-select v-model="abvCalcMethod" :items="abvCalcMethods" item-text="caption" item-value="key" label="Method" />
+        </v-col>
+
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field v-model="abvPrimedRounded" readonly label="ABV With Priming Sugar (approx)" />
         </v-col>
 
       </v-row>
