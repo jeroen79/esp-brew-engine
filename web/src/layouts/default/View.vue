@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit } from '@mdi/js';
+import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit, mdiImport } from '@mdi/js';
 
 const drawer = ref(true);
 const linksBrewing = ref([
   [mdiKnob, 'Control', 'control'],
+  [mdiImport, 'Import', 'import'],
 ]);
 
 const linksTools = ref([

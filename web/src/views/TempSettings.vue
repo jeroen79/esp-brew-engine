@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, inject } from 'vue';
-import { VDataTable } from 'vuetify/labs/VDataTable';
 import { mdiPencil, mdiDelete, mdiPalette } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { ITempSensor } from '@/interfaces/ITempSensor';
@@ -198,20 +197,20 @@ const save = async () => {
           </v-toolbar>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-icon size="small" class="me-2" @click="editItem(item.raw)" :icon="mdiPencil" />
-          <v-icon size="small" @click="openDeleteDialog(item.raw)" :icon="mdiDelete" />
+          <v-icon size="small" class="me-2" @click="editItem(item)" :icon="mdiPencil" />
+          <v-icon size="small" @click="openDeleteDialog(item)" :icon="mdiDelete" />
         </template>
         <template v-slot:[`item.useForControl`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.useForControl" disabled />
+          <v-checkbox-btn class="align-right justify-center" v-model="item.useForControl" disabled />
         </template>
         <template v-slot:[`item.show`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.show" disabled />
+          <v-checkbox-btn class="align-right justify-center" v-model="item.show" disabled />
         </template>
         <template v-slot:[`item.connected`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.connected" disabled />
+          <v-checkbox-btn class="align-right justify-center" v-model="item.connected" disabled />
         </template>
         <template v-slot:[`item.color`]="{ item }">
-          <v-icon size="small" class="me-2" :icon="mdiPalette" :color="item.columns.color" />
+          <v-icon size="small" class="me-2" :icon="mdiPalette" :color="item.color" />
         </template>
       </v-data-table>
 

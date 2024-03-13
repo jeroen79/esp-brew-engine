@@ -681,7 +681,7 @@ onBeforeUnmount(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-select label="Mash/Boil Schedule" :readonly="status != 'Idle'" v-model="selectedMashSchedule" :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules" :clearable="status == 'Idle'" return-object />
+          <v-select label="Mash/Boil Schedule" :readonly="status !== 'Idle'" v-model="selectedMashSchedule" :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules" :clearable="status === 'Idle'" return-object />
         </v-col>
         <v-col cols="12" md="3">
           <v-btn color="success" class="mt-4" block @click="start"> Start </v-btn>

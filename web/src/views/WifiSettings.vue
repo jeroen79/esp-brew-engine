@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, inject } from 'vue';
-import { VDataTable } from 'vuetify/labs/VDataTable';
 import { mdiEye, mdiEyeOutline, mdiConnection, mdiHelp } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { IWifiSettings } from '@/interfaces/IWifiSettings';
@@ -223,11 +222,7 @@ onBeforeUnmount(() => {
                 </v-toolbar>
               </template>
               <template v-slot:[`item.actions`]="{ item }">
-                <v-icon size="small" class="me-2" @click="showConnectDialog(item.raw)" :icon="mdiConnection" />
-
-              </template>
-              <template v-slot:[`item.extendStepTimeIfNeeded`]="{ item }">
-                <v-checkbox-btn class="align-right justify-center" v-model="item.columns.extendStepTimeIfNeeded" disabled />
+                <v-icon size="small" class="me-2" @click="showConnectDialog(item)" :icon="mdiConnection" />
               </template>
             </v-data-table>
 

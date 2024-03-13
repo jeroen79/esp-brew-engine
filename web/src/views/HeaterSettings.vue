@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { mdiDelete, mdiPencil } from '@mdi/js';
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
-import { VDataTable } from 'vuetify/labs/VDataTable';
 import { IHeater } from '@/interfaces/IHeater';
 import WebConn from '@/helpers/webConn';
 
@@ -185,14 +184,14 @@ const save = async () => {
           </v-toolbar>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-icon size="small" class="me-2" @click="editItem(item.raw)" :icon="mdiPencil" />
-          <v-icon size="small" @click="openDeleteDialog(item.raw)" :icon="mdiDelete" />
+          <v-icon size="small" class="me-2" @click="editItem(item)" :icon="mdiPencil" />
+          <v-icon size="small" @click="openDeleteDialog(item)" :icon="mdiDelete" />
         </template>
         <template v-slot:[`item.useForMash`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.useForMash" disabled />
+          <v-checkbox-btn class="align-right justify-center" v-model="item.useForMash" disabled />
         </template>
         <template v-slot:[`item.useForBoil`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.useForBoil" disabled />
+          <v-checkbox-btn class="align-right justify-center" v-model="item.useForBoil" disabled />
         </template>
       </v-data-table>
 

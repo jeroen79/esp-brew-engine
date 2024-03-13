@@ -5,3 +5,11 @@ export interface INotification {
   timePoint: number;
   buzzer: boolean;
 }
+
+export const defaultNotification:INotification = {
+  name: 'New Notification',
+  message: '',
+  timeFromStart: 0,
+  timePoint: 0,
+  buzzer: true,
+};

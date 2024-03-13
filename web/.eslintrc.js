@@ -12,6 +12,7 @@ module.exports = {
     'import/no-unresolved': 'off',
     '@typescript-eslint/no-unused-vars': 'off',
     'import/order': 'off',
+    'no-continue': 'off',
   },
   overrides: [
     {
@@ -33,6 +34,8 @@ module.exports = {
         'import/newline-after-import': 'off',
         'array-element-newline': 'off',
         'object-curly-newline': 'off',
+        'vue/no-dupe-keys': 'off',
+        'vue/no-setup-props-destructure': 'off',
         'vue/no-v-text-v-html-on-component': 'off',
         'vue/max-len': ['error',
           {
