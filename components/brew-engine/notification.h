@@ -35,7 +35,7 @@ public:
         return jNotification;
     }
 
-    void from_json(json jsonData)
+    void from_json(const json &jsonData)
     {
         this->name = jsonData["name"].get<string>();
         this->timeFromStart = jsonData["timeFromStart"].get<int>();

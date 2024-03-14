@@ -6,7 +6,9 @@ export interface IImportedBeer {
 
   mashSteps: Array<IMashStep>;
   mashNotifications: Array<INotification>;
+  mashNotificationsGrouped: Array<INotification>;
 
   boilSteps: Array<IMashStep>;
   boilNotifications: Array<INotification>;
+  boilNotificationsGrouped: Array<INotification>;
 }

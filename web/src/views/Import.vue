@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { mdiDelete, mdiPencil } from '@mdi/js';
+import { mdiHelp } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import ImportedBeer from '@/classes/ImportedBeer';
 import { inject, ref } from 'vue';
@@ -10,6 +10,8 @@ import { INotification } from '@/interfaces/INotification';
 import StepEditor from '@/components/StepEditor.vue';
 import NotificationEditor from '@/components/NotificationEditor.vue';
 import TemperatureScale from '@/enums/TemperatureScale';
+import { IMashSchedule } from '@/interfaces/IMashSchedule';
+import { groupBy } from '@/helpers/grouping';
 
 const webConn = inject<WebConn>('webConn');
 const appStore = useAppStore();
@@ -20,17 +22,17 @@ const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
 const chosenFiles = ref<Array<File>>([]);
 const fileData = ref<any>();
 
+const temporary = ref(true);
+
 const importedBeer = ref<IImportedBeer>({
   name: '',
   mashSteps: [],
   mashNotifications: [],
+  mashNotificationsGrouped: [],
   boilSteps: [],
   boilNotifications: [],
+  boilNotificationsGrouped: [],
 });
-
-// Mash steps
-
-// Boil Step
 
 // Mash notifications
 const parseFile = () => {
@@ -119,7 +121,7 @@ const parseFile = () => {
 
     if (fermentablesText !== '') {
       const notification:INotification = {
-        name: 'Add Fermentables',
+        name: 'Fermentables',
         message: fermentablesText,
         timeFromStart: grainAddTime,
         timePoint: 0,
@@ -131,7 +133,7 @@ const parseFile = () => {
 
     if (lateBoilText !== '') {
       const notification:INotification = {
-        name: 'Add Late Additions',
+        name: 'Late Additions',
         message: lateBoilText,
         timeFromStart: boilTime,
         timePoint: 0,
@@ -188,7 +190,7 @@ const parseFile = () => {
         const hopAddTime = boilTime - hopInfusTime;
 
         const notification:INotification = {
-          name: 'Add Hop',
+          name: 'Hop',
           message: `${hopAmount}g of ${hopName}`,
           timeFromStart: hopAddTime,
           timePoint: 0,
@@ -200,7 +202,7 @@ const parseFile = () => {
         const hopAddTime = totalMashTime - hopInfusTime;
 
         const notification:INotification = {
-          name: 'Add Hop',
+          name: 'Hop',
           message: `${hopAmount}g of ${hopName}`,
           timeFromStart: hopAddTime,
           timePoint: 0,
@@ -232,7 +234,7 @@ const parseFile = () => {
         const miscAddTime = boilTime - miscInfusTime;
 
         const notification:INotification = {
-          name: `Add ${miscType}`,
+          name: `${miscType}`,
           message: `${miscAmount}g of ${miscName}`,
           timeFromStart: miscAddTime,
           timePoint: 0,
@@ -242,7 +244,7 @@ const parseFile = () => {
         beer.boilNotifications.push(notification);
       } else if (miscUse === 'Mash') {
         const notification:INotification = {
-          name: `Add ${miscType}`,
+          name: `${miscType}`,
           message: `${miscAmount}g of ${miscName}`,
           timeFromStart: 0,
           timePoint: 0,
@@ -253,6 +255,83 @@ const parseFile = () => {
       }
     }
   }
+
+  // we need to group our notifications on time and merge
+  const groupedMash = groupBy(beer.mashNotifications, (n) => n.timeFromStart);
+  beer.mashNotificationsGrouped = [];
+  groupedMash.forEach((group, key) => {
+    if (group.values.length === 1) { // only one so just add
+      beer.mashNotificationsGrouped.push(group[0]);
+    } else {
+      // else combine
+      let newName = '';
+      let newMessage = '';
+      let buzzer = false;
+
+      group.forEach((notification) => {
+        // when not yet in name add
+        if (newName.indexOf(notification.name) === -1) {
+          if (newName === '') {
+            newName = notification.name;
+          } else {
+            newName += ` / ${notification.name}`;
+          }
+        }
+        newMessage += `${notification.message}\n`;
+
+        if (notification.buzzer) {
+          buzzer = true;
+        }
+      });
+
+      const newNotification:INotification = {
+        name: newName,
+        message: newMessage,
+        timeFromStart: key,
+        timePoint: 0,
+        buzzer,
+      };
+      beer.mashNotificationsGrouped.push(newNotification);
+    }
+  });
+
+  const groupedBoil = groupBy(beer.boilNotifications, (n) => n.timeFromStart);
+  beer.boilNotificationsGrouped = [];
+  groupedBoil.forEach((group, key) => {
+    if (group.values.length === 1) { // only one so just add
+      beer.boilNotificationsGrouped.push(group[0]);
+    } else {
+      // else combine
+      let newName = '';
+      let newMessage = '';
+      let buzzer = false;
+
+      group.forEach((notification) => {
+        // when not yet in name add
+        if (newName.indexOf(notification.name) === -1) {
+          if (newName === '') {
+            newName = notification.name;
+          } else {
+            newName += ` / ${notification.name}`;
+          }
+        }
+        newMessage += `${notification.message}\n`;
+
+        if (notification.buzzer) {
+          buzzer = true;
+        }
+      });
+
+      const newNotification:INotification = {
+        name: newName,
+        message: newMessage,
+        timeFromStart: key,
+        timePoint: 0,
+        buzzer,
+      };
+      beer.boilNotificationsGrouped.push(newNotification);
+    }
+  });
 
   importedBeer.value = beer;
 };
@@ -274,14 +353,85 @@ const fileSelected = (event:any) => {
   };
 };
 
-const debug = () => {
-  console.log('step:', importedBeer.value.mashSteps);
+const refreshAppStoreSchedules = async () => {
+  await appStore.getMashSchedules();
+};
+
+const upload = async () => {
+  if (importedBeer.value == null || importedBeer.value.name == null || importedBeer.value.name === '') {
+    alert.value = 'Please import beer first!';
+    alertType.value = 'warning';
+    return;
+  }
+
+  const mashName = `${importedBeer.value.name} (Mash)`;
+
+  const newMashSchedule:IMashSchedule = {
+    name: mashName,
+    boil: false,
+    temporary: temporary.value,
+    steps: [...importedBeer.value.mashSteps],
+    notifications: [...importedBeer.value.mashNotificationsGrouped],
+  };
+
+  const requestData = {
+    command: (temporary.value) ? 'SetMashSchedule' : 'SaveMashSchedule',
+    data: newMashSchedule,
+  };
+
+  const result = await webConn?.doPostRequest(requestData);
+
+  if (result?.message != null) {
+    alertType.value = 'error';
+    alert.value = result?.message;
+  }
+
+  const boilName = `${importedBeer.value.name} (Boil)`;
+
+  const newBoilSchedule:IMashSchedule = {
+    name: boilName,
+    boil: true,
+    temporary: temporary.value,
+    steps: [...importedBeer.value.boilSteps],
+    notifications: [...importedBeer.value.mashNotificationsGrouped],
+  };
+
+  const requestData2 = {
+    command: (temporary.value) ? 'SetMashSchedule' : 'SaveMashSchedule',
+    data: newBoilSchedule,
+  };
+
+  const result2 = await webConn?.doPostRequest(requestData2);
+
+  if (result2?.message != null) {
+    alertType.value = 'error';
+    alert.value = result2?.message;
+  } else {
+    alertType.value = 'info';
+    alert.value = 'Schedules Imported!';
+
+    refreshAppStoreSchedules();
+  }
+};
+
+const temporaryChanged = () => {
+  // we need to check if we have reached our max
+  if (!temporary.value) {
+    const mashName = `${importedBeer.value.name} (Mash)`;
+    const boilName = `${importedBeer.value.name} (Boil)`;
+
+    const count = appStore.mashSchedules.filter((s) => s.name !== mashName && s.name !== boilName).length;
+    if (count > appStore.maxSchedules.valueOf() - 2) {
+      alert.value = `Only ${appStore.maxSchedules} Schedules can be saved!`;
+      alertType.value = 'warning';
+      temporary.value = true;
+    }
+  }
 };
 
 </script>
 
 <template>
-  <v-btn color="success" class="mt-4 mr-2" @click="debug"> Debug </v-btn>
   <v-container class="spacing-playground pa-6" fluid>
     <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
     <v-form fast-fail @submit.prevent>
@@ -289,8 +439,22 @@ const debug = () => {
         <v-file-input label="Import BeerXML" accept="text/xml" :multiple="false" v-model="chosenFiles" @change="fileSelected" />
       </v-row>
       <v-row>
-        <v-col cols="12" md="6">
+        <v-col cols="12" sm="6" md="6" lg="3">
           <v-text-field v-model="importedBeer.name" readonly label="Name" />
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-switch v-model="temporary" label="Temporary" color="green" @change="temporaryChanged">
+            <template v-slot:append>
+              <v-tooltip text="By default imports are not saved to flash and only kept in memory, only disable this if you want to save the schedules permanently.">
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-switch>
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-btn color="success" class="mt-4 mr-2" @click="upload"> Import </v-btn>
         </v-col>
       </v-row>
       <v-row>
@@ -300,7 +464,7 @@ const debug = () => {
       </v-row>
       <v-row>
         <v-col cols="12">
-          <NotificationEditor v-model="importedBeer.mashNotifications" :items-per-page="10" :allow-new="true" label="Mash Notifications" />
+          <NotificationEditor v-model="importedBeer.mashNotificationsGrouped" :items-per-page="10" :allow-new="true" label="Mash Notifications" />
         </v-col>
       </v-row>
       <v-row>
@@ -310,7 +474,7 @@ const debug = () => {
       </v-row>
       <v-row>
         <v-col cols="12">
-          <NotificationEditor v-model="importedBeer.boilNotifications" :items-per-page="10" :allow-new="true" label="Boil Notifications" />
+          <NotificationEditor v-model="importedBeer.boilNotificationsGrouped" :items-per-page="10" :allow-new="true" label="Boil Notifications" />
         </v-col>
       </v-row>
     </v-form>

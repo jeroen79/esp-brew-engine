@@ -12,6 +12,7 @@ export const useAppStore = () => {
     const tempUnit = ref('°C');
     const rootUrl = ref<string | null>(null);
     const mashSchedules = ref<Array<IMashSchedule>>([]);
+    const maxSchedules = ref<Number>(10);// atm this is fixed to 10
 
     async function getMashSchedules() {
       if (rootUrl.value == null) {
@@ -61,7 +62,7 @@ export const useAppStore = () => {
     }
 
     return {
-      systemSettingsLoaded, rootUrl, temperatureScale, tempUnit, mashSchedules, getSystemSettings, getMashSchedules,
+      systemSettingsLoaded, rootUrl, temperatureScale, tempUnit, mashSchedules, maxSchedules, getSystemSettings, getMashSchedules,
     };
   });
 

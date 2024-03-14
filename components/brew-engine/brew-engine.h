@@ -77,25 +77,25 @@ private:
     void readSystemSettings();
     void readSettings();
     void saveMashSchedules();
-    void setMashSchedule(json jSchedule);
+    void setMashSchedule(const json &jSchedule);
     void savePIDSettings();
-    void saveSystemSettingsJson(json config);
+    void saveSystemSettingsJson(const json &config);
     void addDefaultMash();
     void start();
     void loadSchedule();
     void recalculateScheduleAfterOverTime();
     void stop();
-    void logRemote(string message);
+    void logRemote(const string &message);
     void addDefaultHeaters();
     void readHeaterSettings();
-    void saveHeaterSettings(json jHeaters);
+    void saveHeaterSettings(const json &jHeaters);
 
-    void saveTempSensorSettings(json data);
-    void startStir(json stirConfig);
+    void saveTempSensorSettings(const json &jTempSensors);
+    void startStir(const json &stirConfig);
     void stopStir();
     string bootIntoRecovery();
 
-    string processCommand(string payLoad);
+    string processCommand(const string &payLoad);
 
     httpd_handle_t startWebserver(void);
     void stopWebserver(httpd_handle_t server);

@@ -18,6 +18,7 @@ const appStore = useAppStore();
 
 // copy settings, we don't want them applied until save is clicked
 const mashSchedules = ref<Array<IMashSchedule>>([...appStore.mashSchedules]);
+// const maxSchedules = ref<Number>(appStore.maxSchedules);
 
 const currentName = ref<string>('');
 const currentBoil = ref<boolean>(false);
@@ -60,8 +61,8 @@ watchEffect(() => {
 
 const saveSchedule = async () => {
   // atm schedules are in ram so we can't allow crazy amounts, in the future we will need some kinde of cloud storage
-  if ((selectedMashSchedule.value != null && selectedMashSchedule.value.name !== currentName.value) && mashSchedules.value.length >= 10) {
-    alert.value = 'Only 10 Schedules allowed!';
+  if ((selectedMashSchedule.value != null && selectedMashSchedule.value.name !== currentName.value) && mashSchedules.value.length >= appStore.maxSchedules.valueOf()) {
+    alert.value = `Only ${appStore.maxSchedules} can be saved!`;
     alertType.value = 'warning';
     return;
   }
@@ -69,6 +70,7 @@ const saveSchedule = async () => {
   const newSchedule:IMashSchedule = {
     name: currentName.value,
     boil: currentBoil.value,
+    temporary: false,
     steps: [...tableStepsData.value],
     notifications: [...tableNotificationsData.value],
   };

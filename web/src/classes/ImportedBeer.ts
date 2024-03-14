@@ -9,7 +9,11 @@ export default class ImportedBeer implements IImportedBeer {
 
   public mashNotifications: Array<INotification> = [];
 
+  public mashNotificationsGrouped: Array<INotification> = [];
+
   public boilSteps: Array<IMashStep> = [];
 
   public boilNotifications: Array<INotification> = [];
+
+  public boilNotificationsGrouped: Array<INotification> = [];
 }
