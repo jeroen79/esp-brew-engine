@@ -18,7 +18,6 @@ const appStore = useAppStore();
 
 // copy settings, we don't want them applied until save is clicked
 const mashSchedules = ref<Array<IMashSchedule>>([...appStore.mashSchedules]);
-// const maxSchedules = ref<Number>(appStore.maxSchedules);
 
 const currentName = ref<string>('');
 const currentBoil = ref<boolean>(false);

@@ -43,7 +43,7 @@ const closeDeleteDialog = async () => {
   showNotificationDeleteDialog.value = false;
 };
 
-const editNotification = async (item:INotification) => {
+const editNotification = async (item: INotification) => {
   editingNotification.value = item;
   showNotificationDialog.value = true;
 };
@@ -57,7 +57,7 @@ const newNotification = async () => {
   showNotificationDialog.value = true;
 };
 
-const openNotificationsDeleteDialog = async (item:INotification) => {
+const openNotificationsDeleteDialog = async (item: INotification) => {
   editingNotification.value = item;
   showNotificationDeleteDialog.value = true;
 };
@@ -76,11 +76,10 @@ const notificationDeleteItemOk = async () => {
     :headers="tableNotificationsHeaders"
     :items="notifications"
     density="compact"
-    item-value="name"
-  >
+    item-value="name">
     <template v-slot:top>
       <v-toolbar density="compact">
-        <v-toolbar-title>{{props.label}}</v-toolbar-title>
+        <v-toolbar-title>{{ props.label }}</v-toolbar-title>
         <v-spacer />
         <v-btn color="secondary" variant="outlined" class="mr-5" v-if="allowNew" @click="newNotification()">
           New Notification
@@ -88,9 +87,9 @@ const notificationDeleteItemOk = async () => {
 
         <v-dialog v-model="showNotificationDialog" max-width="500px">
           <v-card>
-            <v-card-title>
-              <span class="text-h5">Edit</span>
-            </v-card-title>
+            <v-toolbar density="compact" color="dialog-header">
+              <v-toolbar-title>Edit</v-toolbar-title>
+            </v-toolbar>
 
             <v-card-text>
               <v-container>
@@ -120,6 +119,7 @@ const notificationDeleteItemOk = async () => {
         <v-dialog v-model="showNotificationDeleteDialog" max-width="500px">
           <v-card>
             <v-card-title class="text-h5">Are you sure you want to delete this Notification?</v-card-title>
+
             <v-card-actions>
               <v-spacer />
               <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>

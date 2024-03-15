@@ -33,7 +33,7 @@ const networkTableHeaders = ref<Array<any>>([
 const connectDialog = ref<boolean>(false);
 
 const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
 const hidePwd = ref<boolean>(true);
 
@@ -70,7 +70,7 @@ const scanForNetworks = async () => {
   wifiNetworks.value = apiResult.data;
 };
 
-const showConnectDialog = async (item:IWifiNetwork) => {
+const showConnectDialog = async (item: IWifiNetwork) => {
   dialogData.value.ssid = item.ssid;
   dialogData.value.enableAP = false;
   connectDialog.value = true;
@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
 
 <template>
   <v-container class="pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{ alert }}</v-alert>
     <v-form fast-fail @submit.prevent>
 
       <v-row>
@@ -136,12 +136,11 @@ onBeforeUnmount(() => {
             v-model="wifiSettings.enableAP"
             label="Access Point Mode"
             color="red"
-            @click="clearConfig()"
-          >
+            @click="clearConfig()">
             <template v-slot:append>
               <v-tooltip text="When enabled a wifi network is created by ESP-Brew-Engine, to connect to your own network turn this off!">
                 <template v-slot:activator="{ props }">
-                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
               </v-tooltip>
             </template>
@@ -159,7 +158,7 @@ onBeforeUnmount(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="6">
-          <v-text-field v-model="wifiSettings.password" :type="hidePwd ? 'password' : 'text'" label="Password" :append-icon="hidePwd ? mdiEye : mdiEyeOutline " @click:append="() => (hidePwd = !hidePwd)" />
+          <v-text-field v-model="wifiSettings.password" :type="hidePwd ? 'password' : 'text'" label="Password" :append-icon="hidePwd ? mdiEye : mdiEyeOutline" @click:append="() => (hidePwd = !hidePwd)" />
         </v-col>
       </v-row>
       <v-row>
@@ -170,8 +169,7 @@ onBeforeUnmount(() => {
             step="1"
             thumb-label="always"
             max=20
-            min=10
-          />
+            min=10 />
         </v-col>
       </v-row>
 
@@ -183,8 +181,7 @@ onBeforeUnmount(() => {
               :headers="networkTableHeaders"
               :items="wifiNetworks"
               density="compact"
-              item-value="name"
-            >
+              item-value="name">
               <template v-slot:top>
                 <v-toolbar density="compact">
                   <v-toolbar-title>Found Networks</v-toolbar-title>
@@ -195,9 +192,9 @@ onBeforeUnmount(() => {
 
                   <v-dialog v-model="connectDialog" max-width="500px">
                     <v-card>
-                      <v-card-title>
-                        <span class="text-h5">Connect</span>
-                      </v-card-title>
+                      <v-toolbar density="compact" color="dialog-header">
+                        <v-toolbar-title>Connect</v-toolbar-title>
+                      </v-toolbar>
 
                       <v-card-text>
                         <v-container>

@@ -1,7 +1,8 @@
 {
   "name": "Esp-Brew-Engine",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "vue-tsc --noEmit && vite build",
     "lint": "eslint . --fix --ignore-path .gitignore",

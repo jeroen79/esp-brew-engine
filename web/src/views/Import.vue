@@ -12,15 +12,20 @@ import NotificationEditor from '@/components/NotificationEditor.vue';
 import TemperatureScale from '@/enums/TemperatureScale';
 import { IMashSchedule } from '@/interfaces/IMashSchedule';
 import { groupBy } from '@/helpers/grouping';
+import { ITitleValue } from '@/interfaces/ITitleValue';
 
 const webConn = inject<WebConn>('webConn');
 const appStore = useAppStore();
 
 const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
 const chosenFiles = ref<Array<File>>([]);
 const fileData = ref<any>();
+
+const xmlDoc = ref<Document>();
+const foundRecipies = ref<Array<ITitleValue>>();
+const showSelection = ref(false);
 
 const temporary = ref(true);
 
@@ -34,25 +39,14 @@ const importedBeer = ref<IImportedBeer>({
   boilNotificationsGrouped: [],
 });
 
-// Mash notifications
-const parseFile = () => {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(fileData.value, 'text/xml');
-  const firstBeer = xmlDoc.getElementsByTagName('RECIPE')[0];
-
-  if (firstBeer == null) {
-    alert.value = 'Not Recipe found in Beer XML!';
-    alertType.value = 'warning';
-    return;
-  }
-
+const parseBeer = (beerToImport: Element) => {
   const beer = new ImportedBeer();
-  beer.name = firstBeer.getElementsByTagName('NAME')[0].textContent;
+  beer.name = beerToImport.getElementsByTagName('NAME')[0].textContent;
 
   // Convert Mash Steps
-  const mashSteps = firstBeer.getElementsByTagName('MASH')[0].getElementsByTagName('MASH_STEPS')[0].getElementsByTagName('MASH_STEP');
+  const mashSteps = beerToImport.getElementsByTagName('MASH')[0].getElementsByTagName('MASH_STEPS')[0].getElementsByTagName('MASH_STEP');
 
-  const boilTime = parseInt(firstBeer.getElementsByTagName('BOIL_TIME')[0].textContent || '0', 10);
+  const boilTime = parseInt(beerToImport.getElementsByTagName('BOIL_TIME')[0].textContent || '0', 10);
   let totalMashTime = 0;
   let grainAddTime = 0;
 
@@ -65,7 +59,12 @@ const parseFile = () => {
         continue;
       }
 
-      const stepName = step.getElementsByTagName('NAME')[0].textContent;
+      let stepName = step.getElementsByTagName('NAME')[0].textContent;
+
+      if (stepName == null) {
+        stepName = `Step ${i}`;
+      }
+
       const stepTime = parseInt(step.getElementsByTagName('STEP_TIME')[0].textContent || '0', 10);
       const stepStepTime = parseInt(step.getElementsByTagName('RAMP_TIME')[0].textContent || '0', 10);
       let stepTemperature = parseInt(step.getElementsByTagName('INFUSE_TEMP')[0].textContent || '0', 10);// always in degree C
@@ -77,9 +76,9 @@ const parseFile = () => {
         stepTemperature = Math.round(tempF);
       }
 
-      const mashStep:IMashStep = {
+      const mashStep: IMashStep = {
         index: i,
-        name: stepName || `Step ${i}`,
+        name: stepName,
         temperature: stepTemperature,
         stepTime: stepStepTime,
         time: stepTime,
@@ -89,6 +88,19 @@ const parseFile = () => {
 
       totalMashTime += stepStepTime + stepTime;
 
+      // add start sparge notifiation, sprage type doesn't exist yet in beerxml
+      if (stepName?.toLowerCase().indexOf('sparge') > -1) {
+        const notification: INotification = {
+          name: 'Sparge',
+          message: 'Start Sparge',
+          timeFromStart: totalMashTime,
+          timePoint: 0,
+          buzzer: true,
+        };
+
+        beer.mashNotifications.push(notification);
+      }
+
       // grain add time is first step time
       if (i === 0) {
         grainAddTime = stepStepTime;
@@ -97,7 +109,7 @@ const parseFile = () => {
   }
 
   // Add grain add Notification
-  const fermentables = firstBeer.getElementsByTagName('FERMENTABLES')[0].getElementsByTagName('FERMENTABLE');
+  const fermentables = beerToImport.getElementsByTagName('FERMENTABLES')[0].getElementsByTagName('FERMENTABLE');
   if (fermentables != null && fermentables.length > 0) {
     let fermentablesText = '';
     let lateBoilText = '';
@@ -106,7 +118,7 @@ const parseFile = () => {
       const fermentable = fermentables[i];
       const fermentableName = fermentable.getElementsByTagName('NAME')[0].textContent;
       const fermentableAmount = parseFloat(fermentable.getElementsByTagName('AMOUNT')[0].textContent || '0') * 1000; // all beerxml weight are in kg
-      const isMashedString = fermentable.getElementsByTagName('IS_MASHED')[0].textContent;
+      const isMashedString = fermentable.getElementsByTagName('RECOMMEND_MASH')[0].textContent;
       const isMashed = (isMashedString != null && isMashedString.toLowerCase() === 'true');
 
       const afterBoilString = fermentable.getElementsByTagName('ADD_AFTER_BOIL')[0].textContent;
@@ -120,7 +132,7 @@ const parseFile = () => {
     }
 
     if (fermentablesText !== '') {
-      const notification:INotification = {
+      const notification: INotification = {
         name: 'Fermentables',
         message: fermentablesText,
         timeFromStart: grainAddTime,
@@ -132,7 +144,7 @@ const parseFile = () => {
     }
 
     if (lateBoilText !== '') {
-      const notification:INotification = {
+      const notification: INotification = {
         name: 'Late Additions',
         message: lateBoilText,
         timeFromStart: boilTime,
@@ -148,9 +160,11 @@ const parseFile = () => {
   let boilTemp = 100;
 
   // Some beerxmls seems to include eqyuipent that can contain biol settings in C
-  const equipment = firstBeer.getElementsByTagName('EQUIPMENT')[0];
-  if (equipment != null) {
-    boilTemp = parseInt(equipment.getElementsByTagName('BOILING_POINT')[0].textContent || '0', 10);
+  if (beerToImport.getElementsByTagName('EQUIPMENT').length > 0) {
+    const equipment = beerToImport.getElementsByTagName('EQUIPMENT')[0];
+    if (equipment.getElementsByTagName('BOILING_POINT').length > 0) {
+      boilTemp = parseInt(equipment.getElementsByTagName('BOILING_POINT')[0].textContent || '0', 10);
+    }
   }
 
   // convert to F when device is in F mode
@@ -160,7 +174,7 @@ const parseFile = () => {
     boilTemp = Math.round(tempF);
   }
 
-  const boilStep:IMashStep = {
+  const boilStep: IMashStep = {
     index: 0,
     name: 'Boil',
     temperature: boilTemp,
@@ -171,7 +185,7 @@ const parseFile = () => {
   beer.boilSteps.push(boilStep);
 
   // Convert Hops to Notifications
-  const hops = firstBeer.getElementsByTagName('HOPS')[0].getElementsByTagName('HOP');
+  const hops = beerToImport.getElementsByTagName('HOPS')[0].getElementsByTagName('HOP');
   if (hops != null && hops.length > 0) {
     for (let i = 0; i < hops.length; i += 1) {
       const hop = hops[i];
@@ -189,7 +203,7 @@ const parseFile = () => {
       if (hopUse === 'Boil') {
         const hopAddTime = boilTime - hopInfusTime;
 
-        const notification:INotification = {
+        const notification: INotification = {
           name: 'Hop',
           message: `${hopAmount}g of ${hopName}`,
           timeFromStart: hopAddTime,
@@ -201,7 +215,7 @@ const parseFile = () => {
       } else if (hopUse === 'Mash') {
         const hopAddTime = totalMashTime - hopInfusTime;
 
-        const notification:INotification = {
+        const notification: INotification = {
           name: 'Hop',
           message: `${hopAmount}g of ${hopName}`,
           timeFromStart: hopAddTime,
@@ -215,7 +229,7 @@ const parseFile = () => {
   }
 
   // Convert Misc like herbs etc
-  const miscs = firstBeer.getElementsByTagName('MISCS')[0].getElementsByTagName('MISC');
+  const miscs = beerToImport.getElementsByTagName('MISCS')[0].getElementsByTagName('MISC');
   if (miscs != null && miscs.length > 0) {
     for (let i = 0; i < miscs.length; i += 1) {
       const misc = miscs[i];
@@ -233,7 +247,7 @@ const parseFile = () => {
       if (miscUse === 'Boil') {
         const miscAddTime = boilTime - miscInfusTime;
 
-        const notification:INotification = {
+        const notification: INotification = {
           name: `${miscType}`,
           message: `${miscAmount}g of ${miscName}`,
           timeFromStart: miscAddTime,
@@ -243,7 +257,7 @@ const parseFile = () => {
 
         beer.boilNotifications.push(notification);
       } else if (miscUse === 'Mash') {
-        const notification:INotification = {
+        const notification: INotification = {
           name: `${miscType}`,
           message: `${miscAmount}g of ${miscName}`,
           timeFromStart: 0,
@@ -284,7 +298,7 @@ const parseFile = () => {
         }
       });
 
-      const newNotification:INotification = {
+      const newNotification: INotification = {
         name: newName,
         message: newMessage,
         timeFromStart: key,
@@ -322,7 +336,7 @@ const parseFile = () => {
         }
       });
 
-      const newNotification:INotification = {
+      const newNotification: INotification = {
         name: newName,
         message: newMessage,
         timeFromStart: key,
@@ -336,13 +350,56 @@ const parseFile = () => {
   importedBeer.value = beer;
 };
 
-const fileSelected = (event:any) => {
+const parseFile = () => {
+  const parser = new DOMParser();
+  xmlDoc.value = parser.parseFromString(fileData.value, 'text/xml');
+
+  const recipeCount = xmlDoc.value.getElementsByTagName('RECIPE').length;
+  if (recipeCount === 0) {
+    alert.value = 'No Recipes found in Beer XML!';
+    alertType.value = 'warning';
+  } else if (recipeCount === 1) {
+    const firstBeer = xmlDoc.value.getElementsByTagName('RECIPE')[0];
+
+    parseBeer(firstBeer);
+  } else {
+    foundRecipies.value = [];
+    const recipes = xmlDoc.value.getElementsByTagName('RECIPE');
+
+    for (let i = 0; i < recipes.length; i += 1) {
+      const name = recipes[i].getElementsByTagName('NAME')[0].textContent;
+      foundRecipies.value.push({
+        title: name || "unnamed",
+        value: i
+      });
+    }
+
+    //Show dialog to select a beer
+    showSelection.value = true;
+
+  }
+};
+
+const selectBeer = (args: any) => {
+  if (xmlDoc.value == null) {
+    return;
+  }
+
+  showSelection.value = false;
+
+  if (args.id > -1) {
+    const beer = xmlDoc.value.getElementsByTagName('RECIPE')[args.id];
+    parseBeer(beer);
+  }
+};
+
+const fileSelected = (event: any) => {
   if (chosenFiles.value == null || chosenFiles.value.length === 0) {
     alert.value = 'No file choosen';
     alertType.value = 'warning';
   }
 
-  const file:Blob = chosenFiles.value[0];
+  const file: Blob = chosenFiles.value[0];
   console.log(chosenFiles.value);
 
   const reader = new FileReader();
@@ -366,7 +423,7 @@ const upload = async () => {
 
   const mashName = `${importedBeer.value.name} (Mash)`;
 
-  const newMashSchedule:IMashSchedule = {
+  const newMashSchedule: IMashSchedule = {
     name: mashName,
     boil: false,
     temporary: temporary.value,
@@ -388,12 +445,12 @@ const upload = async () => {
 
   const boilName = `${importedBeer.value.name} (Boil)`;
 
-  const newBoilSchedule:IMashSchedule = {
+  const newBoilSchedule: IMashSchedule = {
     name: boilName,
     boil: true,
     temporary: temporary.value,
     steps: [...importedBeer.value.boilSteps],
-    notifications: [...importedBeer.value.mashNotificationsGrouped],
+    notifications: [...importedBeer.value.boilNotificationsGrouped],
   };
 
   const requestData2 = {
@@ -433,7 +490,29 @@ const temporaryChanged = () => {
 
 <template>
   <v-container class="spacing-playground pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{ alert }}</v-alert>
+
+    <v-dialog v-model="showSelection" max-width="500px">
+      <v-card>
+        <v-toolbar density="compact" color="dialog-header">
+          <v-toolbar-title>Select Beer</v-toolbar-title>
+        </v-toolbar>
+
+        <v-card-text>
+          <v-container>
+            <v-list :items="foundRecipies" @click:select="selectBeer"></v-list>
+          </v-container>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="blue-darken-1" variant="text" @click="showSelection = false">
+            Cancel
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-file-input label="Import BeerXML" accept="text/xml" :multiple="false" v-model="chosenFiles" @change="fileSelected" />
@@ -447,7 +526,7 @@ const temporaryChanged = () => {
             <template v-slot:append>
               <v-tooltip text="By default imports are not saved to flash and only kept in memory, only disable this if you want to save the schedules permanently.">
                 <template v-slot:activator="{ props }">
-                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
               </v-tooltip>
             </template>

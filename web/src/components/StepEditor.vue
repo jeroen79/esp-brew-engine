@@ -49,7 +49,7 @@ const closeDeleteDialog = async () => {
   showStepDeleteDialog.value = false;
 };
 
-const editStep = async (item:IMashStep) => {
+const editStep = async (item: IMashStep) => {
   editingStep.value = item;
   showStepDialog.value = true;
 };
@@ -68,7 +68,7 @@ const newStep = async () => {
   showStepDialog.value = true;
 };
 
-const openStepsDeleteDialog = async (item:IMashStep) => {
+const openStepsDeleteDialog = async (item: IMashStep) => {
   editingStep.value = item;
   showStepDeleteDialog.value = true;
 };
@@ -87,11 +87,10 @@ const stepDeleteItemOk = async () => {
     :headers="tableStepsHeaders"
     :items="steps"
     density="compact"
-    item-value="name"
-  >
+    item-value="name">
     <template v-slot:top>
       <v-toolbar density="compact">
-        <v-toolbar-title>{{props.label}}</v-toolbar-title>
+        <v-toolbar-title>{{ props.label }}</v-toolbar-title>
         <v-spacer />
         <v-btn color="secondary" variant="outlined" class="mr-5" v-if="allowNew" @click="newStep()">
           New Step
@@ -99,9 +98,9 @@ const stepDeleteItemOk = async () => {
 
         <v-dialog v-model="showStepDialog" max-width="500px">
           <v-card>
-            <v-card-title>
-              <span class="text-h5">Edit</span>
-            </v-card-title>
+            <v-toolbar density="compact" color="dialog-header">
+              <v-toolbar-title>Edit</v-toolbar-title>
+            </v-toolbar>
 
             <v-card-text>
               <v-container>

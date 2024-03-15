@@ -3,13 +3,14 @@ import { IClientSettings } from '@/interfaces/IClientSettings';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
-const defaultClientSettings:IClientSettings = {
+const defaultClientSettings: IClientSettings = {
   beepEnabled: true,
   beepVolume: 0.5,
   speechEnabled: false,
   speechVolume: 0.5,
   speechRate: 0.7,
   voiceUri: null,
+  darkMode: true
 };
 
 export const useClientStore = () => {

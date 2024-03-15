@@ -25,9 +25,9 @@ const dialog = ref<boolean>(false);
 const dialogDelete = ref<boolean>(false);
 
 const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
-const defaultSensor:ITempSensor = {
+const defaultSensor: ITempSensor = {
   id: '',
   name: 'New Sensor',
   color: '#ffffff',
@@ -93,12 +93,12 @@ const closeDeleteDialog = async () => {
   dialogDelete.value = false;
 };
 
-const editItem = async (item:ITempSensor) => {
+const editItem = async (item: ITempSensor) => {
   editedItem.value = item;
   dialog.value = true;
 };
 
-const openDeleteDialog = async (item:ITempSensor) => {
+const openDeleteDialog = async (item: ITempSensor) => {
   editedItem.value = item;
   dialogDelete.value = true;
 };
@@ -127,14 +127,13 @@ const save = async () => {
 
 <template>
   <v-container class="pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{ alert }}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-data-table
         :headers="tableHeaders"
         :items="tempSensors"
         density="compact"
-        item-value="name"
-      >
+        item-value="name">
         <template v-slot:top>
           <v-toolbar density="compact">
             <v-toolbar-title>Temp Sensors</v-toolbar-title>
@@ -148,9 +147,9 @@ const save = async () => {
 
             <v-dialog v-model="dialog" max-width="500px">
               <v-card>
-                <v-card-title>
-                  <span class="text-h5">Edit</span>
-                </v-card-title>
+                <v-toolbar density="compact" color="dialog-header">
+                  <v-toolbar-title>Edit</v-toolbar-title>
+                </v-toolbar>
 
                 <v-card-text>
                   <v-container>
