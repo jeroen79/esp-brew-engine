@@ -1599,17 +1599,26 @@ void BrewEngine::controlLoop(void *arg)
 			// notifications, but only when not in overtime
 			if (!instance->inOverTime && !instance->notifications.empty())
 			{
-				// they are sorted so we just have to check the first one
-				auto firstTime = instance->notifications.front()->timePoint;
-				if (now > firstTime)
+				// filter out items that are not done
+				auto isNotDone = [](Notification *notification)
+				{ return notification->done == false; };
+
+				auto notDone = instance->notifications | views::filter(isNotDone);
+
+				if (!notDone.empty())
 				{
-					auto notification = instance->notifications.front();
-					ESP_LOGI(TAG, "Notify %s", notification->name.c_str());
+					// they are sorted so we just have to check the first one
+					auto first = notDone.front();
 
-					string buzzerName = "buzzer" + notification->name;
-					xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+					if (now > first->timePoint)
+					{
+						ESP_LOGI(TAG, "Notify %s", first->name.c_str());
 
-					instance->notifications.pop_front();
+						string buzzerName = "buzzer" + first->name;
+						xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+
+						first->done = true;
+					}
 				}
 			}
 		}

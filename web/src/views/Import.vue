@@ -86,20 +86,22 @@ const parseBeer = (beerToImport: Element) => {
       };
       beer.mashSteps.push(mashStep);
 
-      totalMashTime += stepStepTime + stepTime;
-
       // add start sparge notifiation, sprage type doesn't exist yet in beerxml
       if (stepName?.toLowerCase().indexOf('sparge') > -1) {
         const notification: INotification = {
           name: 'Sparge',
           message: 'Start Sparge',
-          timeFromStart: totalMashTime,
+          timeFromStart: totalMashTime, //time is start of this step
           timePoint: 0,
           buzzer: true,
+          done: false
         };
 
         beer.mashNotifications.push(notification);
       }
+
+
+      totalMashTime += stepStepTime + stepTime;
 
       // grain add time is first step time
       if (i === 0) {
@@ -400,8 +402,6 @@ const fileSelected = (event: any) => {
   }
 
   const file: Blob = chosenFiles.value[0];
-  console.log(chosenFiles.value);
-
   const reader = new FileReader();
   reader.readAsText(file);
   reader.onload = () => {

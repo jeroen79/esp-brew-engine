@@ -31,7 +31,6 @@ if (import.meta.env.MODE === 'development') {
 }
 
 const enterFullscreen = () => {
-  console.log('Going fullscreen');
   const elem = document.documentElement;
 
   elem.requestFullscreen({ navigationUI: 'hide' })
@@ -56,13 +55,13 @@ const exitFullscreen = () => {
       <v-app-bar-nav-icon @click="drawer = !drawer" />
       <v-toolbar-title>ESP Brew Engine</v-toolbar-title>
       <v-spacer />
-      <h5 class="mr-10">Version: {{version}}</h5>
+      <h5 class="mr-10">Version: {{ version }}</h5>
 
       <v-btn icon v-if="!fullscreen" @click="enterFullscreen">
-        <v-icon>{{mdiFullscreen}}</v-icon>
+        <v-icon>{{ mdiFullscreen }}</v-icon>
       </v-btn>
       <v-btn icon v-if="fullscreen" @click="exitFullscreen">
-        <v-icon>{{mdiFullscreenExit}}</v-icon>
+        <v-icon>{{ mdiFullscreenExit }}</v-icon>
       </v-btn>
     </v-app-bar>
 

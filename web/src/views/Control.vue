@@ -37,6 +37,7 @@ const notificationDialogTitle = ref<string>('');
 const notificationDialogText = ref<string>('');
 
 const notificationTimeouts = ref<Array<number>>([]);
+const notificationFirstStart = ref(true); //first not at 0 sec is already done in backend, wich is correct, but we do need to show it in web so we need a boolean to check this
 
 const chartInitDone = ref(false);
 
@@ -142,7 +143,7 @@ const chartAnnotations = computed(() => {
 
   let currentNotifications: Array<INotification> = [];
 
-  // when we are running notifications come from schedule api call
+  // when we are running notifications that come from schedule api call
   if (executionSteps.value != null && executionSteps.value.length > 0) {
     currentNotifications = [...notifications.value];
   } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value != null) {
@@ -322,7 +323,8 @@ const setNotifications = (newNotifications: Array<INotification>) => {
 
   const timeoutIds: Array<number> = [];
 
-  newNotifications.forEach((notification) => {
+  //not done, or fist start
+  newNotifications.filter((n) => n.done === false || notificationFirstStart.value == true).forEach((notification) => {
     const timeTill = (notification.timePoint * 1000) - Date.now();
     const timeoutId = window.setTimeout(() => {
       showNotificaton(notification, true);
@@ -331,6 +333,7 @@ const setNotifications = (newNotifications: Array<INotification>) => {
   });
 
   notificationTimeouts.value = timeoutIds;
+  notificationFirstStart.value = false;
 
   notifications.value = newNotifications;
 };
@@ -495,6 +498,7 @@ const start = async () => {
   currentTemps.value = [];
   executionSteps.value = [];
   rawData.value = [];
+  notificationFirstStart.value = true;
   setStartDateNow();
 
   if (selectedMashSchedule.value != null) {
