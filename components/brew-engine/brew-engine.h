@@ -77,25 +77,25 @@ private:
     void readSystemSettings();
     void readSettings();
     void saveMashSchedules();
-    void setMashSchedule(json jSchedule);
+    void setMashSchedule(const json &jSchedule);
     void savePIDSettings();
-    void saveSystemSettingsJson(json config);
+    void saveSystemSettingsJson(const json &config);
     void addDefaultMash();
     void start();
     void loadSchedule();
     void recalculateScheduleAfterOverTime();
     void stop();
-    void logRemote(string message);
+    void logRemote(const string &message);
     void addDefaultHeaters();
     void readHeaterSettings();
-    void saveHeaterSettings(json jHeaters);
+    void saveHeaterSettings(const json &jHeaters);
 
-    void saveTempSensorSettings(json data);
-    void startStir(json stirConfig);
+    void saveTempSensorSettings(const json &jTempSensors);
+    void startStir(const json &stirConfig);
     void stopStir();
     string bootIntoRecovery();
 
-    string processCommand(string payLoad);
+    string processCommand(const string &payLoad);
 
     httpd_handle_t startWebserver(void);
     void stopWebserver(httpd_handle_t server);
@@ -121,11 +121,18 @@ private:
     // pid
     uint8_t pidOutput = 0;
     std::optional<int8_t> manualOverrideOutput = std::nullopt;
-    double kP = 10;
-    double kI = 1;
-    double kD = 10;
+
+    double mashkP = 10;
+    double mashkI = 1;
+    double mashkD = 10;
+
+    double boilkP = 10;
+    double boilkI = 2;
+    double boilkD = 2;
+
     uint16_t pidLoopTime = 60; // time in seconds for a full loop,
     bool resetPitTime = false; // bool to reset pit , we do this when out target changes
+    float tempMargin = 0.5;    // we don't want to nitpick about 0.5°C, water heating is not that percise
 
     // execution
     bool run = false;
@@ -141,8 +148,8 @@ private:
 
     std::map<uint16_t, ExecutionStep *> executionSteps; // calculated real steps
     uint16_t currentExecutionStep = 0;
-    uint16_t executionStepSeconds = 5; // calcualte a substep every x seconds
-    uint16_t runningVersion = 0;       // we increase our version after recalc, so client can keep uptodate with planning
+    uint16_t stepInterval = 60;  // calcualte a substep every x seconds
+    uint16_t runningVersion = 0; // we increase our version after recalc, so client can keep uptodate with planning
 
     // IO
     uint8_t gpioHigh = 1;

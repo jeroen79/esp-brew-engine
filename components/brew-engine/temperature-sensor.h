@@ -36,7 +36,7 @@ public:
         return jSensor;
     };
 
-    void from_json(json jsonData)
+    void from_json(const json &jsonData)
     {
         string stringId = jsonData["id"].get<string>(); // js doesn't support uint64_t, so we convert it from string
         uint64_t sensorId = std::stoull(stringId);

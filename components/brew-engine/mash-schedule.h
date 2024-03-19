@@ -13,7 +13,8 @@ class MashSchedule
 {
 public:
     string name;
-    bool boil; // if true boil else mash
+    bool boil;      // if true boil else mash
+    bool temporary; // will not be saved to flash
     std::deque<MashStep *> steps;
     std::deque<Notification *> notifications;
 
@@ -25,6 +26,8 @@ public:
         json jSchedule;
         jSchedule["name"] = this->name;
         jSchedule["boil"] = this->boil;
+        jSchedule["temporary"] = this->temporary;
+
         json jSteps = json::array({});
 
         for (auto const &step : this->steps)
@@ -47,7 +50,7 @@ public:
         return jSchedule;
     };
 
-    void from_json(json jsonData)
+    void from_json(const json &jsonData)
     {
         this->name = jsonData["name"];
 
@@ -58,6 +61,15 @@ public:
         else
         {
             this->boil = false;
+        }
+
+        if (jsonData.contains("temporary") && !jsonData["temporary"].is_null() && jsonData["temporary"].is_boolean())
+        {
+            this->temporary = jsonData["temporary"].get<bool>();
+        }
+        else
+        {
+            this->temporary = false;
         }
 
         json steps = jsonData["steps"];

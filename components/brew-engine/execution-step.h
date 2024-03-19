@@ -12,7 +12,7 @@ class ExecutionStep
 {
 public:
     system_clock::time_point time;
-    int temperature;
+    float temperature;
     bool extendIfNeeded;
 
     json to_json()

@@ -22,6 +22,9 @@ It is open source and build in c++ using esp-idf RTOS.
 - Support for Buzzer.
 - Support for Notifications.
 - Speech Notificaitons via webinterface.
+- Import BeerXML.
+- Dark/Light Theme.
+- 2 PID settings, one for mash and one for boil.
 
 ## Screenshots
 
@@ -39,132 +42,24 @@ It should work with most esp32 controllers, but the easiest way is to use an esp
 
 Its recomended to flash with loader, that way you can always go into recovery mode and flash new firmwares over wifi.
 
-- Download the binary loader release (esp-brew-engine-loader-*.bin).
-- Flash esp-brew-engine-loader_*.bin to esp using your favorite flash tool.
-    - Tasmota-PyFlasher-1.0
-    - https://espressif.github.io/esptool-js/ (address 0x0)
-    - https://github.com/espressif/esptool/ (esptool write_flash 0x0 esp-brew-engine-loader_*.bin)
-    - ...
+https://github.com/jeroen79/esp-brew-engine/wiki/How-to-use-(binary-with-loader)
 
-- Download latest release (esp-brew-engine-*.bin) to computer.
-- Reboot device
-- Connect to the wifi EspBrewEngine with password EspBrewEngine123
-- Navigate to http://192.168.4.1
-- Flash release
-- Wait for reboot
-- Goto Settings -> Wifi and configure your wifi.
-- Restart Device
-- Navigate to http://brewengine/
-- Start Brewing!
-- Ship or buy me a beer!
 
 ## How to use (source with loader)
 
 Its recomended to flash with loader, that way you can always go into recovery mode and flash new firmwares.
 
-- Build and flash the loader.
-
-```bash
-cd loader
-idf.py fullclean
-idf.py set-target esp32
-idf.py build flash monitor
-```
-
-- Connect to the wifi EspBrewEngine with password EspBrewEngine123
-- Navigate to http://192.168.4.1
-- Build latest release
-
-```bash
-idf.py fullclean
-idf.py set-target esp32
-idf.py build
-```
-- Flash release (build/esp-brew-engine.bin)
-- Wait for reboot
-- Goto Settings -> Wifi and configure your wifi.
-- Restart Device
-- Navigate to http://brewengine/
-- Start Brewing!
-- Ship or buy me a beer!
+https://github.com/jeroen79/esp-brew-engine/wiki/How-to-use-(source-with-loader)
 
 ## How to use (source without loader)
 
-- Build and flash.
-
-```bash
-idf.py fullclean
-idf.py set-target esp32
-idf.py build flash monitor
-```
-- Connect to the wifi EspBrewEngine with password EspBrewEngine123
-- Navigate to http://192.168.4.1
-- Goto Settings -> Wifi and configure your wifi.
-- Restart Device
-- Navigate to http://brewengine/
-- Start Brewing!
-- Ship or buy me a beer!
-
-## Setup Dev Enviroment
-
-install esp-idf >= 5.1.2
-
-run . ./export.sh in esp-idf folder
-
-
-## Configure the project
-
-```bash
-idf.py fullclean
-```
-
-```bash
-idf.py set-target esp32   
-```
-valid targets are: esp32, esp32s2, esp32c3, esp32c6, esp32h2, esp32c2, esp32s3
-
-```bash
-idf.py menuconfig 
-```
-
-Go into "BrewEngine Config" and configure wifi and IO's.
-
-
-
-## Build and Flash
-
-Build the project and flash it to the board, then run monitor tool to view serial output:
-
-```bash
-idf.py build flash
-```
-
-*Depending on your device you might need to set it into flash mode, typically: Hold both the BOOT and RESET, then release RESET.
+https://github.com/jeroen79/esp-brew-engine/wiki/How-to-use-(source-without-loader)
 
 
 ## Factory Reset
 
-To factory reset the device and all the settings run the command below, you will then have to reflash the loader and app!
+https://github.com/jeroen79/esp-brew-engine/wiki/Factory-Reset
 
-```bash
-idf.py flash_erase
-```
-
-
-## Build Web (optional)
-
-It is optional since the last build html should also be checked into git.
-
-To update the web build:
-
-```bash
-cd web
-yarn build
-cd ..
-./updateweb.sh
-```
-
-*on build issues first delete tsconfig.tsbuildinfo
 
 ## Wifi
 
@@ -196,29 +91,12 @@ To quit Ctrl-T Ctrl-X.
 
 ## Connect sensors
 
-```
-┌──────────────────────────┐
-│                      3.3V├───────┬─────────────┬──────────────────────┐
-│                          │      ┌┴┐            │VDD                   │VDD
-│          ESP Board       │  4.7k│ │     ┌──────┴──────┐        ┌──────┴──────┐
-│                          │      └┬┘   DQ│             │      DQ│             │
-│     ONEWIRE_GPIO_PIN (17)├───────┴──┬───┤   DS18B20   │    ┌───┤   DS18B20   │  
-│                          │          └───│-------------│────┴───│-------------│──
-│                          │              └──────┬──────┘        └──────┬──────┘
-│                          │                     │GND                   │GND
-│                       GND├─────────────────────┴──────────────────────┘
-└──────────────────────────┘
-```
-
+https://github.com/jeroen79/esp-brew-engine/wiki/One-Wire-Sensors
 
 ## Planned Features (possible)
-
-- Configureable Wattage per element.
 - Backup and Restore config data.
 - Resume maish from custom timepoint.
 - Pauze function.
-- Loading MaishSchedule from beer xml?, or online apps. (brewfather?)
-- Notification of when to add hops or take action? (via webinterface speech?)
 - Dns server so when in AP mode the resolving the hostname works.
 - HW Display (show temp/target).
 - HW Control Buttons (emergecy stop, stop/start stir?).

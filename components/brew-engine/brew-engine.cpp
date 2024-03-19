@@ -120,7 +120,7 @@ void BrewEngine::readSystemSettings()
 	ESP_LOGI(TAG, "Reading System Settings Done");
 }
 
-void BrewEngine::saveSystemSettingsJson(json config)
+void BrewEngine::saveSystemSettingsJson(const json &config)
 {
 	ESP_LOGI(TAG, "Saving System Settings");
 
@@ -181,7 +181,7 @@ void BrewEngine::readSettings()
 	}
 	else
 	{
-		for (auto &el : jSchedules.items())
+		for (const auto &el : jSchedules.items())
 		{
 			json jSchedule = el.value();
 
@@ -193,18 +193,27 @@ void BrewEngine::readSettings()
 	}
 
 	// we save and load pid doubles as unit16 becease nvs doesnt' have double support, and we are happy with only 1 decimal
-	uint16_t pint = this->settingsManager->Read("kP", (uint16_t)(this->kP * 10));
-	uint16_t iint = this->settingsManager->Read("kI", (uint16_t)(this->kI * 10));
-	uint16_t dint = this->settingsManager->Read("kD", (uint16_t)(this->kD * 10));
+	uint16_t pint = this->settingsManager->Read("kP", (uint16_t)(this->mashkP * 10));
+	uint16_t iint = this->settingsManager->Read("kI", (uint16_t)(this->mashkI * 10));
+	uint16_t dint = this->settingsManager->Read("kD", (uint16_t)(this->mashkD * 10));
 
-	this->kP = (double)pint / 10;
-	this->kI = (double)iint / 10;
-	this->kD = (double)dint / 10;
+	this->mashkP = (double)pint / 10;
+	this->mashkI = (double)iint / 10;
+	this->mashkD = (double)dint / 10;
+
+	uint16_t bpint = this->settingsManager->Read("boilkP", (uint16_t)(this->boilkP * 10));
+	uint16_t biint = this->settingsManager->Read("boilkI", (uint16_t)(this->boilkI * 10));
+	uint16_t bdint = this->settingsManager->Read("boilkD", (uint16_t)(this->boilkD * 10));
+
+	this->boilkP = (double)bpint / 10;
+	this->boilkI = (double)biint / 10;
+	this->boilkD = (double)bdint / 10;
 
 	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
+	this->stepInterval = this->settingsManager->Read("stepInterval", (uint16_t)CONFIG_PID_LOOPTIME); // we use same as pidloop time
 }
 
-void BrewEngine::setMashSchedule(json jSchedule)
+void BrewEngine::setMashSchedule(const json &jSchedule)
 {
 	json newSteps = jSchedule["steps"];
 
@@ -255,10 +264,14 @@ void BrewEngine::saveMashSchedules()
 	ESP_LOGI(TAG, "Saving Mash Schedules");
 
 	json jSchedules = json::array({});
-	for (auto const &[key, val] : this->mashSchedules)
+	for (auto const &[key, mashSchedule] : this->mashSchedules)
 	{
-		json jSchedule = val->to_json();
-		jSchedules.push_back(jSchedule);
+
+		if (!mashSchedule->temporary)
+		{
+			json jSchedule = mashSchedule->to_json();
+			jSchedules.push_back(jSchedule);
+		}
 	}
 
 	// serialize to MessagePack for size
@@ -273,16 +286,24 @@ void BrewEngine::savePIDSettings()
 {
 	ESP_LOGI(TAG, "Saving PID Settings");
 
-	uint16_t pint = static_cast<uint16_t>(this->kP * 10);
-	uint16_t iint = static_cast<uint16_t>(this->kI * 10);
-	uint16_t dint = static_cast<uint16_t>(this->kD * 10);
-
-	ESP_LOGI(TAG, "Save Pid: %d %d %d", pint, iint, dint);
+	uint16_t pint = static_cast<uint16_t>(this->mashkP * 10);
+	uint16_t iint = static_cast<uint16_t>(this->mashkI * 10);
+	uint16_t dint = static_cast<uint16_t>(this->mashkD * 10);
 
 	this->settingsManager->Write("kP", pint);
 	this->settingsManager->Write("kI", iint);
 	this->settingsManager->Write("kD", dint);
+
+	uint16_t bpint = static_cast<uint16_t>(this->boilkP * 10);
+	uint16_t biint = static_cast<uint16_t>(this->boilkI * 10);
+	uint16_t bdint = static_cast<uint16_t>(this->boilkD * 10);
+
+	this->settingsManager->Write("boilkP", bpint);
+	this->settingsManager->Write("boilkI", biint);
+	this->settingsManager->Write("boilkD", bdint);
+
 	this->settingsManager->Write("pidLoopTime", this->pidLoopTime);
+	this->settingsManager->Write("stepInterval", this->stepInterval);
 
 	ESP_LOGI(TAG, "Saving PID Settings Done");
 }
@@ -479,7 +500,7 @@ void BrewEngine::readHeaterSettings()
 		 { return (h1->preference < h2->preference); });
 }
 
-void BrewEngine::saveHeaterSettings(json jHeaters)
+void BrewEngine::saveHeaterSettings(const json &jHeaters)
 {
 	ESP_LOGI(TAG, "Saving Heater Settings");
 
@@ -559,7 +580,7 @@ void BrewEngine::readTempSensorSettings()
 	}
 }
 
-void BrewEngine::saveTempSensorSettings(json jTempSensors)
+void BrewEngine::saveTempSensorSettings(const json &jTempSensors)
 {
 	ESP_LOGI(TAG, "Saving Temp Sensor Settings");
 
@@ -879,7 +900,7 @@ void BrewEngine::loadSchedule()
 	this->boilRun = schedule->boil;
 	int stepIndex = 0;
 
-	int prevTemp = (int)this->temperature;
+	float prevTemp = this->temperature;
 	// insert the current as starting point
 	auto execStep0 = new ExecutionStep();
 	execStep0->time = prevTime;
@@ -888,7 +909,7 @@ void BrewEngine::loadSchedule()
 	this->executionSteps.insert(std::make_pair(stepIndex, execStep0));
 
 	string iso_string = this->to_iso_8601(prevTime);
-	ESP_LOGI(TAG, "Time:%s, Temp:%d Extend:%d", iso_string.c_str(), prevTemp, execStep0->extendIfNeeded);
+	ESP_LOGI(TAG, "Time:%s, Temp:%f Extend:%d", iso_string.c_str(), prevTemp, execStep0->extendIfNeeded);
 
 	stepIndex++;
 
@@ -901,23 +922,23 @@ void BrewEngine::loadSchedule()
 
 			auto stepEndTime = prevTime + minutes(step->stepTime);
 			auto secondsInStep = chrono::duration_cast<chrono::seconds>(stepEndTime - prevTime).count();
-			int subStepsInStep = secondsInStep / this->executionStepSeconds;
+			int subStepsInStep = (secondsInStep / this->stepInterval) - 1;
 
-			float tempDiffPerStep = ((float)step->temperature - (float)prevTemp) / (float)subStepsInStep;
+			float tempDiffPerStep = (step->temperature - prevTemp) / (float)subStepsInStep;
 
-			int prevStepTemp = 0;
+			float prevStepTemp = 0;
 
 			for (int j = 0; j < subStepsInStep; j++)
 			{
 				system_clock::time_point executionStepTime = prevTime;
-				executionStepTime += seconds(j * executionStepSeconds);
+				executionStepTime += seconds((j + 1) * stepInterval);
 
-				float subStepTemp = (float)prevTemp + (tempDiffPerStep * ((float)j + 1));
+				float subStepTemp = prevTemp + (tempDiffPerStep * ((float)j + 1));
 
 				// insert the current as starting point
 				auto execStep = new ExecutionStep();
 				execStep->time = executionStepTime;
-				execStep->temperature = (int)subStepTemp;
+				execStep->temperature = subStepTemp;
 				execStep->extendIfNeeded = false;
 
 				// set extend if needed on last step if configured
@@ -926,8 +947,11 @@ void BrewEngine::loadSchedule()
 					execStep->extendIfNeeded = true;
 				}
 
-				//  only insert if different or if last step
-				if (execStep->temperature != prevStepTemp || (j == subStepsInStep - 1))
+				float diff = abs(subStepTemp - prevStepTemp);
+				// ESP_LOGI(TAG, "Diff:%f, subStepTemp:%f prevStepTemp:%f", diff, subStepTemp, prevStepTemp);
+
+				// only insert if difference or if last step more then 1 degree
+				if (diff > 1 || (j == subStepsInStep - 1))
 				{
 					this->executionSteps.insert(std::make_pair(stepIndex, execStep));
 					prevStepTemp = execStep->temperature;
@@ -936,7 +960,7 @@ void BrewEngine::loadSchedule()
 					// Convert the time_point to an ISO 8601 string
 					string iso_string = this->to_iso_8601(executionStepTime);
 
-					ESP_LOGI(TAG, "Time:%s, Temp:%d Extend:%d", iso_string.c_str(), (int)subStepTemp, execStep->extendIfNeeded);
+					ESP_LOGI(TAG, "Time:%s, Temp:%f Extend:%d", iso_string.c_str(), subStepTemp, execStep->extendIfNeeded);
 				}
 			}
 
@@ -951,7 +975,7 @@ void BrewEngine::loadSchedule()
 			// go directly to temp
 			auto execStep = new ExecutionStep();
 			execStep->time = stepEndTime;
-			execStep->temperature = (int)step->temperature;
+			execStep->temperature = (float)step->temperature;
 			execStep->extendIfNeeded = step->extendStepTimeIfNeeded;
 
 			this->executionSteps.insert(std::make_pair(stepIndex, execStep));
@@ -961,10 +985,10 @@ void BrewEngine::loadSchedule()
 			// Convert the time_point to an ISO 8601 string
 			string iso_string = this->to_iso_8601(prevTime);
 
-			ESP_LOGI(TAG, "Time:%s, Temp:%d Extend:%d", iso_string.c_str(), (int)step->temperature, execStep->extendIfNeeded);
+			ESP_LOGI(TAG, "Time:%s, Temp:%f Extend:%d", iso_string.c_str(), (float)step->temperature, execStep->extendIfNeeded);
 
 			prevTime = stepEndTime;
-			prevTemp = (int)step->temperature;
+			prevTemp = (float)step->temperature;
 		}
 
 		// for the hold time we just need add one point
@@ -972,17 +996,17 @@ void BrewEngine::loadSchedule()
 
 		auto holdStep = new ExecutionStep();
 		holdStep->time = holdEndTime;
-		holdStep->temperature = (int)step->temperature;
+		holdStep->temperature = (float)step->temperature;
 		holdStep->extendIfNeeded = false;
 
 		this->executionSteps.insert(std::make_pair(stepIndex, holdStep));
 		stepIndex++;
 
 		prevTime = holdEndTime;
-		prevTemp = (int)step->temperature; // is normaly the same but this could change in futrure
+		prevTemp = step->temperature; // is normaly the same but this could change in futrure
 
 		string iso_string2 = this->to_iso_8601(holdEndTime);
-		ESP_LOGI(TAG, "Hold Time:%s, Temp:%d ", iso_string2.c_str(), (int)step->temperature);
+		ESP_LOGI(TAG, "Hold Time:%s, Temp:%f ", iso_string2.c_str(), (float)step->temperature);
 	}
 
 	// also add notifications
@@ -1067,7 +1091,7 @@ void BrewEngine::stop()
 	this->statusText = "Idle";
 }
 
-void BrewEngine::startStir(json stirConfig)
+void BrewEngine::startStir(const json &stirConfig)
 {
 	if (!this->stir_PIN)
 	{
@@ -1312,7 +1336,21 @@ void BrewEngine::pidLoop(void *arg)
 {
 	BrewEngine *instance = (BrewEngine *)arg;
 
-	PIDController pid(instance->kP, instance->kI, instance->kD);
+	double kP, kI, kD;
+	if (instance->boilRun)
+	{
+		kP = instance->boilkP;
+		kI = instance->boilkI;
+		kD = instance->boilkD;
+	}
+	else
+	{
+		kP = instance->mashkP;
+		kI = instance->mashkI;
+		kD = instance->mashkD;
+	}
+
+	PIDController pid(kP, kI, kD);
 	pid.setMin(0);
 	pid.setMax(100);
 	pid.debug = false;
@@ -1433,7 +1471,7 @@ void BrewEngine::pidLoop(void *arg)
 			// when our target changes we also update our pid target
 			if (instance->resetPitTime)
 			{
-				ESP_LOGD(TAG, "Reset Pid Timer");
+				ESP_LOGI(TAG, "Reset Pid Timer");
 				instance->resetPitTime = false;
 				break;
 			}
@@ -1486,6 +1524,9 @@ void BrewEngine::controlLoop(void *arg)
 {
 	BrewEngine *instance = (BrewEngine *)arg;
 
+	// the pid needs to reset one step later so the next temp is set, oherwise it has a delay
+	bool resetPIDNextStep = false;
+
 	while (instance->run && instance->controlRun)
 	{
 
@@ -1517,14 +1558,14 @@ void BrewEngine::controlLoop(void *arg)
 				// string iso_string = instance->to_iso_8601(nextStep->time);
 				// ESP_LOGI(TAG, "Control Time:%s, TempCur:%f, TempTarget:%d, Extend:%d, Overtime: %d", iso_string.c_str(), instance->temperature, nextStep->temperature, nextStep->extendIfNeeded, instance->inOverTime);
 
-				if (nextStep->extendIfNeeded == true && instance->inOverTime == false && instance->temperature < nextStep->temperature)
+				if (nextStep->extendIfNeeded == true && instance->inOverTime == false && abs(nextStep->temperature - instance->temperature) > instance->tempMargin)
 				{
 					// temp must be reached, we keep going but need to triger a recaluclation event when done
 					ESP_LOGI(TAG, "OverTime Start");
 					instance->logRemote("OverTime Start");
 					instance->inOverTime = true;
 				}
-				else if (instance->inOverTime == true && instance->temperature >= nextStep->temperature)
+				else if (instance->inOverTime == true && abs(nextStep->temperature - instance->temperature) < instance->tempMargin)
 				{
 					// we reached out temp after overtime, we need to recalc the rest and start going again
 					ESP_LOGI(TAG, "OverTime Done");
@@ -1542,26 +1583,42 @@ void BrewEngine::controlLoop(void *arg)
 				// else when in overtime just keep going until we reach temp
 			}
 
+			// the pid needs to reset one step later so the next temp is set, oherwise it has a delay
+			if (resetPIDNextStep)
+			{
+				resetPIDNextStep = false;
+				instance->resetPitTime = true;
+			}
+
 			if (gotoNextStep)
 			{
 				instance->currentMashStep++;
-				instance->resetPitTime = true;
+				resetPIDNextStep = true;
 			}
 
 			// notifications, but only when not in overtime
 			if (!instance->inOverTime && !instance->notifications.empty())
 			{
-				// they are sorted so we just have to check the first one
-				auto firstTime = instance->notifications.front()->timePoint;
-				if (now > firstTime)
+				// filter out items that are not done
+				auto isNotDone = [](Notification *notification)
+				{ return notification->done == false; };
+
+				auto notDone = instance->notifications | views::filter(isNotDone);
+
+				if (!notDone.empty())
 				{
-					auto notification = instance->notifications.front();
-					ESP_LOGI(TAG, "Notify %s", notification->name.c_str());
+					// they are sorted so we just have to check the first one
+					auto first = notDone.front();
 
-					string buzzerName = "buzzer" + notification->name;
-					xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+					if (now > first->timePoint)
+					{
+						ESP_LOGI(TAG, "Notify %s", first->name.c_str());
 
-					instance->notifications.pop_front();
+						string buzzerName = "buzzer" + first->name;
+						xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+
+						first->done = true;
+					}
 				}
 			}
 		}
@@ -1619,7 +1676,7 @@ void BrewEngine::buzzer(void *arg)
 	vTaskDelete(NULL);
 }
 
-string BrewEngine::processCommand(string payLoad)
+string BrewEngine::processCommand(const string &payLoad)
 {
 	ESP_LOGD(TAG, "payLoad %s", payLoad.c_str());
 
@@ -1691,7 +1748,7 @@ string BrewEngine::processCommand(string payLoad)
 		resultData = {
 			{"temp", (double)((int)(this->temperature * 10)) / 10}, // round float to 1 digit for display
 			{"temps", jCurrentTemps},
-			{"targetTemp", this->targetTemperature},
+			{"targetTemp", (double)((int)(this->targetTemperature * 10)) / 10}, // round float to 1 digit for display,
 			{"output", this->pidOutput},
 			{"manualOverrideOutput", nullptr},
 			{"status", this->statusText},
@@ -1802,6 +1859,10 @@ string BrewEngine::processCommand(string payLoad)
 
 		this->saveMashSchedules();
 	}
+	else if (command == "SetMashSchedule") // used by import function to set but not save
+	{
+		this->setMashSchedule(data);
+	}
 	else if (command == "DeleteMashSchedule")
 	{
 		string deleteName = (string)data["name"];
@@ -1822,18 +1883,26 @@ string BrewEngine::processCommand(string payLoad)
 	else if (command == "GetPIDSettings")
 	{
 		resultData = {
-			{"kP", this->kP},
-			{"kI", this->kI},
-			{"kD", this->kD},
+			{"kP", this->mashkP},
+			{"kI", this->mashkI},
+			{"kD", this->mashkD},
+			{"boilkP", this->boilkP},
+			{"boilkI", this->boilkI},
+			{"boilkD", this->boilkD},
 			{"pidLoopTime", this->pidLoopTime},
+			{"stepInterval", this->stepInterval},
 		};
 	}
 	else if (command == "SavePIDSettings")
 	{
-		this->kP = data["kP"].get<double>();
-		this->kI = data["kI"].get<double>();
-		this->kD = data["kD"].get<double>();
+		this->mashkP = data["kP"].get<double>();
+		this->mashkI = data["kI"].get<double>();
+		this->mashkD = data["kD"].get<double>();
+		this->boilkP = data["boilkP"].get<double>();
+		this->boilkI = data["boilkI"].get<double>();
+		this->boilkD = data["boilkD"].get<double>();
 		this->pidLoopTime = data["pidLoopTime"].get<uint16_t>();
+		this->stepInterval = data["stepInterval"].get<uint16_t>();
 		this->savePIDSettings();
 	}
 	else if (command == "GetTempSettings")
@@ -2019,7 +2088,7 @@ httpd_handle_t BrewEngine::startWebserver(void)
 	return NULL;
 }
 
-void BrewEngine::logRemote(string message)
+void BrewEngine::logRemote(const string &message)
 {
 	if (this->mqttEnabled)
 	{
