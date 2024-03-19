@@ -3,6 +3,8 @@
 - Optimized substeps calculation.
 - Optimized control loop, trigger pid faster after target changes.
 - Different PID settings for Boil/Mash.
+- Import of BeerXML.
+- Dark/Light mode via clientsettings.
 
 # Version 1.3.1
 - Bugfix: One cannot delete steps.

@@ -120,7 +120,7 @@ void BrewEngine::readSystemSettings()
 	ESP_LOGI(TAG, "Reading System Settings Done");
 }
 
-void BrewEngine::saveSystemSettingsJson(json config)
+void BrewEngine::saveSystemSettingsJson(const json &config)
 {
 	ESP_LOGI(TAG, "Saving System Settings");
 
@@ -181,7 +181,7 @@ void BrewEngine::readSettings()
 	}
 	else
 	{
-		for (auto &el : jSchedules.items())
+		for (const auto &el : jSchedules.items())
 		{
 			json jSchedule = el.value();
 
@@ -213,7 +213,7 @@ void BrewEngine::readSettings()
 	this->stepInterval = this->settingsManager->Read("stepInterval", (uint16_t)CONFIG_PID_LOOPTIME); // we use same as pidloop time
 }
 
-void BrewEngine::setMashSchedule(json jSchedule)
+void BrewEngine::setMashSchedule(const json &jSchedule)
 {
 	json newSteps = jSchedule["steps"];
 
@@ -264,10 +264,14 @@ void BrewEngine::saveMashSchedules()
 	ESP_LOGI(TAG, "Saving Mash Schedules");
 
 	json jSchedules = json::array({});
-	for (auto const &[key, val] : this->mashSchedules)
+	for (auto const &[key, mashSchedule] : this->mashSchedules)
 	{
-		json jSchedule = val->to_json();
-		jSchedules.push_back(jSchedule);
+
+		if (!mashSchedule->temporary)
+		{
+			json jSchedule = mashSchedule->to_json();
+			jSchedules.push_back(jSchedule);
+		}
 	}
 
 	// serialize to MessagePack for size
@@ -496,7 +500,7 @@ void BrewEngine::readHeaterSettings()
 		 { return (h1->preference < h2->preference); });
 }
 
-void BrewEngine::saveHeaterSettings(json jHeaters)
+void BrewEngine::saveHeaterSettings(const json &jHeaters)
 {
 	ESP_LOGI(TAG, "Saving Heater Settings");
 
@@ -576,7 +580,7 @@ void BrewEngine::readTempSensorSettings()
 	}
 }
 
-void BrewEngine::saveTempSensorSettings(json jTempSensors)
+void BrewEngine::saveTempSensorSettings(const json &jTempSensors)
 {
 	ESP_LOGI(TAG, "Saving Temp Sensor Settings");
 
@@ -1087,7 +1091,7 @@ void BrewEngine::stop()
 	this->statusText = "Idle";
 }
 
-void BrewEngine::startStir(json stirConfig)
+void BrewEngine::startStir(const json &stirConfig)
 {
 	if (!this->stir_PIN)
 	{
@@ -1595,17 +1599,26 @@ void BrewEngine::controlLoop(void *arg)
 			// notifications, but only when not in overtime
 			if (!instance->inOverTime && !instance->notifications.empty())
 			{
-				// they are sorted so we just have to check the first one
-				auto firstTime = instance->notifications.front()->timePoint;
-				if (now > firstTime)
+				// filter out items that are not done
+				auto isNotDone = [](Notification *notification)
+				{ return notification->done == false; };
+
+				auto notDone = instance->notifications | views::filter(isNotDone);
+
+				if (!notDone.empty())
 				{
-					auto notification = instance->notifications.front();
-					ESP_LOGI(TAG, "Notify %s", notification->name.c_str());
+					// they are sorted so we just have to check the first one
+					auto first = notDone.front();
 
-					string buzzerName = "buzzer" + notification->name;
-					xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+					if (now > first->timePoint)
+					{
+						ESP_LOGI(TAG, "Notify %s", first->name.c_str());
 
-					instance->notifications.pop_front();
+						string buzzerName = "buzzer" + first->name;
+						xTaskCreate(&instance->buzzer, buzzerName.c_str(), 1024, instance, 10, NULL);
+
+						first->done = true;
+					}
 				}
 			}
 		}
@@ -1663,7 +1676,7 @@ void BrewEngine::buzzer(void *arg)
 	vTaskDelete(NULL);
 }
 
-string BrewEngine::processCommand(string payLoad)
+string BrewEngine::processCommand(const string &payLoad)
 {
 	ESP_LOGD(TAG, "payLoad %s", payLoad.c_str());
 
@@ -1845,6 +1858,10 @@ string BrewEngine::processCommand(string payLoad)
 		this->setMashSchedule(data);
 
 		this->saveMashSchedules();
+	}
+	else if (command == "SetMashSchedule") // used by import function to set but not save
+	{
+		this->setMashSchedule(data);
 	}
 	else if (command == "DeleteMashSchedule")
 	{
@@ -2071,7 +2088,7 @@ httpd_handle_t BrewEngine::startWebserver(void)
 	return NULL;
 }
 
-void BrewEngine::logRemote(string message)
+void BrewEngine::logRemote(const string &message)
 {
 	if (this->mqttEnabled)
 	{

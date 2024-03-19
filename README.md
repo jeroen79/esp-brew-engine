@@ -22,6 +22,7 @@ It is open source and build in c++ using esp-idf RTOS.
 - Support for Buzzer.
 - Support for Notifications.
 - Speech Notificaitons via webinterface.
+- Import BeerXML.
 
 ## Screenshots
 

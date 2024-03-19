@@ -5,4 +5,5 @@ export interface IClientSettings {
   speechVolume: number,
   speechRate: number,
   voiceUri: string | null,
+  darkMode: boolean,
 }

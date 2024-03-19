@@ -20,6 +20,11 @@ const routes = [
         component: () => import(/* webpackChunkName: "Control" */ '@/views/Control.vue'),
       },
       {
+        path: 'import',
+        name: 'Import',
+        component: () => import(/* webpackChunkName: "Import" */ '@/views/Import.vue'),
+      },
+      {
         path: 'refractometer',
         name: 'Refractometer',
         component: () => import(/* webpackChunkName: "Refractometer" */ '@/views/Refractometer.vue'),

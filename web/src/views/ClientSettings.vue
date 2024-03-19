@@ -10,11 +10,9 @@ const clientStore = useClientStore();
 // copy settings, we don't want them applied until save is clicked
 const clientSettings = ref<IClientSettings>({ ...clientStore.clientSettings });
 
-console.log(clientSettings.value.voiceUri);
-
 const testMessage = ref<string>('Hi this is a test message');
 const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
 const voices = ref<Array<ITitleValue>>([]);
 
@@ -80,7 +78,7 @@ const save = async () => {
 
 <template>
   <v-container class="spacing-playground pa-6 mt-2" fluid>
-    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{ alert }}</v-alert>
     <v-form fast-fail @submit.prevent>
 
       <v-row>
@@ -94,8 +92,7 @@ const save = async () => {
             step="0.05"
             thumb-label="always"
             max=1
-            min=0.1
-          />
+            min=0.1 />
         </v-col>
       </v-row>
 
@@ -110,8 +107,7 @@ const save = async () => {
             step="0.05"
             thumb-label="always"
             max=1
-            min=0.1
-          />
+            min=0.1 />
         </v-col>
       </v-row>
 
@@ -129,8 +125,7 @@ const save = async () => {
             step="0.05"
             thumb-label="always"
             max=2
-            min=0.1
-          />
+            min=0.1 />
         </v-col>
       </v-row>
 
@@ -141,6 +136,13 @@ const save = async () => {
         <v-col cols="3">
           <v-btn variant="outlined" color="success" class="mt-4 mr-2" @click="testVoice"> Test </v-btn>
         </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12">
+          <v-switch color="grey" v-model="clientSettings.darkMode" label="Dark Mode"></v-switch>
+        </v-col>
+
       </v-row>
 
       <v-row>

@@ -29,7 +29,7 @@ public:
         return jStep;
     }
 
-    void from_json(json jsonData)
+    void from_json(const json &jsonData)
     {
         this->index = jsonData["index"].get<int>();
         this->name = jsonData["name"].get<string>();

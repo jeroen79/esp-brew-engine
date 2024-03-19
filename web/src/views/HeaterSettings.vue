@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { mdiDelete, mdiPencil } from '@mdi/js';
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
-import { VDataTable } from 'vuetify/labs/VDataTable';
 import { IHeater } from '@/interfaces/IHeater';
 import WebConn from '@/helpers/webConn';
 
@@ -23,9 +22,9 @@ const dialog = ref<boolean>(false);
 const dialogDelete = ref<boolean>(false);
 
 const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
-const defaultHeater:IHeater = {
+const defaultHeater: IHeater = {
   id: 0,
   name: 'New Heater',
   pinNr: 0,
@@ -77,12 +76,12 @@ const closeDeleteDialog = async () => {
   dialogDelete.value = false;
 };
 
-const editItem = async (item:IHeater) => {
+const editItem = async (item: IHeater) => {
   editedItem.value = item;
   dialog.value = true;
 };
 
-const openDeleteDialog = async (item:IHeater) => {
+const openDeleteDialog = async (item: IHeater) => {
   editedItem.value = item;
   dialogDelete.value = true;
 };
@@ -115,14 +114,13 @@ const save = async () => {
 
 <template>
   <v-container class="pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{ alert }}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-data-table
         :headers="tableHeaders"
         :items="HeaterConfigs"
         density="compact"
-        item-value="name"
-      >
+        item-value="name">
         <template v-slot:top>
           <v-toolbar density="compact">
             <v-toolbar-title>Heater Configurations</v-toolbar-title>
@@ -136,9 +134,9 @@ const save = async () => {
 
             <v-dialog v-model="dialog" max-width="500px">
               <v-card>
-                <v-card-title>
-                  <span class="text-h5">Edit</span>
-                </v-card-title>
+                <v-toolbar density="compact" color="dialog-header">
+                  <v-toolbar-title>Edit</v-toolbar-title>
+                </v-toolbar>
 
                 <v-card-text>
                   <v-container>
@@ -185,14 +183,14 @@ const save = async () => {
           </v-toolbar>
         </template>
         <template v-slot:[`item.actions`]="{ item }">
-          <v-icon size="small" class="me-2" @click="editItem(item.raw)" :icon="mdiPencil" />
-          <v-icon size="small" @click="openDeleteDialog(item.raw)" :icon="mdiDelete" />
+          <v-icon size="small" class="me-2" @click="editItem(item)" :icon="mdiPencil" />
+          <v-icon size="small" @click="openDeleteDialog(item)" :icon="mdiDelete" />
         </template>
         <template v-slot:[`item.useForMash`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.useForMash" disabled />
+          <v-checkbox-btn class="align-right justify-center" v-model="item.useForMash" disabled />
         </template>
         <template v-slot:[`item.useForBoil`]="{ item }">
-          <v-checkbox-btn class="align-right justify-center" v-model="item.columns.useForBoil" disabled />
+          <v-checkbox-btn class="align-right justify-center" v-model="item.useForBoil" disabled />
         </template>
       </v-data-table>
 

@@ -16,6 +16,7 @@ public:
     int timeFromStart;
     system_clock::time_point timePoint;
     bool buzzer;
+    bool done;
 
     json to_json()
     {
@@ -31,15 +32,17 @@ public:
         jNotification["timeFromStart"] = this->timeFromStart;
         jNotification["timePoint"] = seconds;
         jNotification["buzzer"] = this->buzzer;
+        jNotification["done"] = this->done;
 
         return jNotification;
     }
 
-    void from_json(json jsonData)
+    void from_json(const json &jsonData)
     {
         this->name = jsonData["name"].get<string>();
         this->timeFromStart = jsonData["timeFromStart"].get<int>();
         this->buzzer = jsonData["buzzer"].get<bool>();
+        this->done = false; // this can never come from json, always from control loop
 
         if (!jsonData["message"].is_null() && jsonData["message"].is_string())
         {

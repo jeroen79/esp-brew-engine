@@ -2,6 +2,6 @@
 #define VERSION_H_IN
 
 #define PROJECT_NAME "esp-brew-engine"
-#define PROJECT_VER "1.3.0"
+#define PROJECT_VER "1.4.0"
 
 #endif // VERSION_H_IN

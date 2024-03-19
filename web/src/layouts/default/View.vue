@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit } from '@mdi/js';
+import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit, mdiImport } from '@mdi/js';
 
 const drawer = ref(true);
 const linksBrewing = ref([
   [mdiKnob, 'Control', 'control'],
+  [mdiImport, 'Import', 'import'],
 ]);
 
 const linksTools = ref([
@@ -30,7 +31,6 @@ if (import.meta.env.MODE === 'development') {
 }
 
 const enterFullscreen = () => {
-  console.log('Going fullscreen');
   const elem = document.documentElement;
 
   elem.requestFullscreen({ navigationUI: 'hide' })
@@ -55,13 +55,13 @@ const exitFullscreen = () => {
       <v-app-bar-nav-icon @click="drawer = !drawer" />
       <v-toolbar-title>ESP Brew Engine</v-toolbar-title>
       <v-spacer />
-      <h5 class="mr-10">Version: {{version}}</h5>
+      <h5 class="mr-10">Version: {{ version }}</h5>
 
       <v-btn icon v-if="!fullscreen" @click="enterFullscreen">
-        <v-icon>{{mdiFullscreen}}</v-icon>
+        <v-icon>{{ mdiFullscreen }}</v-icon>
       </v-btn>
       <v-btn icon v-if="fullscreen" @click="exitFullscreen">
-        <v-icon>{{mdiFullscreenExit}}</v-icon>
+        <v-icon>{{ mdiFullscreenExit }}</v-icon>
       </v-btn>
     </v-app-bar>
 

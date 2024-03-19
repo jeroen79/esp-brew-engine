@@ -37,6 +37,7 @@ const notificationDialogTitle = ref<string>('');
 const notificationDialogText = ref<string>('');
 
 const notificationTimeouts = ref<Array<number>>([]);
+const notificationFirstStart = ref(true); //first not at 0 sec is already done in backend, wich is correct, but we do need to show it in web so we need a boolean to check this
 
 const chartInitDone = ref(false);
 
@@ -86,7 +87,7 @@ const beep = async () => {
   oscillator.stop(audioCtx.currentTime + 0.1); // 100ms beep
 };
 
-const speakMessage = async (message:string) => {
+const speakMessage = async (message: string) => {
   if (clientStore.clientSettings.voiceUri == null) {
     return;
   }
@@ -113,7 +114,7 @@ const speakMessage = async (message:string) => {
   synth.speak(ssu);
 };
 
-const showNotificaton = async (notification:INotification, alert:boolean) => {
+const showNotificaton = async (notification: INotification, alert: boolean) => {
   notificationDialogTitle.value = notification.name;
   notificationDialogText.value = notification.message.replaceAll('\n', '<br/>');
   notificationDialog.value = true;
@@ -140,9 +141,9 @@ const chartAnnotations = computed(() => {
     return null;
   }
 
-  let currentNotifications:Array<INotification> = [];
+  let currentNotifications: Array<INotification> = [];
 
-  // when we are running notifications come from schedule api call
+  // when we are running notifications that come from schedule api call
   if (executionSteps.value != null && executionSteps.value.length > 0) {
     currentNotifications = [...notifications.value];
   } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value != null) {
@@ -161,7 +162,7 @@ const chartAnnotations = computed(() => {
     }
   }
 
-  const annotationData:Array<any> = [];
+  const annotationData: Array<any> = [];
 
   currentNotifications.forEach((notification) => {
     const notificationTime = notification.timePoint * 1000;
@@ -178,7 +179,7 @@ const chartAnnotations = computed(() => {
         yAdjust: -110,
         position: 'top',
       },
-      click(context:any, event:any) {
+      click(context: any, event: any) {
         showNotificaton(notification, false);
       },
     };
@@ -193,10 +194,10 @@ const chartData = computed(() => {
   if (!chartInitDone.value) {
     return null;
   }
-  let scheduleData:Array<any> = [];
+  let scheduleData: Array<any> = [];
 
   if (executionSteps.value != null && executionSteps.value.length > 0) {
-    scheduleData = executionSteps.value.map((step:any) => ({
+    scheduleData = executionSteps.value.map((step: any) => ({
       x: step.time * 1000,
       y: step.temperature,
     }));
@@ -317,12 +318,13 @@ const clearAllNotificationTimeouts = () => {
   notificationTimeouts.value = [];
 };
 
-const setNotifications = (newNotifications:Array<INotification>) => {
+const setNotifications = (newNotifications: Array<INotification>) => {
   clearAllNotificationTimeouts();
 
-  const timeoutIds:Array<number> = [];
+  const timeoutIds: Array<number> = [];
 
-  newNotifications.forEach((notification) => {
+  //not done, or fist start
+  newNotifications.filter((n) => n.done === false || notificationFirstStart.value == true).forEach((notification) => {
     const timeTill = (notification.timePoint * 1000) - Date.now();
     const timeoutId = window.setTimeout(() => {
       showNotificaton(notification, true);
@@ -331,6 +333,7 @@ const setNotifications = (newNotifications:Array<INotification>) => {
   });
 
   notificationTimeouts.value = timeoutIds;
+  notificationFirstStart.value = false;
 
   notifications.value = newNotifications;
 };
@@ -398,11 +401,11 @@ const getData = async () => {
   const timestampSeconds = Math.floor(Date.now() / 1000);
 
   if (apiResult.data.temps !== null) {
-    apiResult.data.temps.forEach((t:any) => {
+    apiResult.data.temps.forEach((t: any) => {
       // find record in templog and add
-      const foundRecord = currentTemps.value.find((ct:any) => ct.sensor === t.sensor);
+      const foundRecord = currentTemps.value.find((ct: any) => ct.sensor === t.sensor);
       if (foundRecord === undefined) {
-        const newRecord:ITempLog = {
+        const newRecord: ITempLog = {
           sensor: t.sensor,
           color: dynamicColor(),
           temps: [
@@ -460,7 +463,7 @@ const changeTargetTemp = async () => {
   // todo capture error
 };
 
-const changeOverrideOutput = (event:any) => {
+const changeOverrideOutput = (event: any) => {
   if (event.target.value === undefined) {
     return;
   }
@@ -495,6 +498,7 @@ const start = async () => {
   currentTemps.value = [];
   executionSteps.value = [];
   rawData.value = [];
+  notificationFirstStart.value = true;
   setStartDateNow();
 
   if (selectedMashSchedule.value != null) {
@@ -645,9 +649,9 @@ onBeforeUnmount(() => {
 <template>
   <v-dialog v-model="notificationDialog" max-width="500px">
     <v-card>
-      <v-card-title>
-        <span class="text-h5">{{notificationDialogTitle}}</span>
-      </v-card-title>
+      <v-toolbar density="compact" color="dialog-header">
+        <v-toolbar-title>{{ notificationDialogTitle }}</v-toolbar-title>
+      </v-toolbar>
 
       <v-card-text v-html="notificationDialogText" />
 
@@ -681,7 +685,7 @@ onBeforeUnmount(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-select label="Mash/Boil Schedule" :readonly="status != 'Idle'" v-model="selectedMashSchedule" :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules" :clearable="status == 'Idle'" return-object />
+          <v-select label="Mash/Boil Schedule" :readonly="status !== 'Idle'" v-model="selectedMashSchedule" :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules" :clearable="status === 'Idle'" return-object />
         </v-col>
         <v-col cols="12" md="3">
           <v-btn color="success" class="mt-4" block @click="start"> Start </v-btn>
@@ -715,8 +719,7 @@ onBeforeUnmount(() => {
             label="Interval (min)"
             step="1"
             thumb-label="always"
-            :max="stirMax"
-          >
+            :max="stirMax">
             <template v-slot:append>
               <v-text-field
                 v-model.number="stirMax"
@@ -726,8 +729,7 @@ onBeforeUnmount(() => {
                 variant="outlined"
                 style="width: 70px"
                 density="compact"
-                label="Timespan (min)"
-              />
+                label="Timespan (min)" />
             </template>
           </v-range-slider>
 

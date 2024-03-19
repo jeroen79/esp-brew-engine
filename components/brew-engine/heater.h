@@ -34,7 +34,7 @@ public:
         return jHeater;
     };
 
-    void from_json(json jsonData)
+    void from_json(const json &jsonData)
     {
         this->id = jsonData["id"].get<uint>();
         this->name = jsonData["name"].get<string>();
