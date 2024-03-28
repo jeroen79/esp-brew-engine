@@ -37,7 +37,7 @@ const notificationDialogTitle = ref<string>('');
 const notificationDialogText = ref<string>('');
 
 const notificationTimeouts = ref<Array<number>>([]);
-const notificationFirstStart = ref(true); //first not at 0 sec is already done in backend, wich is correct, but we do need to show it in web so we need a boolean to check this
+const notificationsShown = ref<Array<number>>([]);
 
 const chartInitDone = ref(false);
 
@@ -115,6 +115,20 @@ const speakMessage = async (message: string) => {
 };
 
 const showNotificaton = async (notification: INotification, alert: boolean) => {
+  //currently in overtime don't need to show, updated notifications will come after overtime
+  if (inOverTime.value) {
+    return;
+  }
+
+  //overtime status comes to slow so we get incorrect messages when notifications are right on the step time, we skip them id temp not reached
+  if (targetTemperature.value != null && temperature.value != null) {
+    if (targetTemperature.value - temperature.value > 0.5) {
+      return;
+    }
+  }
+
+  notificationsShown.value.push(notification.timePoint);
+
   notificationDialogTitle.value = notification.name;
   notificationDialogText.value = notification.message.replaceAll('\n', '<br/>');
   notificationDialog.value = true;
@@ -323,17 +337,21 @@ const setNotifications = (newNotifications: Array<INotification>) => {
 
   const timeoutIds: Array<number> = [];
 
-  //not done, or fist start
-  newNotifications.filter((n) => n.done === false || notificationFirstStart.value == true).forEach((notification) => {
+  //notifications we have not show yet
+  newNotifications.filter((n) => notificationsShown.value.includes(n.timePoint) === false).forEach((notification) => {
     const timeTill = (notification.timePoint * 1000) - Date.now();
-    const timeoutId = window.setTimeout(() => {
-      showNotificaton(notification, true);
-    }, timeTill);
-    timeoutIds.push(timeoutId);
+    //we do want past notification due to overtime, but these are verry short in the past! max 10 seconds
+    if (timeTill > -10000) {
+      const timeoutId = window.setTimeout(() => {
+        showNotificaton(notification, true);
+      }, timeTill);
+      timeoutIds.push(timeoutId);
+    }
+
+
   });
 
   notificationTimeouts.value = timeoutIds;
-  notificationFirstStart.value = false;
 
   notifications.value = newNotifications;
 };
@@ -498,7 +516,7 @@ const start = async () => {
   currentTemps.value = [];
   executionSteps.value = [];
   rawData.value = [];
-  notificationFirstStart.value = true;
+  notificationsShown.value = [];
   setStartDateNow();
 
   if (selectedMashSchedule.value != null) {
@@ -644,6 +662,16 @@ onBeforeUnmount(() => {
   clearInterval(intervalId.value);
 });
 
+const displayStatus = computed(() => {
+  let ds = status.value;
+
+  if (inOverTime.value) {
+    ds += " (Overtime)";
+  }
+
+  return ds;
+});
+
 </script>
 
 <template>
@@ -671,7 +699,7 @@ onBeforeUnmount(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="status" readonly label="Status" />
+          <v-text-field v-model="displayStatus" readonly label="Status" />
         </v-col>
         <v-col cols="12" md="3">
           <v-text-field v-model="temperature" readonly :label="`Temperature (${appStore.tempUnit})`" />
