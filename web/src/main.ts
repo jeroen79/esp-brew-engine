@@ -7,6 +7,21 @@
 // Composables
 import { createApp } from 'vue';
 
+import { createI18n } from "vue-i18n";
+
+// import translations
+import de from "../locales/de.json";
+import en from "../locales/en.json";
+
+// configure i18n
+const i18n = createI18n({
+  locale: "de",
+  fallbackLocale: "en",
+  messages: { de, en },
+  legacy: false
+});
+
+
 // Pina Store
 import { createPinia } from 'pinia';
 
@@ -37,4 +52,5 @@ const appStore = useAppStore();
 appStore.rootUrl = rootUrl;
 appStore.getSystemSettings();
 
+app.use(i18n);
 app.mount('#app');

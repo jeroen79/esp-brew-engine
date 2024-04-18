@@ -13,6 +13,8 @@ import TemperatureScale from '@/enums/TemperatureScale';
 import { IMashSchedule } from '@/interfaces/IMashSchedule';
 import { groupBy } from '@/helpers/grouping';
 import { ITitleValue } from '@/interfaces/ITitleValue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const webConn = inject<WebConn>('webConn');
 const appStore = useAppStore();
@@ -90,7 +92,7 @@ const parseBeer = (beerToImport: Element) => {
       if (stepName?.toLowerCase().indexOf('sparge') > -1) {
         const notification: INotification = {
           name: 'Sparge',
-          message: 'Start Sparge',
+          message: t('import.start_sparge'),
           timeFromStart: totalMashTime, //time is start of this step
           timePoint: 0,
           buzzer: true,
@@ -358,7 +360,7 @@ const parseFile = () => {
 
   const recipeCount = xmlDoc.value.getElementsByTagName('RECIPE').length;
   if (recipeCount === 0) {
-    alert.value = 'No Recipes found in Beer XML!';
+    alert.value = t('import.no_recipes');
     alertType.value = 'warning';
   } else if (recipeCount === 1) {
     const firstBeer = xmlDoc.value.getElementsByTagName('RECIPE')[0];
@@ -397,7 +399,7 @@ const selectBeer = (args: any) => {
 
 const fileSelected = (event: any) => {
   if (chosenFiles.value == null || chosenFiles.value.length === 0) {
-    alert.value = 'No file choosen';
+    alert.value = t('import.no_file_choosen');
     alertType.value = 'warning';
   }
 
@@ -416,7 +418,7 @@ const refreshAppStoreSchedules = async () => {
 
 const upload = async () => {
   if (importedBeer.value == null || importedBeer.value.name == null || importedBeer.value.name === '') {
-    alert.value = 'Please import beer first!';
+    alert.value = t('import.import_first');
     alertType.value = 'warning';
     return;
   }
@@ -495,7 +497,7 @@ const temporaryChanged = () => {
     <v-dialog v-model="showSelection" max-width="500px">
       <v-card>
         <v-toolbar density="compact" color="dialog-header">
-          <v-toolbar-title>Select Beer</v-toolbar-title>
+          <v-toolbar-title>{{t('import.select_beer')}}</v-toolbar-title>
         </v-toolbar>
 
         <v-card-text>
@@ -515,16 +517,16 @@ const temporaryChanged = () => {
 
     <v-form fast-fail @submit.prevent>
       <v-row>
-        <v-file-input label="Import BeerXML" accept="text/xml" :multiple="false" v-model="chosenFiles" @change="fileSelected" />
+        <v-file-input :label='t("import.import_beer")' accept="text/xml" :multiple="false" v-model="chosenFiles" @change="fileSelected" />
       </v-row>
       <v-row>
         <v-col cols="12" sm="6" md="6" lg="3">
-          <v-text-field v-model="importedBeer.name" readonly label="Name" />
+          <v-text-field v-model="importedBeer.name" readonly :label='t("import.name")' />
         </v-col>
         <v-col cols="12" md="3">
           <v-switch v-model="temporary" label="Temporary" color="green" @change="temporaryChanged">
             <template v-slot:append>
-              <v-tooltip text="By default imports are not saved to flash and only kept in memory, only disable this if you want to save the schedules permanently.">
+              <v-tooltip :text='t("import.temporary_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
@@ -533,27 +535,27 @@ const temporaryChanged = () => {
           </v-switch>
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="upload"> Import </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="upload"> {{t("import.import")}} </v-btn>
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12">
-          <StepEditor v-model="importedBeer.mashSteps" :items-per-page="10" :allow-new="true" label="Mash Steps" />
+          <StepEditor v-model="importedBeer.mashSteps" :items-per-page="10" :allow-new="true" :label='t("import.mash_steps")' />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12">
-          <NotificationEditor v-model="importedBeer.mashNotificationsGrouped" :items-per-page="10" :allow-new="true" label="Mash Notifications" />
+          <NotificationEditor v-model="importedBeer.mashNotificationsGrouped" :items-per-page="10" :allow-new="true" :label='t("import.mash_notifications")' />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12">
-          <StepEditor v-model="importedBeer.boilSteps" :items-per-page="10" :allow-new="true" label="Boil Steps" />
+          <StepEditor v-model="importedBeer.boilSteps" :items-per-page="10" :allow-new="true" :label='t("import.boil_steps")' />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12">
-          <NotificationEditor v-model="importedBeer.boilNotificationsGrouped" :items-per-page="10" :allow-new="true" label="Boil Notifications" />
+          <NotificationEditor v-model="importedBeer.boilNotificationsGrouped" :items-per-page="10" :allow-new="true" :label='t("import.boil_notifications")' />
         </v-col>
       </v-row>
     </v-form>

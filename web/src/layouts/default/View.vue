@@ -1,25 +1,27 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit, mdiImport } from '@mdi/js';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const drawer = ref(true);
 const linksBrewing = ref([
-  [mdiKnob, 'Control', 'control'],
-  [mdiImport, 'Import', 'import'],
+  [mdiKnob, t('links.control'), 'control'],
+  [mdiImport, t('links.import'), 'import'],
 ]);
 
 const linksTools = ref([
-  [mdiAltimeter, 'Refractometer', 'refractometer'],
+  [mdiAltimeter, t('links.refractometer'), 'refractometer'],
 ]);
 
 const linksSettings = ref([
-  [mdiReceiptTextClock, 'Schedules', 'mashschedules'],
-  [mdiThermometerLines, 'PID Settings', 'pidsettings'],
-  [mdiThermometer, 'Temperature Settings', 'tempsettings'],
-  [mdiHeatingCoil, 'Heater Settings', 'heaterSettings'],
-  [mdiWifi, 'Wifi Settings', 'wifiSettings'],
-  [mdiWrenchCogOutline, 'System Settings', 'systemSettings'],
-  [mdiCookieSettingsOutline, 'Client Settings', 'clientSettings'],
+  [mdiReceiptTextClock, t('links.schedules'), 'mashschedules'],
+  [mdiThermometerLines, t('links.pid_settings'), 'pidsettings'],
+  [mdiThermometer, t('links.temp_settings'), 'tempsettings'],
+  [mdiHeatingCoil, t('links.heater'), 'heaterSettings'],
+  [mdiWifi, t('links.wifi'), 'wifiSettings'],
+  [mdiWrenchCogOutline, t('links.system'), 'systemSettings'],
+  [mdiCookieSettingsOutline, t('links.client'), 'clientSettings'],
 ]);
 
 const version = ref<string>(import.meta.env.VITE_APP_VERSION);
@@ -68,7 +70,7 @@ const exitFullscreen = () => {
     <v-navigation-drawer v-model="drawer">
       <v-list>
 
-        <v-list-subheader>Brewing</v-list-subheader>
+        <v-list-subheader>{{$t("links.brewing")}}</v-list-subheader>
         <v-list-item v-for="[icon, text, route] in linksBrewing" :key="icon" link :to="route">
           <template v-slot:prepend>
             <v-icon>{{ icon }}</v-icon>
@@ -76,7 +78,7 @@ const exitFullscreen = () => {
           <v-list-item-title>{{ text }}</v-list-item-title>
         </v-list-item>
 
-        <v-list-subheader>Settings</v-list-subheader>
+        <v-list-subheader>{{$t("links.settings")}}</v-list-subheader>
         <v-list-item v-for="[icon, text, route] in linksSettings" :key="icon" link :to="route">
           <template v-slot:prepend>
             <v-icon>{{ icon }}</v-icon>
@@ -84,7 +86,7 @@ const exitFullscreen = () => {
           <v-list-item-title>{{ text }}</v-list-item-title>
         </v-list-item>
 
-        <v-list-subheader>Tools</v-list-subheader>
+        <v-list-subheader>{{$t("links.tools")}}</v-list-subheader>
         <v-list-item v-for="[icon, text, route] in linksTools" :key="icon" link :to="route">
           <template v-slot:prepend>
             <v-icon>{{ icon }}</v-icon>
