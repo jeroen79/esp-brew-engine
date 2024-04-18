@@ -13,9 +13,26 @@ import { createI18n } from "vue-i18n";
 import de from "../locales/de.json";
 import en from "../locales/en.json";
 
+
+
+// automatic detection of browser language
+function getBrowserLocale(options = {}) {
+  const defaultOptions = { countryCodeOnly: false };
+  const opt = { ...defaultOptions, ...options };
+  const navigatorLocale = navigator.languages !== undefined ? navigator.languages[0] : navigator.language;
+
+  if (!navigatorLocale) {
+    return undefined;
+  }
+
+  const trimmedLocale = opt.countryCodeOnly ? navigatorLocale.trim().split(/-|_/)[0] : navigatorLocale.trim();
+
+  return trimmedLocale;
+}
+
 // configure i18n
 const i18n = createI18n({
-  locale: "de",
+  locale: getBrowserLocale({ countryCodeOnly: true }),
   fallbackLocale: "en",
   messages: { de, en },
   legacy: false
