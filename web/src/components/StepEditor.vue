@@ -3,8 +3,8 @@ import { IMashStep, defaultMashStep } from '@/interfaces/IMashStep';
 import { mdiDelete, mdiPencil } from '@mdi/js';
 import { useAppStore } from '@/store/app';
 import { ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 
 const appStore = useAppStore();
 
@@ -94,14 +94,12 @@ const stepDeleteItemOk = async () => {
       <v-toolbar density="compact">
         <v-toolbar-title>{{ props.label }}</v-toolbar-title>
         <v-spacer />
-        <v-btn color="secondary" variant="outlined" class="mr-5" v-if="allowNew" @click="newStep()">
-          {{t('stepEditor.new_step')}}
-        </v-btn>
+        <v-btn color="secondary" variant="outlined" class="mr-5" v-if="allowNew" @click="newStep()">{{t('stepEditor.new_step')}}</v-btn>
 
         <v-dialog v-model="showStepDialog" max-width="500px">
           <v-card>
             <v-toolbar density="compact" color="dialog-header">
-              <v-toolbar-title>{{t('stepEditor.edit')}}</v-toolbar-title>
+              <v-toolbar-title>{{t('general.edit')}}</v-toolbar-title>
             </v-toolbar>
 
             <v-card-text>
@@ -122,7 +120,7 @@ const stepDeleteItemOk = async () => {
                   <v-checkbox v-model="editingStep.extendStepTimeIfNeeded" :label='t("stepEditor.extend_step_time")' />
                 </v-row>
                 <v-row>
-                  <v-text-field type="number" v-model.number="editingStep.time" :label='t("stepEditor.hold_time")'/>
+                  <v-text-field type="number" v-model.number="editingStep.time" :label='t("stepEditor.hold_time")' />
                 </v-row>
               </v-container>
             </v-card-text>
@@ -130,18 +128,18 @@ const stepDeleteItemOk = async () => {
             <v-card-actions>
               <v-spacer />
               <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
-                {{ t('stepEditor.close') }}
+                {{ t('general.close') }}
               </v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
         <v-dialog v-model="showStepDeleteDialog" max-width="500px">
           <v-card>
-            <v-card-title class="text-h5">{{ t('stepEditor.delete') }}</v-card-title>
+            <v-card-title class="text-h5">{{ t('general.delete_message') }}</v-card-title>
             <v-card-actions>
               <v-spacer />
-              <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{ t('stepEditor.cancel') }}</v-btn>
-              <v-btn color="blue-darken-1" variant="text" @click="stepDeleteItemOk">{{ t('stepEditor.ok') }}</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{ t('general.cancel') }}</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="stepDeleteItemOk">{{ t('general.ok') }}</v-btn>
               <v-spacer />
             </v-card-actions>
           </v-card>

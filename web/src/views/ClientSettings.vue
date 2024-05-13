@@ -4,15 +4,15 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { IClientSettings } from '@/interfaces/IClientSettings';
 import { useClientStore } from '@/store/client';
 import { ITitleValue } from '@/interfaces/ITitleValue';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 
 const clientStore = useClientStore();
 
 // copy settings, we don't want them applied until save is clicked
 const clientSettings = ref<IClientSettings>({ ...clientStore.clientSettings });
 
-const testMessage = ref<string>(t('clientsettings.test_message2'));
+const testMessage = ref<string>(t('clientsettings.test_message'));
 const alert = ref<string>('');
 const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
@@ -115,7 +115,11 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12">
-          <v-select :label="$t('clientsettings.voice')" v-model="clientSettings.voiceUri" :filled="voices" :items="voices" />
+          <v-select
+            :label="$t('clientsettings.voice')"
+            v-model="clientSettings.voiceUri"
+            :filled="voices"
+            :items="voices" />
         </v-col>
       </v-row>
 
@@ -136,20 +140,21 @@ const save = async () => {
           <v-text-field :label="$t('clientsettings.test_message')" v-model="testMessage" />
         </v-col>
         <v-col cols="3">
-          <v-btn variant="outlined" color="success" class="mt-4 mr-2" @click="testVoice"> {{ $t('clientsettings.test') }} </v-btn>
+          <v-btn variant="outlined" color="success" class="mt-4 mr-2" @click="testVoice"> {{ $t('clientsettings.test')
+          }} </v-btn>
         </v-col>
       </v-row>
 
       <v-row>
         <v-col cols="12">
-          <v-switch color="grey" v-model="clientSettings.darkMode" :label="$t('clientsettings.darkMode')"></v-switch>
+          <v-switch color="grey" v-model="clientSettings.darkMode" :label="$t('clientsettings.darkMode')" />
         </v-col>
 
       </v-row>
 
       <v-row>
         <v-col cols="12">
-          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ $t('clientsettings.save') }} </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ $t('general.save') }} </v-btn>
         </v-col>
       </v-row>
 

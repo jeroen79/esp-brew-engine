@@ -1,3 +1,7 @@
+# Version 1.5.0
+- Added I18n Translation system.
+- Added Translations (de,nl).
+
 # Version 1.4.0
 - Extra setting to configure stepInterval.
 - Optimized substeps calculation.

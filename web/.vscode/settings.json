@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "*.vue": "vue",
+    },
+    "eslint.validate": [
+        "vue",
+        "javascript",
+        "typescript",
+        "TypeScript"
+    ],
+    "prettier.enable": false,
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+        "source.fixAll.stylelint": "always"
+    },
+}

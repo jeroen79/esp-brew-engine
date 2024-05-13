@@ -16,16 +16,20 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['*.vue'],
+      files: ['*.vue', '*.ts'],
       rules: {
         'no-console': 'off',
         'vue/max-attributes-per-line': ['error', {
           singleline: {
-            max: 50,
+            max: 10,
           },
           multiline: {
             max: 1,
           },
+        }],
+        'vue/first-attribute-linebreak': ['error', {
+          singleline: 'ignore',
+          multiline: 'below',
         }],
         'vue/multi-word-component-names': 'off',
         'react/jsx-wrap-multilines': 'off',
