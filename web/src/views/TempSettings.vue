@@ -3,22 +3,24 @@ import { ref, onMounted, onBeforeUnmount, inject } from 'vue';
 import { mdiPencil, mdiDelete, mdiPalette } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { ITempSensor } from '@/interfaces/ITempSensor';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const webConn = inject<WebConn>('webConn');
 
 const tempSensors = ref<Array<ITempSensor>>([]);
 
 const tableHeaders = ref<Array<any>>([
-  { title: 'Id', key: 'id', align: 'start' },
-  { title: 'Name', key: 'name', align: 'start' },
-  { title: 'Color', key: 'color', align: 'start' },
-  { title: 'Compensate Absolute (+-)', key: 'compensateAbsolute', align: 'start' },
-  { title: 'Compensate Relative (*)', key: 'compensateRelative', align: 'start' },
-  { title: 'Show', key: 'show', align: 'end' },
-  { title: 'Use for Control', key: 'useForControl', align: 'end' },
-  { title: 'Connected', key: 'connected', align: 'end' },
-  { title: 'Last Temp', key: 'lastTemp', align: 'end' },
-  { title: 'Actions', key: 'actions', align: 'end', sortable: false },
+  { title: t('tempSettings.id'), key: 'id', align: 'start' },
+  { title: t('tempSettings.name'), key: 'name', align: 'start' },
+  { title: t('tempSettings.color'), key: 'color', align: 'start' },
+  { title: t('tempSettings.compensate_abs'), key: 'compensateAbsolute', align: 'start' },
+  { title: t('tempSettings.compensate_rel'), key: 'compensateRelative', align: 'start' },
+  { title: t('tempSettings.show'), key: 'show', align: 'end' },
+  { title: t('tempSettings.use_for_control'), key: 'useForControl', align: 'end' },
+  { title: t('tempSettings.connected'), key: 'connected', align: 'end' },
+  { title: t('tempSettings.last_temp'), key: 'lastTemp', align: 'end' },
+  { title: t('tempSettings.actions'), key: 'actions', align: 'end', sortable: false },
 ]);
 
 const dialog = ref<boolean>(false);
@@ -29,7 +31,7 @@ const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
 const defaultSensor: ITempSensor = {
   id: '',
-  name: 'New Sensor',
+  name: t('tempSettings.new_sensor'),
   color: '#ffffff',
   useForControl: false,
   show: false,
@@ -62,7 +64,7 @@ const detectTempSensors = async () => {
     data: null,
   };
 
-  alert.value = 'Please be patient, scanning in progress...';
+  alert.value = t("tempSettings.msg_scan");
   alertType.value = 'info';
 
   const apiResult = await webConn?.doPostRequest(requestData);
@@ -136,40 +138,40 @@ const save = async () => {
         item-value="name">
         <template v-slot:top>
           <v-toolbar density="compact">
-            <v-toolbar-title>Temp Sensors</v-toolbar-title>
+            <v-toolbar-title>{{t('tempSettings.temp_sensors')}}</v-toolbar-title>
             <v-spacer />
             <v-btn color="secondary" variant="outlined" class="mr-5" @click="getData()">
-              Refresh
+              {{t('tempSettings.refresh')}}
             </v-btn>
             <v-btn color="secondary" variant="outlined" class="mr-5" @click="detectTempSensors()">
-              Detect
+              {{t('tempSettings.detect')}}
             </v-btn>
 
             <v-dialog v-model="dialog" max-width="500px">
               <v-card>
                 <v-toolbar density="compact" color="dialog-header">
-                  <v-toolbar-title>Edit</v-toolbar-title>
+                  <v-toolbar-title>{{t('tempSettings.edit')}}</v-toolbar-title>
                 </v-toolbar>
 
                 <v-card-text>
                   <v-container>
                     <v-row>
-                      <v-text-field v-model="editedItem.name" label="Name" />
+                      <v-text-field v-model="editedItem.name" :label='t("tempSettings.name")' />
                     </v-row>
                     <v-row>
-                      <v-switch v-model="editedItem.show" label="Show" color="green" />
+                      <v-switch v-model="editedItem.show" :label='t("tempSettings.show")' color="green" />
                     </v-row>
                     <v-row>
-                      <v-switch v-model="editedItem.useForControl" label="Enabled" color="red" />
+                      <v-switch v-model="editedItem.useForControl" :label='t("tempSettings.enabled")' color="red" />
                     </v-row>
                     <v-row>
-                      <v-color-picker v-model="editedItem.color" hide-inputs label="Color" />
+                      <v-color-picker v-model="editedItem.color" hide-inputs :label='t("tempSettings.color")' />
                     </v-row>
                     <v-row>
-                      <v-text-field type="number" v-model.number="editedItem.compensateAbsolute" label="Compensate Absolute (+-)" />
+                      <v-text-field type="number" v-model.number="editedItem.compensateAbsolute" :label='t("tempSettings.compensate_abs")' />
                     </v-row>
                     <v-row>
-                      <v-text-field type="number" v-model.number="editedItem.compensateRelative" label="Compensate Relative (*)" />
+                      <v-text-field type="number" v-model.number="editedItem.compensateRelative" :label='t("tempSettings.compensate_rel")' />
                     </v-row>
                   </v-container>
                 </v-card-text>
@@ -177,18 +179,18 @@ const save = async () => {
                 <v-card-actions>
                   <v-spacer />
                   <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
-                    Close
+                    {{t('tempSettings.close')}}
                   </v-btn>
                 </v-card-actions>
               </v-card>
             </v-dialog>
             <v-dialog v-model="dialogDelete" max-width="500px">
               <v-card>
-                <v-card-title class="text-h5">Are you sure you want to delete this item?</v-card-title>
+                <v-card-title class="text-h5">{{t('tempSettings.delete')}}</v-card-title>
                 <v-card-actions>
                   <v-spacer />
-                  <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>
-                  <v-btn color="blue-darken-1" variant="text" @click="deleteItemOk">OK</v-btn>
+                  <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{t('tempSettings.cancel')}}</v-btn>
+                  <v-btn color="blue-darken-1" variant="text" @click="deleteItemOk">{{t('tempSettings.ok')}}</v-btn>
                   <v-spacer />
                 </v-card-actions>
               </v-card>
@@ -213,7 +215,7 @@ const save = async () => {
         </template>
       </v-data-table>
 
-      <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
+      <v-btn color="success" class="mt-4 mr-2" @click="save"> {{t('tempSettings.save')}} </v-btn>
 
     </v-form>
   </v-container>

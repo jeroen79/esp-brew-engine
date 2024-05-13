@@ -4,6 +4,8 @@ import { mdiEye, mdiEyeOutline, mdiConnection, mdiHelp } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { IWifiSettings } from '@/interfaces/IWifiSettings';
 import { IWifiNetwork } from '@/interfaces/IWifiNetwork';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const webConn = inject<WebConn>('webConn');
 
@@ -24,11 +26,11 @@ const dialogData = ref<IWifiSettings>({ // add default value, vue has issues wit
 const wifiNetworks = ref<Array<IWifiNetwork>>([]);
 
 const networkTableHeaders = ref<Array<any>>([
-  { title: 'SSID', key: 'ssid', align: 'start' },
-  { title: 'RSSI', key: 'rssi', align: 'start' },
-  { title: 'Channel', key: 'channel', align: 'start' },
-  { title: 'Type', key: 'authMode', align: 'start' },
-  { title: 'Actions', key: 'actions', sortable: false },
+  { title: t('wifiSettings.ssid'), key: 'ssid', align: 'start' },
+  { title: t('wifiSettings.rssi'), key: 'rssi', align: 'start' },
+  { title: t('wifiSettings.channel'), key: 'channel', align: 'start' },
+  { title: t('wifiSettings.type'), key: 'authMode', align: 'start' },
+  { title: t('wifiSettings.actions'), key: 'actions', sortable: false },
 ]);
 const connectDialog = ref<boolean>(false);
 
@@ -57,7 +59,7 @@ const scanForNetworks = async () => {
     data: null,
   };
 
-  alert.value = 'Please be patient, scanning in progress...';
+  alert.value = t('wifiSettings.msg_wait');
   alertType.value = 'info';
 
   const apiResult = await webConn?.doPostRequest(requestData);
@@ -82,7 +84,7 @@ const save = async () => {
   }
 
   if (wifiSettings.value.ssid === '') {
-    alert.value = 'SSID cannot be empty!';
+    alert.value = t('wifiSettings.msg_ssid_empty');
     alertType.value = 'warning';
     return;
   }
@@ -134,11 +136,11 @@ onBeforeUnmount(() => {
         <v-col cols="12" md="6">
           <v-switch
             v-model="wifiSettings.enableAP"
-            label="Access Point Mode"
+            :label='t("wifiSettings.access_point_mode")'
             color="red"
             @click="clearConfig()">
             <template v-slot:append>
-              <v-tooltip text="When enabled a wifi network is created by ESP-Brew-Engine, to connect to your own network turn this off!">
+              <v-tooltip :text='t("wifiSettings.access_point_modeDesc")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
@@ -150,22 +152,22 @@ onBeforeUnmount(() => {
 
       <v-row>
         <v-col cols="12" md="6" v-if="!wifiSettings.enableAP">
-          <v-text-field v-model="wifiSettings.ssid" label="Join Network (SSID)" />
+          <v-text-field v-model="wifiSettings.ssid" :label='t("wifiSettings.join_network")' />
         </v-col>
         <v-col cols="12" md="6" v-if="wifiSettings.enableAP">
-          <v-text-field v-model="wifiSettings.ssid" label="Access Point Name (SSID)" />
+          <v-text-field v-model="wifiSettings.ssid" :label='t("wifiSettings.access_point_name")' />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12" md="6">
-          <v-text-field v-model="wifiSettings.password" :type="hidePwd ? 'password' : 'text'" label="Password" :append-icon="hidePwd ? mdiEye : mdiEyeOutline" @click:append="() => (hidePwd = !hidePwd)" />
+          <v-text-field v-model="wifiSettings.password" :type="hidePwd ? 'password' : 'text'" :label='t("wifiSettings.password")' :append-icon="hidePwd ? mdiEye : mdiEyeOutline" @click:append="() => (hidePwd = !hidePwd)" />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12" md="6">
           <v-slider
             v-model="wifiSettings.maxPower"
-            label="Max Wifi Power (dBm)"
+            :label='t("wifiSettings.max_wifi_power")'
             step="1"
             thumb-label="always"
             max=20
@@ -184,25 +186,25 @@ onBeforeUnmount(() => {
               item-value="name">
               <template v-slot:top>
                 <v-toolbar density="compact">
-                  <v-toolbar-title>Found Networks</v-toolbar-title>
+                  <v-toolbar-title>{{ t("wifiSettings.found_networks") }}</v-toolbar-title>
                   <v-spacer />
                   <v-btn color="secondary" variant="outlined" class="mr-5" @click="scanForNetworks()">
-                    Scan
+                    {{ t("wifiSettings.scan") }}
                   </v-btn>
 
                   <v-dialog v-model="connectDialog" max-width="500px">
                     <v-card>
                       <v-toolbar density="compact" color="dialog-header">
-                        <v-toolbar-title>Connect</v-toolbar-title>
+                        <v-toolbar-title>{{ t("wifiSettings.connect") }}</v-toolbar-title>
                       </v-toolbar>
 
                       <v-card-text>
                         <v-container>
                           <v-row>
-                            <v-text-field v-model="dialogData.ssid" label="SSID" readonly />
+                            <v-text-field v-model="dialogData.ssid" :label='t("wifiSettings.ssid")' readonly />
                           </v-row>
                           <v-row>
-                            <v-text-field v-model="dialogData.password" label="Password" />
+                            <v-text-field v-model="dialogData.password" :label='t("wifiSettings.password")' />
                           </v-row>
                         </v-container>
                       </v-card-text>
@@ -210,7 +212,7 @@ onBeforeUnmount(() => {
                       <v-card-actions>
                         <v-spacer />
                         <v-btn color="blue-darken-1" variant="text" @click="closeConnectDialog">
-                          Connect
+                          {{ t("wifiSettings.connect") }}
                         </v-btn>
                       </v-card-actions>
                     </v-card>
@@ -229,7 +231,7 @@ onBeforeUnmount(() => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ t("wifiSettings.save") }} </v-btn>
         </v-col>
       </v-row>
     </v-form>

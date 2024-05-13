@@ -3,19 +3,21 @@ import { mdiDelete, mdiPencil } from '@mdi/js';
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { IHeater } from '@/interfaces/IHeater';
 import WebConn from '@/helpers/webConn';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const webConn = inject<WebConn>('webConn');
 
 const HeaterConfigs = ref<Array<IHeater>>([]);
 
 const tableHeaders = ref<Array<any>>([
-  { title: 'Name', key: 'name', align: 'start' },
-  { title: 'Pin', key: 'pinNr', align: 'start' },
-  { title: 'Preference', key: 'preference', align: 'start' },
-  { title: 'Power (Watt)', key: 'watt', align: 'start' },
-  { title: 'Use for Mash', key: 'useForMash', align: 'end' },
-  { title: 'Use for Boil', key: 'useForBoil', align: 'end' },
-  { title: 'Actions', key: 'actions', align: 'end', sortable: false },
+  { title: t('heaterSettings.name'), key: 'name', align: 'start' },
+  { title: t('heaterSettings.pin'), key: 'pinNr', align: 'start' },
+  { title: t('heaterSettings.preference'), key: 'preference', align: 'start' },
+  { title: t('heaterSettings.power'), key: 'watt', align: 'start' },
+  { title: t('heaterSettings.use_for_mash'), key: 'useForMash', align: 'end' },
+  { title: t('heaterSettings.use_for_boil'), key: 'useForBoil', align: 'end' },
+  { title: t('heaterSettings.actions'), key: 'actions', align: 'end', sortable: false },
 ]);
 
 const dialog = ref<boolean>(false);
@@ -26,7 +28,7 @@ const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
 const defaultHeater: IHeater = {
   id: 0,
-  name: 'New Heater',
+  name: t('heaterSettings.new_heater'),
   pinNr: 0,
   preference: 0,
   watt: 0,
@@ -123,40 +125,40 @@ const save = async () => {
         item-value="name">
         <template v-slot:top>
           <v-toolbar density="compact">
-            <v-toolbar-title>Heater Configurations</v-toolbar-title>
+            <v-toolbar-title>{{t('heaterSettings.heater_configurations')}}</v-toolbar-title>
             <v-spacer />
             <v-btn color="secondary" variant="outlined" class="mr-5" @click="newItem()">
-              New Heater
+              {{t('heaterSettings.new_heater')}}
             </v-btn>
             <v-btn color="secondary" variant="outlined" class="mr-5" @click="getData()">
-              Refresh
+              {{t('heaterSettings.refresh')}}
             </v-btn>
 
             <v-dialog v-model="dialog" max-width="500px">
               <v-card>
                 <v-toolbar density="compact" color="dialog-header">
-                  <v-toolbar-title>Edit</v-toolbar-title>
+                  <v-toolbar-title>{{t('heaterSettings.edit')}}</v-toolbar-title>
                 </v-toolbar>
 
                 <v-card-text>
                   <v-container>
                     <v-row>
-                      <v-text-field v-model="editedItem.name" label="Name" />
+                      <v-text-field v-model="editedItem.name" :label="t('heaterSettings.name')" />
                     </v-row>
                     <v-row>
-                      <v-text-field v-model.number="editedItem.pinNr" label="Gpio Pin Nr" />
+                      <v-text-field v-model.number="editedItem.pinNr" :label="t('heaterSettings.pin')" />
                     </v-row>
                     <v-row>
-                      <v-text-field v-model.number="editedItem.preference" label="Preference" />
+                      <v-text-field v-model.number="editedItem.preference" :label="t('heaterSettings.preference')" />
                     </v-row>
                     <v-row>
-                      <v-text-field v-model.number="editedItem.watt" label="Power (Watt)" />
+                      <v-text-field v-model.number="editedItem.watt" :label="t('heaterSettings.power')" />
                     </v-row>
                     <v-row>
-                      <v-switch v-model="editedItem.useForMash" label="Use for Mash" color="orange" />
+                      <v-switch v-model="editedItem.useForMash" :label="t('heaterSettings.use_for_mash')" color="orange" />
                     </v-row>
                     <v-row>
-                      <v-switch v-model="editedItem.useForBoil" label="Use for Boil" color="red" />
+                      <v-switch v-model="editedItem.useForBoil" :label="t('heaterSettings.use_for_boil')" color="red" />
                     </v-row>
                   </v-container>
                 </v-card-text>
@@ -164,18 +166,18 @@ const save = async () => {
                 <v-card-actions>
                   <v-spacer />
                   <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
-                    Close
+                    {{t('heaterSettings.close')}}
                   </v-btn>
                 </v-card-actions>
               </v-card>
             </v-dialog>
             <v-dialog v-model="dialogDelete" max-width="500px">
               <v-card>
-                <v-card-title class="text-h5">Are you sure you want to delete this item?</v-card-title>
+                <v-card-title class="text-h5">{{t('heaterSettings.delete')}}</v-card-title>
                 <v-card-actions>
                   <v-spacer />
-                  <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>
-                  <v-btn color="blue-darken-1" variant="text" @click="deleteItemOk">OK</v-btn>
+                  <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{t('heaterSettings.cancel')}}</v-btn>
+                  <v-btn color="blue-darken-1" variant="text" @click="deleteItemOk">{{t('heaterSettings.ok')}}</v-btn>
                   <v-spacer />
                 </v-card-actions>
               </v-card>
@@ -194,7 +196,7 @@ const save = async () => {
         </template>
       </v-data-table>
 
-      <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
+      <v-btn color="success" class="mt-4 mr-2" @click="save"> {{t('heaterSettings.save')}} </v-btn>
 
     </v-form>
   </v-container>

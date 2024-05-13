@@ -8,6 +8,8 @@ import { useAppStore } from '@/store/app';
 import { INotification, defaultNotification } from '@/interfaces/INotification';
 import StepEditor from '@/components/StepEditor.vue';
 import NotificationEditor from '@/components/NotificationEditor.vue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const webConn = inject<WebConn>('webConn');
 
@@ -61,7 +63,7 @@ watchEffect(() => {
 const saveSchedule = async () => {
   // atm schedules are in ram so we can't allow crazy amounts, in the future we will need some kinde of cloud storage
   if ((selectedMashSchedule.value != null && selectedMashSchedule.value.name !== currentName.value) && mashSchedules.value.length >= appStore.maxSchedules.valueOf()) {
-    alert.value = `Only ${appStore.maxSchedules} can be saved!`;
+    alert.value = t('mashSchedules.max_schedules_reached').replace('{0}', appStore.maxSchedules.toString());
     alertType.value = 'warning';
     return;
   }
@@ -117,20 +119,20 @@ const deleteSchedule = async () => {
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-col cols="12" md="3">
-          <v-select label="Mash/Boil Schedule" v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
+          <v-select :label='t("mashSchedules.mashSchedule")' v-model="selectedMashSchedule" :items="mashSchedules" item-title="name" :filled="mashSchedules" clearable return-object />
         </v-col>
 
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="currentName" label="Name" />
+          <v-text-field v-model="currentName" :label='t("mashSchedules.name")' />
         </v-col>
         <v-col cols="12" md="3">
-          <v-switch v-model="currentBoil" label="Is Boil Schedule" color="red" />
+          <v-switch v-model="currentBoil" :label='t("mashSchedules.is_boil")' color="red" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="saveSchedule"> Save </v-btn>
-          <v-btn color="error" class="mt-4 mr-2" @click="deleteSchedule"> Delete </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="saveSchedule"> {{t('mashSchedules.save')}} </v-btn>
+          <v-btn color="error" class="mt-4 mr-2" @click="deleteSchedule"> {{t('mashSchedules.delete')}} </v-btn>
         </v-col>
       </v-row>
       <v-row>
