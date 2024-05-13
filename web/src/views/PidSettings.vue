@@ -64,9 +64,9 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field type="number" v-model.number="pidSettings.pidLoopTime" label="PID Loop Time">
+          <v-text-field type="number" v-model.number="pidSettings.pidLoopTime" :label="$t('pidSettings.pidLoopTime')">
             <template v-slot:append>
-              <v-tooltip text="The time in seconds between PID calculations, since water heating is a slow process this also works best when slow ex. 60sec">
+              <v-tooltip :text="$t('pidSettings.pidLoopTimeDesc')">
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -78,9 +78,9 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field type="number" v-model.number="pidSettings.stepInterval" label="Steps every x seconds">
+          <v-text-field type="number" v-model.number="pidSettings.stepInterval" :label="$t('pidSettings.stepInterval')">
             <template v-slot:append>
-              <v-tooltip text="The time between steps less means more substeps will be added">
+              <v-tooltip :text="$t('pidSettings.stepIntervalDesc')">
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -90,7 +90,7 @@ const save = async () => {
         </v-col>
       </v-row>
 
-      <div class="text-subtitle-2 mt-4 mb-2">Mash</div>
+      <div class="text-subtitle-2 mt-4 mb-2">{{$t('pidSettings.mash')}}</div>
 
       <v-divider :thickness="7" />
 
@@ -106,7 +106,7 @@ const save = async () => {
         </v-col>
       </v-row>
 
-      <div class="text-subtitle-2 mt-4 mb-2">Boil</div>
+      <div class="text-subtitle-2 mt-4 mb-2">{{ $t('pidSettings.boil') }}</div>
 
       <v-divider :thickness="7" />
 
@@ -124,7 +124,7 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{$t('clientsettings.save')}} </v-btn>
         </v-col>
       </v-row>
     </v-form>

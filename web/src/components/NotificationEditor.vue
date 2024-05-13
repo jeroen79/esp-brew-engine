@@ -2,9 +2,11 @@
 import { INotification, defaultNotification } from '@/interfaces/INotification';
 import { mdiDelete, mdiPencil } from '@mdi/js';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const props = defineProps({
-  label: { type: String, required: false, default: 'Notifications' },
+  label: { type: String, required: false, default: "Notifications" },
   itemsPerPage: { type: Number, required: false, default: 50 },
   allowNew: { type: Boolean, required: false, default: true },
 });
@@ -24,10 +26,10 @@ watch(() => props.allowNew, () => {
 
 // Notifications
 const tableNotificationsHeaders = ref<Array<any>>([
-  { title: 'Name', key: 'name', align: 'start' },
-  { title: 'Time from Start (min)', key: 'timeFromStart', align: 'start' },
-  { title: 'Buzzer', key: 'buzzer', align: 'start' },
-  { title: 'Actions', key: 'actions', sortable: false },
+  { title: t('notificationEditor.name'), key: 'name', align: 'start' },
+  { title: t('notificationEditor.time_from_start'), key: 'timeFromStart', align: 'start' },
+  { title: t('notificationEditor.buzzer'), key: 'buzzer', align: 'start' },
+  { title: t('notificationEditor.actions'), key: 'actions', sortable: false },
 ]);
 const sortNotificationsBy = ref<Array<any>>([{ key: 'index', order: 'asc' }]);
 
@@ -82,28 +84,28 @@ const notificationDeleteItemOk = async () => {
         <v-toolbar-title>{{ props.label }}</v-toolbar-title>
         <v-spacer />
         <v-btn color="secondary" variant="outlined" class="mr-5" v-if="allowNew" @click="newNotification()">
-          New Notification
+          {{t('notificationEditor.new_notification')}}
         </v-btn>
 
         <v-dialog v-model="showNotificationDialog" max-width="500px">
           <v-card>
             <v-toolbar density="compact" color="dialog-header">
-              <v-toolbar-title>Edit</v-toolbar-title>
+              <v-toolbar-title>{{t('notificationEditor.edit')}}</v-toolbar-title>
             </v-toolbar>
 
             <v-card-text>
               <v-container>
                 <v-row>
-                  <v-text-field maxlength="25" v-model="editingNotification.name" label="Name" />
+                  <v-text-field maxlength="25" v-model="editingNotification.name" :label='t("notificationEditor.name")' />
                 </v-row>
                 <v-row>
-                  <v-text-field type="number" v-model.number="editingNotification.timeFromStart" label="Time from Start (min)" />
+                  <v-text-field type="number" v-model.number="editingNotification.timeFromStart" :label='t("notificationEditor.time_from_start")' />
                 </v-row>
                 <v-row>
-                  <v-switch v-model="editingNotification.buzzer" label="Buzzer" color="red" />
+                  <v-switch v-model="editingNotification.buzzer" :label='t("notificationEditor.buzzer")' color="red" />
                 </v-row>
                 <v-row>
-                  <v-textarea v-model="editingNotification.message" label="Message" />
+                  <v-textarea v-model="editingNotification.message" :label='t("notificationEditor.message")' />
                 </v-row>
               </v-container>
             </v-card-text>
@@ -111,19 +113,19 @@ const notificationDeleteItemOk = async () => {
             <v-card-actions>
               <v-spacer />
               <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
-                Close
+                {{t('notificationEditor.close')}}
               </v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
         <v-dialog v-model="showNotificationDeleteDialog" max-width="500px">
           <v-card>
-            <v-card-title class="text-h5">Are you sure you want to delete this Notification?</v-card-title>
+            <v-card-title class="text-h5">{{t('notificationEditor.delete')}}</v-card-title>
 
             <v-card-actions>
               <v-spacer />
-              <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>
-              <v-btn color="blue-darken-1" variant="text" @click="notificationDeleteItemOk">OK</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{t('notificationEditor.cancel')}}</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="notificationDeleteItemOk">{{t('notificationEditor.ok')}}</v-btn>
               <v-spacer />
             </v-card-actions>
           </v-card>

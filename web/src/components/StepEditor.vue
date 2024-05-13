@@ -3,6 +3,8 @@ import { IMashStep, defaultMashStep } from '@/interfaces/IMashStep';
 import { mdiDelete, mdiPencil } from '@mdi/js';
 import { useAppStore } from '@/store/app';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const appStore = useAppStore();
 
@@ -27,13 +29,13 @@ watch(() => props.allowNew, () => {
 
 // Steps
 const tableStepsHeaders = ref<Array<any>>([
-  { title: 'Index', key: 'index', align: 'start' },
-  { title: 'Name', key: 'name', align: 'start' },
-  { title: `Temperature ${appStore.tempUnit}`, key: 'temperature', align: 'end' },
-  { title: 'Step Time (min)', key: 'stepTime', align: 'end' },
-  { title: 'Extend Step Time if Needed', key: 'extendStepTimeIfNeeded', align: 'end' },
-  { title: 'Hold Time (min)', key: 'time', align: 'end' },
-  { title: 'Actions', key: 'actions', sortable: false },
+  { title: t('stepEditor.index'), key: 'index', align: 'start' },
+  { title: t('stepEditor.name'), key: 'name', align: 'start' },
+  { title: `${t('stepEditor.temperature')} ${appStore.tempUnit}`, key: 'temperature', align: 'end' },
+  { title: t('stepEditor.step_time'), key: 'stepTime', align: 'end' },
+  { title: t('stepEditor.extend_step_time'), key: 'extendStepTimeIfNeeded', align: 'end' },
+  { title: t('stepEditor.hold_time'), key: 'time', align: 'end' },
+  { title: t('stepEditor.actions'), key: 'actions', sortable: false },
 ]);
 const sortStepsBy = ref<Array<any>>([{ key: 'index', order: 'asc' }]);
 
@@ -93,34 +95,34 @@ const stepDeleteItemOk = async () => {
         <v-toolbar-title>{{ props.label }}</v-toolbar-title>
         <v-spacer />
         <v-btn color="secondary" variant="outlined" class="mr-5" v-if="allowNew" @click="newStep()">
-          New Step
+          {{t('stepEditor.new_step')}}
         </v-btn>
 
         <v-dialog v-model="showStepDialog" max-width="500px">
           <v-card>
             <v-toolbar density="compact" color="dialog-header">
-              <v-toolbar-title>Edit</v-toolbar-title>
+              <v-toolbar-title>{{t('stepEditor.edit')}}</v-toolbar-title>
             </v-toolbar>
 
             <v-card-text>
               <v-container>
                 <v-row>
-                  <v-text-field type="number" v-model.number="editingStep.index" label="Index" />
+                  <v-text-field type="number" v-model.number="editingStep.index" :label='t("stepEditor.index")' />
                 </v-row>
                 <v-row>
-                  <v-text-field v-model="editingStep.name" label="Name" />
+                  <v-text-field v-model="editingStep.name" :label='t("stepEditor.name")' />
                 </v-row>
                 <v-row>
-                  <v-text-field type="number" v-model.number="editingStep.temperature" :label="`Temperature ${appStore.tempUnit}`" />
+                  <v-text-field type="number" v-model.number="editingStep.temperature" :label="`${t('stepEditor.temperature')} ${appStore.tempUnit}`" />
                 </v-row>
                 <v-row>
-                  <v-text-field type="number" v-model.number="editingStep.stepTime" label="Step Time (min)" />
+                  <v-text-field type="number" v-model.number="editingStep.stepTime" :label='t("stepEditor.step_time")' />
                 </v-row>
                 <v-row>
-                  <v-checkbox v-model="editingStep.extendStepTimeIfNeeded" label="Extend Step Time if Needed" />
+                  <v-checkbox v-model="editingStep.extendStepTimeIfNeeded" :label='t("stepEditor.extend_step_time")' />
                 </v-row>
                 <v-row>
-                  <v-text-field type="number" v-model.number="editingStep.time" label="Hold Time (min)" />
+                  <v-text-field type="number" v-model.number="editingStep.time" :label='t("stepEditor.hold_time")'/>
                 </v-row>
               </v-container>
             </v-card-text>
@@ -128,18 +130,18 @@ const stepDeleteItemOk = async () => {
             <v-card-actions>
               <v-spacer />
               <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
-                Close
+                {{ t('stepEditor.close') }}
               </v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
         <v-dialog v-model="showStepDeleteDialog" max-width="500px">
           <v-card>
-            <v-card-title class="text-h5">Are you sure you want to delete this Step?</v-card-title>
+            <v-card-title class="text-h5">{{ t('stepEditor.delete') }}</v-card-title>
             <v-card-actions>
               <v-spacer />
-              <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">Cancel</v-btn>
-              <v-btn color="blue-darken-1" variant="text" @click="stepDeleteItemOk">OK</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{ t('stepEditor.cancel') }}</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="stepDeleteItemOk">{{ t('stepEditor.ok') }}</v-btn>
               <v-spacer />
             </v-card-actions>
           </v-card>

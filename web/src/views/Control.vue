@@ -15,6 +15,8 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Line } from 'vue-chartjs';
 import { INotification } from '@/interfaces/INotification';
 import { useClientStore } from '@/store/client';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const webConn = inject<WebConn>('webConn');
 
@@ -264,7 +266,7 @@ const chartData = computed(() => {
 
   let datasets = [
     {
-      label: `Control/Avg ${appStore.tempUnit}`,
+      label: `${t('control.avg')} ${appStore.tempUnit}`,
       backgroundColor: 'rgba(255, 255, 255, 0.7)',
       borderColor: 'rgba(255, 255, 255, 0.9)',
       lineTension: 0,
@@ -274,7 +276,7 @@ const chartData = computed(() => {
       data: realData,
     },
     {
-      label: `Target ${appStore.tempUnit}`,
+      label: `${t('control.target')} ${appStore.tempUnit}`,
       backgroundColor: 'rgba(0, 158, 85, 0.3)',
       borderColor: 'rgba(0, 158, 85, 0.9)',
       lineTension: 0,
@@ -599,7 +601,7 @@ const chartOptions = computed<any>(() => {
       xAxis: {
         title: {
           display: true,
-          text: 'Time',
+          text: t('control.time'),
           color: '#ffffff',
         },
         type: 'time',
@@ -699,65 +701,59 @@ const displayStatus = computed(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="displayStatus" readonly label="Status" />
+          <v-text-field v-model="displayStatus" readonly :label="$t('control.status')" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="temperature" readonly :label="`Temperature (${appStore.tempUnit})`" />
+          <v-text-field v-model="temperature" readonly :label="`${$t('control.temperature')} (${appStore.tempUnit})`" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperature" readonly :label="`Target (${appStore.tempUnit})`" />
+          <v-text-field v-model="targetTemperature" readonly
+            :label="`${$t('control.target')} (${appStore.tempUnit})`" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperatureSet" type="number" :label="`Set Target (${appStore.tempUnit})`" />
+          <v-text-field v-model="targetTemperatureSet" type="number"
+            :label="`${$t('control.set_target')} (${appStore.tempUnit})`" />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-select label="Mash/Boil Schedule" :readonly="status !== 'Idle'" v-model="selectedMashSchedule" :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules" :clearable="status === 'Idle'" return-object />
+          <v-select :label="$t('control.mashSchedule')" :readonly="status !== 'Idle'" v-model="selectedMashSchedule"
+            :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules"
+            :clearable="status === 'Idle'" return-object />
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4" block @click="start"> Start </v-btn>
+          <v-btn color="success" class="mt-4" block @click="start"> {{ $t('control.start') }} </v-btn>
 
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="outputPercent" readonly label="Output (%)" />
+          <v-text-field v-model="outputPercent" readonly :label="`${$t('control.output')} (%)`" />
         </v-col>
 
       </v-row>
       <v-row>
         <v-col cols="12" md="3" />
         <v-col cols="12" md="3">
-          <v-btn color="error" class="mt-4" block @click="stop"> Stop </v-btn> </v-col>
+          <v-btn color="error" class="mt-4" block @click="stop"> {{ $t('control.stop') }} </v-btn> </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model.number="manualOverrideOutput" type="number" label="Override Output (%)" readonly />
+          <v-text-field v-model.number="manualOverrideOutput" type="number" :label="$t('control.override_output')"
+            readonly />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field type="number" label="Set Override Output (%)" @change="changeOverrideOutput" />
+          <v-text-field type="number" :label="$t('control.set_override_output')" @change="changeOverrideOutput" />
         </v-col>
       </v-row>
-      <div class="text-subtitle-2 mt-4 mb-2">Stir/Pump Control</div>
+      <div class="text-subtitle-2 mt-4 mb-2">{{ $t('control.stir_control') }}</div>
 
       <v-divider :thickness="7" />
       <v-row>
 
         <v-col cols="12" md="">
 
-          <v-range-slider
-            v-model="stirInterval"
-            label="Interval (min)"
-            step="1"
-            thumb-label="always"
+          <v-range-slider v-model="stirInterval" :label="$t('control.interval')" step="1" thumb-label="always"
             :max="stirMax">
             <template v-slot:append>
-              <v-text-field
-                v-model.number="stirMax"
-                hide-details
-                single-line
-                type="number"
-                variant="outlined"
-                style="width: 70px"
-                density="compact"
-                label="Timespan (min)" />
+              <v-text-field v-model.number="stirMax" hide-details single-line type="number" variant="outlined"
+                style="width: 70px" density="compact" :label="$t('control.timespan')" />
             </template>
           </v-range-slider>
 
@@ -765,13 +761,13 @@ const displayStatus = computed(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="stirStatus" readonly label="Status" />
+          <v-text-field v-model="stirStatus" readonly :label="$t('control.status')" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4" block @click="startStir"> Start </v-btn>
+          <v-btn color="success" class="mt-4" block @click="startStir"> {{ $t('control.start') }} </v-btn>
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="error" class="mt-4" block @click="stopStir"> Stop </v-btn>
+          <v-btn color="error" class="mt-4" block @click="stopStir"> {{ $t('control.stop') }} </v-btn>
         </v-col>
         <v-col cols="12" md="3" />
       </v-row>

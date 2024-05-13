@@ -4,13 +4,15 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { IClientSettings } from '@/interfaces/IClientSettings';
 import { useClientStore } from '@/store/client';
 import { ITitleValue } from '@/interfaces/ITitleValue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const clientStore = useClientStore();
 
 // copy settings, we don't want them applied until save is clicked
 const clientSettings = ref<IClientSettings>({ ...clientStore.clientSettings });
 
-const testMessage = ref<string>('Hi this is a test message');
+const testMessage = ref<string>(t('clientsettings.test_message2'));
 const alert = ref<string>('');
 const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
@@ -83,12 +85,12 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-switch v-model="clientSettings.beepEnabled" label="Beep" color="green" />
+          <v-switch v-model="clientSettings.beepEnabled" :label="$t('clientsettings.beep')" color="green" />
         </v-col>
         <v-col cols="12" md="9">
           <v-slider
             v-model="clientSettings.beepVolume"
-            label="Beep Volume (%)"
+            :label="$t('clientsettings.beep_volume')"
             step="0.05"
             thumb-label="always"
             max=1
@@ -98,12 +100,12 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-switch v-model="clientSettings.speechEnabled" label="Speech" color="green" />
+          <v-switch v-model="clientSettings.speechEnabled" :label="$t('clientsettings.speech')" color="green" />
         </v-col>
         <v-col cols="12" md="9">
           <v-slider
             v-model="clientSettings.speechVolume"
-            label="Speech Volume (%)"
+            :label="$t('clientsettings.speech_volume')"
             step="0.05"
             thumb-label="always"
             max=1
@@ -113,7 +115,7 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12">
-          <v-select label="Voice" v-model="clientSettings.voiceUri" :filled="voices" :items="voices" />
+          <v-select :label="$t('clientsettings.voice')" v-model="clientSettings.voiceUri" :filled="voices" :items="voices" />
         </v-col>
       </v-row>
 
@@ -121,7 +123,7 @@ const save = async () => {
         <v-col cols="12">
           <v-slider
             v-model="clientSettings.speechRate"
-            label="Speech Rate"
+            :label="$t('clientsettings.speech_rate')"
             step="0.05"
             thumb-label="always"
             max=2
@@ -131,23 +133,23 @@ const save = async () => {
 
       <v-row>
         <v-col cols="9">
-          <v-text-field label="Test Message" v-model="testMessage" />
+          <v-text-field :label="$t('clientsettings.test_message')" v-model="testMessage" />
         </v-col>
         <v-col cols="3">
-          <v-btn variant="outlined" color="success" class="mt-4 mr-2" @click="testVoice"> Test </v-btn>
+          <v-btn variant="outlined" color="success" class="mt-4 mr-2" @click="testVoice"> {{ $t('clientsettings.test') }} </v-btn>
         </v-col>
       </v-row>
 
       <v-row>
         <v-col cols="12">
-          <v-switch color="grey" v-model="clientSettings.darkMode" label="Dark Mode"></v-switch>
+          <v-switch color="grey" v-model="clientSettings.darkMode" :label="$t('clientsettings.darkMode')"></v-switch>
         </v-col>
 
       </v-row>
 
       <v-row>
         <v-col cols="12">
-          <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ $t('clientsettings.save') }} </v-btn>
         </v-col>
       </v-row>
 

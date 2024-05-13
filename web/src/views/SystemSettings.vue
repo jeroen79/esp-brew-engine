@@ -3,11 +3,14 @@ import { mdiHelp } from '@mdi/js';
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import WebConn from '@/helpers/webConn';
 import { ISystemSettings } from '@/interfaces/ISystemSettings';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const webConn = inject<WebConn>('webConn');
 
 const systemSettings = ref<ISystemSettings>({ // add default value, vue has issues with null values atm
   onewirePin: 0,
+  thermistorPin: 0,
   stirPin: 0,
   buzzerPin: 0,
   buzzerTime: 2,
@@ -18,8 +21,8 @@ const systemSettings = ref<ISystemSettings>({ // add default value, vue has issu
 
 // is same as enum TemperatureScale, but this wel never change, converting enum to options would be wastefull
 const temperatureScales = [
-  { title: 'Celsius', value: 0 },
-  { title: 'Fahrenheit', value: 1 },
+  { title: t('systemSettings.celsius'), value: 0 },
+  { title: t('systemSettings.fahrenheit'), value: 1 },
 ];
 
 const alert = ref<string>('');
@@ -128,7 +131,7 @@ const factoryReset = async () => {
 
 const scaleChanged = () => {
   alertType.value = 'info';
-  alert.value = 'Mash Schedules are not automaticly converted, please update then manualy!';
+  alert.value = t('systemSettings.mash_cant_be_converted');
 };
 
 </script>
@@ -140,9 +143,9 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field requierd v-model.number="systemSettings.onewirePin" label="Onewire Pin Nr">
+          <v-text-field requierd v-model.number="systemSettings.onewirePin" :label='t("systemSettings.onewire_pin")'>
             <template v-slot:append>
-              <v-tooltip text="IO Number for OneWire">
+              <v-tooltip :text='t("systemSettings.onewire_pin_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -154,9 +157,9 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model.number="systemSettings.stirPin" label="Stir/Pump Pin Nr">
+          <v-text-field v-model.number="systemSettings.stirPin" :label='t("systemSettings.stir_pin")'>
             <template v-slot:append>
-              <v-tooltip text="IO Number for Stir/Pump (Optional), Set to 0 to disable">
+              <v-tooltip :text='t("systemSettings.stir_pin_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -168,9 +171,9 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model.number="systemSettings.buzzerPin" label="Buzzer Pin Nr">
+          <v-text-field v-model.number="systemSettings.buzzerPin" :label='t("systemSettings.buzzer_pin")'>
             <template v-slot:append>
-              <v-tooltip text="IO Number for Buzzer (Optional), Set to 0 to disable">
+              <v-tooltip :text='t("systemSettings.buzzer_pin_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -179,9 +182,9 @@ const scaleChanged = () => {
           </v-text-field>
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model.number="systemSettings.buzzerTime" label="Buzzer Time(s)">
+          <v-text-field v-model.number="systemSettings.buzzerTime" :label='t("systemSettings.buzzer_time")'>
             <template v-slot:append>
-              <v-tooltip text="Time in seconds to buzz">
+              <v-tooltip :text='t("systemSettings.buzzer_time_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -193,9 +196,9 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-checkbox v-model="systemSettings.invertOutputs" label="Invert Outputs">
+          <v-checkbox v-model="systemSettings.invertOutputs" :label='t("systemSettings.invert")'>
             <template v-slot:append>
-              <v-tooltip text="When enabled output logic is reverserd 0 <=> 1 this might me needed for some boards">
+              <v-tooltip :text='t("systemSettings.invert_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -207,9 +210,9 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="systemSettings.mqttUri" placeholder="mqtt://user:password@192.168.0.1:1883" label="MQTT Uri">
+          <v-text-field v-model="systemSettings.mqttUri" placeholder="mqtt://user:password@192.168.0.1:1883" :label='t("systemSettings.mqtt_uri")'>
             <template v-slot:append>
-              <v-tooltip text="Mqtt Uri, this must start with mqtt:// and can contail an optional username/password. if you use a ipv6 address ->  mqtt://user:password@[0001:0001:0001:0001:0001:0001:0001:0001]:1883">
+              <v-tooltip :text='t("systemSettings.mqtt_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
                 </template>
@@ -221,13 +224,13 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-select label="Temperature Scale" v-model="systemSettings.temperatureScale" :items="temperatureScales" @blur="scaleChanged" />
+          <v-select :label='t("systemSettings.temperature_scale")' v-model="systemSettings.temperatureScale" :items="temperatureScales" @blur="scaleChanged" />
         </v-col>
       </v-row>
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="save"> Save </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="save">{{t("systemSettings.save")}} </v-btn>
         </v-col>
       </v-row>
 
@@ -237,19 +240,19 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-btn name="reboot" color="warning" variant="outlined" class="mt-4 mr-2" @click="reboot"> Reboot </v-btn>
+          <v-btn name="reboot" color="warning" variant="outlined" class="mt-4 mr-2" @click="reboot"> {{t("systemSettings.reboot")}} </v-btn>
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn name="factoryreset" color="error" variant="outlined" class="mt-4 mr-2" @click="dialogFactoryReset = true"> Factory Reset </v-btn>
+          <v-btn name="factoryreset" color="error" variant="outlined" class="mt-4 mr-2" @click="dialogFactoryReset = true"> {{t("systemSettings.factory_reset")}} </v-btn>
 
           <v-dialog v-model="dialogFactoryReset" max-width="500px">
             <v-card>
-              <v-card-title class="text-h5">Are you sure?</v-card-title>
-              <v-card-text>Are you sure you want te reset all device settings? <br /> This will also include wifi settings, you will have to reconnect!</v-card-text>
+              <v-card-title class="text-h5">{{t("systemSettings.factory_reset_title")}}</v-card-title>
+              <v-card-text>{{t("systemSettings.factory_reset_text")}}</v-card-text>
               <v-card-actions>
                 <v-spacer />
-                <v-btn variant="outlined" @click="dialogFactoryReset = false">No</v-btn>
-                <v-btn variant="outlined" color="red" @click="factoryReset">Yes Wipe All Data</v-btn>
+                <v-btn variant="outlined" @click="dialogFactoryReset = false">{{t("systemSettings.factory_reset_no")}}</v-btn>
+                <v-btn variant="outlined" color="red" @click="factoryReset">{{t("systemSettings.factory_reset_yes")}}</v-btn>
                 <v-spacer />
               </v-card-actions>
             </v-card>
@@ -259,9 +262,9 @@ const scaleChanged = () => {
 
       <v-row>
         <v-col cols="12" md="12">
-          <label for="recovery">To update firmware the device first needs to be booted into recovery mode</label>
+          <label for="recovery">{{t("systemSettings.recovery_text")}}</label>
           <br />
-          <v-btn name="recovery" color="warning" variant="outlined" class="mt-4 mr-2" @click="recovery"> Boot into recovery </v-btn>
+          <v-btn name="recovery" color="warning" variant="outlined" class="mt-4 mr-2" @click="recovery"> {{t("systemSettings.recovery")}} </v-btn>
         </v-col>
       </v-row>
     </v-form>

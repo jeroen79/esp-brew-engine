@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n({ useScope: 'global' })
 
 const ogTypes = ['Brix', 'Gravity'];
 const ogType = ref('Brix');
@@ -121,57 +123,56 @@ const abvPrimedRounded = computed(() => Math.round(abvPrimed.value * 100) / 100)
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="ogInput" label="Original Gravity" />
+          <v-text-field v-model="ogInput" :label='t("refractometer.original_gravity")' />
         </v-col>
         <v-col cols="12" md="3">
-          <v-select v-model="ogType" :items="ogTypes" item-text="caption" item-value="key" label="Select" />
+          <v-select v-model="ogType" :items="ogTypes" item-text="caption" item-value="key" :label='t("refractometer.select")' />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="ogPlatoRouned" readonly label="Original Gravity (Plato)" />
+          <v-text-field v-model="ogPlatoRouned" readonly :label='t("refractometer.original_gravity_plato")' />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="ogSgRouned" label="Original Gravity (SG)" />
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="wortCorrectionFactor" label="Wort Correction Factor" />
+          <v-text-field v-model="ogSgRouned" :label='t("refractometer.original_gravity_sg")' />
         </v-col>
       </v-row>
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="fgInput" label="Final Gravity (Brix)" />
+          <v-text-field v-model="wortCorrectionFactor" :label='t("refractometer.wortCorrectionFactor")' />
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field v-model="fgInput" :label='t("refractometer.final_gravity_brix")' />
         </v-col>
 
         <v-col cols="12" md="3" />
 
         <v-col cols="12" md="3">
-          <v-text-field v-model="fgPlatoRounded" readonly label="Final Gravity (Plato)" />
+          <v-text-field v-model="fgPlatoRounded" readonly :label='t("refractometer.final_gravity_plato")' />
         </v-col>
 
         <v-col cols="12" md="3">
-          <v-text-field v-model="fgRounded" readonly label="Final Gravity (SG)" />
+          <v-text-field v-model="fgRounded" readonly :label='t("refractometer.final_gravity_sg")' />
         </v-col>
       </v-row>
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="abvRounded" readonly label="ABV" />
+          <v-text-field v-model="abvRounded" readonly :label='t("refractometer.abv")' />
         </v-col>
 
         <v-col cols="12" md="3">
-          <v-select v-model="abvCalcMethod" :items="abvCalcMethods" item-text="caption" item-value="key" label="Method" />
+          <v-select v-model="abvCalcMethod" :items="abvCalcMethods" item-text="caption" item-value="key" :label='t("refractometer.method")' />
         </v-col>
 
       </v-row>
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-text-field v-model="abvPrimedRounded" readonly label="ABV With Priming Sugar (approx)" />
+          <v-text-field v-model="abvPrimedRounded" readonly :label='t("refractometer.abv_sugar")' />
         </v-col>
-
       </v-row>
 
     </v-form>
