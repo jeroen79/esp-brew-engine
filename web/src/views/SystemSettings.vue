@@ -10,7 +10,6 @@ const webConn = inject<WebConn>('webConn');
 
 const systemSettings = ref<ISystemSettings>({ // add default value, vue has issues with null values atm
   onewirePin: 0,
-  thermistorPin: 0,
   stirPin: 0,
   buzzerPin: 0,
   buzzerTime: 2,
