@@ -1,5 +1,6 @@
 export interface IApiResult {
   success: boolean,
   data: any,
-  message: string
+  message: string,
+  serverTime: number
 }
