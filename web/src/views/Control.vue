@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { mdiCheckCircle, mdiCloseCircle } from '@mdi/js';
 import { CategoryScale, Chart as ChartJS, Filler, Legend, LineElement, LinearScale, PointElement, TimeScale, Title, Tooltip } from 'chart.js';
 import TemperatureScale from '@/enums/TemperatureScale';
 import WebConn from '@/helpers/webConn';
@@ -28,8 +29,9 @@ const stirStatus = ref<string>();
 const temperature = ref<number>();
 const outputPercent = ref<number>();
 const targetTemperature = ref<number>();
-const targetTemperatureSet = ref<number>();
+const targetTemperatureChanged = ref<boolean>(false);
 const manualOverrideOutput = ref<number | null>(null);
+const manualOverrideOutputChanged= ref<boolean>(false);
 const inOverTime = ref<boolean>(false);
 
 const intervalId = ref<any>();
@@ -56,6 +58,8 @@ const selectedMashSchedule = ref<IMashSchedule | null>(null);
 
 const currentTemps = ref<Array<ITempLog>>([]);
 
+const serverTime = ref<number>();
+const serverTimeDelta = ref<number>();
 const startDateTime = ref<number>();
 const speechVoice = ref<SpeechSynthesisVoice | null>(null);
 
@@ -188,6 +192,13 @@ const chartAnnotations = computed(() => {
     annotationData.push(notificationPoint);
   });
 
+  // sync remote and local time
+  if(serverTimeDelta.value != null){
+    annotationData.forEach((dataset) => {
+      dataset.xMin+= serverTimeDelta.value;
+      dataset.xMax+= serverTimeDelta.value;
+    });
+  }
   return annotationData;
 });
 
@@ -245,7 +256,7 @@ const chartData = computed(() => {
   // also add the current value, out controller doesn't send identical temp point for performance reasons
   if (lastGoodDataDate.value != null && temperature.value != null) {
     realData.push({
-      x: Date.now(),
+      x: serverTime.value! * 1000,
       y: temperature.value,
     });
   }
@@ -306,6 +317,15 @@ const chartData = computed(() => {
 
   datasets = [...datasets, ...extraDataSets];
 
+  // sync remote and local time
+  if(serverTimeDelta.value != null){
+    datasets.forEach((dataset) => {
+      dataset.data.forEach((item) => {
+        item.x += serverTimeDelta.value;
+      })
+    });
+  }
+
   return {
     labels: [],
     datasets,
@@ -327,7 +347,7 @@ const setNotifications = (newNotifications: Array<INotification>) => {
 
   //not done, or fist start
   newNotifications.filter((n) => n.done === false || notificationFirstStart.value == true).forEach((notification) => {
-    const timeTill = (notification.timePoint * 1000) - Date.now();
+    const timeTill = (notification.timePoint-serverTime.value!)*1000;
     const timeoutId = window.setTimeout(() => {
       showNotificaton(notification, true);
     }, timeTill);
@@ -353,9 +373,17 @@ const getRunningSchedule = async () => {
   }
 
   executionSteps.value = apiResult.data.steps;
+  setServerTime(apiResult.serverTime);
   setNotifications(apiResult.data.notifications as Array<INotification>);
 
   lastRunningVersion.value = apiResult.data.version;
+};
+
+const setServerTime= (value: number) => {
+  if(value != null){
+    serverTimeDelta.value =  Date.now() - (value*1000);
+    serverTime.value = value;
+  }
 };
 
 const getData = async () => {
@@ -371,13 +399,20 @@ const getData = async () => {
   if (apiResult === undefined || apiResult.success === false) {
     return;
   }
-
+  setServerTime(apiResult.serverTime);
   status.value = apiResult.data.status;
   stirStatus.value = apiResult.data.stirStatus;
   temperature.value = apiResult.data.temp;
   outputPercent.value = apiResult.data.output;
-  manualOverrideOutput.value = apiResult.data.manualOverrideOutput;
-  targetTemperature.value = apiResult.data.targetTemp;
+  
+  if(!manualOverrideOutputChanged.value){
+    manualOverrideOutput.value = apiResult.data.manualOverrideOutput;  
+  }
+  
+  if(!targetTemperatureChanged.value){
+    targetTemperature.value = apiResult.data.targetTemp;
+  }
+
   lastGoodDataDate.value = apiResult.data.lastLogDateTime;
   inOverTime.value = apiResult.data.inOverTime;
   const serverRunningVersion = apiResult.data.runningVersion;
@@ -400,7 +435,7 @@ const getData = async () => {
   rawData.value = tempData;
 
   // if there are more then 1 sensor we also get the raw data per sensor (whitout history)
-  const timestampSeconds = Math.floor(Date.now() / 1000);
+  const timestampSeconds = serverTime.value!;
 
   if (apiResult.data.temps !== null) {
     apiResult.data.temps.forEach((t: any) => {
@@ -447,12 +482,12 @@ const getData = async () => {
 };
 
 const changeTargetTemp = async () => {
-  if (targetTemperatureSet.value === undefined) {
+  if (targetTemperature.value === undefined) {
     return;
   }
 
   // for some reason value is still a string while ref defined as number, bug in vue?
-  const forceInt = parseInt(targetTemperatureSet.value?.toString(), 10);
+  const forceInt = parseInt(targetTemperature.value?.toString(), 10);
 
   const requestData = {
     command: 'SetTemp',
@@ -463,14 +498,15 @@ const changeTargetTemp = async () => {
 
   webConn?.doPostRequest(requestData);
   // todo capture error
+  targetTemperatureChanged.value = false;
 };
 
-const changeOverrideOutput = (event: any) => {
-  if (event.target.value === undefined) {
+const changeOverrideOutput = () => {
+  if (manualOverrideOutput.value === null) {
     return;
   }
 
-  const forceInt = parseInt(event.target.value.toString(), 10);
+  const forceInt = parseInt(manualOverrideOutput.value.toString(), 10);
 
   const requestData = {
     command: 'SetOverrideOutput',
@@ -481,11 +517,12 @@ const changeOverrideOutput = (event: any) => {
 
   webConn?.doPostRequest(requestData);
   // todo capture error
+
+  manualOverrideOutputChanged.value = false;
 };
 
 const setStartDateNow = () => {
-  const now = new Date();
-  startDateTime.value = Math.floor(now.getTime() / 1000);
+  startDateTime.value = serverTime.value;
 };
 
 const start = async () => {
@@ -511,6 +548,7 @@ const start = async () => {
   // todo capture error
   // reset out running version so we can definitly get the new schedule
   lastRunningVersion.value = 0;
+  getData();
 };
 
 const stop = async () => {
@@ -523,6 +561,7 @@ const stop = async () => {
 
   webConn?.doPostRequest(requestData);
   // todo capture error
+  getData();
 };
 
 const startStir = async () => {
@@ -537,6 +576,7 @@ const startStir = async () => {
 
   await webConn?.doPostRequest(requestData);
   // todo capture error
+  getData();
 };
 
 const stopStir = async () => {
@@ -547,11 +587,9 @@ const stopStir = async () => {
 
   webConn?.doPostRequest(requestData);
   // todo capture error
+  getData();
 };
 
-const debounceTargetTemp = debounce(changeTargetTemp, 1000);
-
-watch(() => targetTemperatureSet.value, debounceTargetTemp);
 
 watch(selectedMashSchedule, () => {
   // reset all our data so we can start over
@@ -679,76 +717,85 @@ onBeforeUnmount(() => {
           <v-text-field v-model="temperature" readonly :label="`${$t('control.temperature')} (${appStore.tempUnit})`" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperature" readonly :label="`${$t('control.target')} (${appStore.tempUnit})`" />
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperatureSet" type="number" :label="`${$t('control.set_target')} (${appStore.tempUnit})`" />
-        </v-col>
+          <v-text-field v-model="outputPercent" readonly :label="`${$t('control.output')} (%)`" />
+        </v-col> 
       </v-row>
       <v-row>
         <v-col cols="12" md="3">
           <v-select :label="$t('control.mashSchedule')" :readonly="status !== 'Idle'" v-model="selectedMashSchedule" :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules" :clearable="status === 'Idle'" return-object />
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4" block @click="start"> {{ $t('control.start') }} </v-btn>
-
+          <div style="display: flex;align-items: center;">
+            <v-text-field v-model="targetTemperature" type="number" :label="`${$t('control.target')} (${appStore.tempUnit})`" @input="targetTemperatureChanged=true" />
+            <div style="width: 70px">
+              <v-btn v-show="targetTemperatureChanged" size="auto" density="compact" color="success" @click="changeTargetTemp()">
+                <v-icon >{{ mdiCheckCircle }}</v-icon>
+              </v-btn>
+              <v-btn v-show="targetTemperatureChanged" size="auto" density="compact" color="error" @click="targetTemperature = undefined; targetTemperatureChanged=false; getData();">
+                <v-icon >{{ mdiCloseCircle }}</v-icon>
+              </v-btn>
+            </div>              
+          </div>                    
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="outputPercent" readonly :label="`${$t('control.output')} (%)`" />
+          <div style="display: flex;align-items: center;">
+            <v-text-field v-model.number="manualOverrideOutput" type="number" :label="$t('control.override_output')" @input="manualOverrideOutputChanged=true" />
+            <div style="width: 70px">
+              <v-btn v-show="manualOverrideOutputChanged" size="auto" density="compact" color="success" @click="changeOverrideOutput()">
+                <v-icon >{{ mdiCheckCircle }}</v-icon>
+              </v-btn>
+              <v-btn v-show="manualOverrideOutputChanged" size="auto" density="compact" color="error" @click="manualOverrideOutput = null; manualOverrideOutputChanged=false; getData();">
+                <v-icon >{{ mdiCloseCircle }}</v-icon>
+              </v-btn>
+            </div>
+          </div>
         </v-col>
 
       </v-row>
       <v-row>
-        <v-col cols="12" md="3" />
         <v-col cols="12" md="3">
-          <v-btn color="error" class="mt-4" block @click="stop"> {{ $t('control.stop') }} </v-btn> </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model.number="manualOverrideOutput" type="number" :label="$t('control.override_output')" readonly />
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field type="number" :label="$t('control.set_override_output')" @change="changeOverrideOutput" />
+          <v-btn v-if="status === 'Idle'" color="success" class="mt-4" block @click="start"> {{ $t('control.start') }} </v-btn>
+          <v-btn v-else color="error" class="mt-4" block @click="stop"> {{ $t('control.stop') }} </v-btn>
         </v-col>
       </v-row>
-      <div class="text-subtitle-2 mt-4 mb-2">{{ $t('control.stir_control') }}</div>
+      <div v-if="stirStatus !== 'Disabled'">
+        <div class="text-subtitle-2 mt-4 mb-2">{{ $t('control.stir_control') }}</div>
+        <v-divider :thickness="7" />
+        <v-row>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="stirStatus" readonly :label="$t('control.status')" />
+          </v-col>
 
-      <v-divider :thickness="7" />
-      <v-row>
+          <v-col cols="12" md="">
+            <v-range-slider
+              v-model="stirInterval"
+              :label="$t('control.interval')"
+              step="1"
+              thumb-label="always"
+              :max="stirMax">
+              <template v-slot:append>
+                <v-text-field
+                  v-model.number="stirMax"
+                  hide-details
+                  single-line
+                  type="number"
+                  variant="outlined"
+                  style="width: 70px"
+                  density="compact"
+                  :label="$t('control.timespan')" />
+              </template>
+            </v-range-slider>
 
-        <v-col cols="12" md="">
-
-          <v-range-slider
-            v-model="stirInterval"
-            :label="$t('control.interval')"
-            step="1"
-            thumb-label="always"
-            :max="stirMax">
-            <template v-slot:append>
-              <v-text-field
-                v-model.number="stirMax"
-                hide-details
-                single-line
-                type="number"
-                variant="outlined"
-                style="width: 70px"
-                density="compact"
-                :label="$t('control.timespan')" />
-            </template>
-          </v-range-slider>
-
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="stirStatus" readonly :label="$t('control.status')" />
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4" block @click="startStir"> {{ $t('control.start') }} </v-btn>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-btn color="error" class="mt-4" block @click="stopStir"> {{ $t('control.stop') }} </v-btn>
-        </v-col>
-        <v-col cols="12" md="3" />
-      </v-row>
+          </v-col>
+        </v-row>
+        <v-row>        
+          <v-col cols="12" md="3">
+            <v-btn v-if="stirStatus === 'Idle'" color="success" class="mt-4" block @click="startStir"> {{ $t('control.start') }} </v-btn>        
+            <v-btn v-else color="error" class="mt-4" block @click="stopStir"> {{ $t('control.stop') }} </v-btn>
+          </v-col>
+          <v-col cols="12" md="3" />
+        </v-row>
+        </div>      
     </v-form>
   </v-container>
 </template>

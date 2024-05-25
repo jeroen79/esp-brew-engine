@@ -2025,6 +2025,8 @@ string BrewEngine::processCommand(const string &payLoad)
 	{
 		jResultPayload["message"] = message;
 	}
+	
+	jResultPayload["serverTime"] = time(0);
 
 	string resultPayload = jResultPayload.dump();
 

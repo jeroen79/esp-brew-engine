@@ -32,6 +32,7 @@ export default class WebConn {
           success: false,
           data: null,
           message: error,
+          serverTime: 0,
         };
         reject(apiResult);
       });
