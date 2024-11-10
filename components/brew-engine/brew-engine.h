@@ -113,10 +113,11 @@ private:
     httpd_handle_t server;
 
     TemperatureScale temperatureScale = Celsius;
-    float temperature = 0;                         // average temp, we use float beceasue ds18b20_get_temperature returns float, no point in going more percise
-    float targetTemperature = 0;                   // reuqueste temp
-    std::map<uint64_t, float> currentTemperatures; // map with last temp for each sensor
-    std::map<time_t, int8_t> tempLog;              // integer log of averages, only used to show running history on web
+    float temperature = 0;                                         // average temp, we use float beceasue ds18b20_get_temperature returns float, no point in going more percise
+    float targetTemperature = 0;                                   // requested temp
+    std::optional<float> overrideTargetTemperature = std::nullopt; // manualy overwritten temp
+    std::map<uint64_t, float> currentTemperatures;                 // map with last temp for each sensor
+    std::map<time_t, int8_t> tempLog;                              // integer log of averages, only used to show running history on web
 
     // pid
     uint8_t pidOutput = 0;

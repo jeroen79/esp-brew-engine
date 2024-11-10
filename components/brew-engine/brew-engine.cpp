@@ -838,7 +838,8 @@ void BrewEngine::start()
 	if (!this->controlRun)
 	{
 		this->controlRun = true;
-
+		this->inOverTime = false;
+		this->overrideTargetTemperature = std::nullopt;
 		// clear old temp log
 		this->tempLog.clear();
 
@@ -1559,8 +1560,15 @@ void BrewEngine::controlLoop(void *arg)
 
 			bool gotoNextStep = false;
 
-			// always set target
-			instance->targetTemperature = nextStep->temperature;
+			// set target when not overriden
+			if (instance->overrideTargetTemperature.has_value())
+			{
+				instance->targetTemperature = instance->overrideTargetTemperature.value();
+			}
+			else
+			{
+				instance->targetTemperature = nextStep->temperature;
+			}
 
 			uint secondsToGo = 0;
 			// if its smaller 0 is ok!
@@ -1595,6 +1603,8 @@ void BrewEngine::controlLoop(void *arg)
 				{
 					ESP_LOGI(TAG, "Going to next Step");
 					gotoNextStep = true;
+					// also reset override on step change
+					instance->overrideTargetTemperature = std::nullopt;
 				}
 
 				// else when in overtime just keep going until we reach temp
@@ -1766,6 +1776,7 @@ string BrewEngine::processCommand(const string &payLoad)
 			{"temp", (double)((int)(this->temperature * 10)) / 10}, // round float to 1 digit for display
 			{"temps", jCurrentTemps},
 			{"targetTemp", (double)((int)(this->targetTemperature * 10)) / 10}, // round float to 1 digit for display,
+			{"manualOverrideTargetTemp", nullptr},
 			{"output", this->pidOutput},
 			{"manualOverrideOutput", nullptr},
 			{"status", this->statusText},
@@ -1779,6 +1790,11 @@ string BrewEngine::processCommand(const string &payLoad)
 		if (this->manualOverrideOutput.has_value())
 		{
 			resultData["manualOverrideOutput"] = this->manualOverrideOutput.value();
+		}
+
+		if (this->overrideTargetTemperature.has_value())
+		{
+			resultData["manualOverrideTargetTemp"] = this->overrideTargetTemperature.value();
 		}
 	}
 	else if (command == "GetRunningSchedule")
@@ -1807,12 +1823,31 @@ string BrewEngine::processCommand(const string &payLoad)
 	else if (command == "SetTemp")
 	{
 
-		if (data["targetTemp"].is_number())
+		if (data["targetTemp"].is_null())
 		{
-			this->targetTemperature = (float)data["targetTemp"];
+			this->overrideTargetTemperature = std::nullopt;
+
+			// when not in a program also direclty set targtetemp
+			if (this->selectedMashScheduleName.empty() == true)
+			{
+				this->targetTemperature = 0;
+			}
+		}
+		else if (data["targetTemp"].is_number())
+		{
+
+			this->overrideTargetTemperature = (float)data["targetTemp"];
+
+			// when not in a program also direclty set targtetemp
+			if (this->selectedMashScheduleName.empty() == true)
+			{
+				this->targetTemperature = this->overrideTargetTemperature.value();
+			}
 		}
 		else
 		{
+			this->overrideTargetTemperature = std::nullopt;
+
 			message = "Incorrect data, integer or float expected!";
 			success = false;
 		}

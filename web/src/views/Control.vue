@@ -15,8 +15,8 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Line } from 'vue-chartjs';
 import { INotification } from '@/interfaces/INotification';
 import { useClientStore } from '@/store/client';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 
 const webConn = inject<WebConn>('webConn');
 
@@ -28,7 +28,7 @@ const stirStatus = ref<string>();
 const temperature = ref<number>();
 const outputPercent = ref<number>();
 const targetTemperature = ref<number>();
-const targetTemperatureSet = ref<number>();
+const manualOverrideTemperature = ref<number>();
 const manualOverrideOutput = ref<number | null>(null);
 const inOverTime = ref<boolean>(false);
 
@@ -61,6 +61,8 @@ const speechVoice = ref<SpeechSynthesisVoice | null>(null);
 
 const stirInterval = ref<Array<number>>([0, 3]);
 const stirMax = ref<number>(6);
+
+const focussedField = ref<string>('');
 
 const dynamicColor = () => {
   const r = Math.floor(Math.random() * 255);
@@ -117,12 +119,12 @@ const speakMessage = async (message: string) => {
 };
 
 const showNotificaton = async (notification: INotification, alert: boolean) => {
-  //currently in overtime don't need to show, updated notifications will come after overtime
+  // Currently in overtime don't need to show, updated notifications will come after overtime
   if (inOverTime.value) {
     return;
   }
 
-  //overtime status comes to slow so we get incorrect messages when notifications are right on the step time, we skip them id temp not reached
+  // Overtime status comes to slow so we get incorrect messages when notifications are right on the step time, we skip them id temp not reached
   if (targetTemperature.value != null && temperature.value != null) {
     if (targetTemperature.value - temperature.value > 0.5) {
       return;
@@ -339,18 +341,16 @@ const setNotifications = (newNotifications: Array<INotification>) => {
 
   const timeoutIds: Array<number> = [];
 
-  //notifications we have not show yet
+  // Notifications we have not show yet
   newNotifications.filter((n) => notificationsShown.value.includes(n.timePoint) === false).forEach((notification) => {
     const timeTill = (notification.timePoint * 1000) - Date.now();
-    //we do want past notification due to overtime, but these are verry short in the past! max 10 seconds
+    // We do want past notification due to overtime, but these are verry short in the past! max 10 seconds
     if (timeTill > -10000) {
       const timeoutId = window.setTimeout(() => {
         showNotificaton(notification, true);
       }, timeTill);
       timeoutIds.push(timeoutId);
     }
-
-
   });
 
   notificationTimeouts.value = timeoutIds;
@@ -395,6 +395,11 @@ const getData = async () => {
   temperature.value = apiResult.data.temp;
   outputPercent.value = apiResult.data.output;
   manualOverrideOutput.value = apiResult.data.manualOverrideOutput;
+
+  if (focussedField.value !== 'manualOverrideTemperature') {
+    manualOverrideTemperature.value = apiResult.data.manualOverrideTargetTemp;
+  }
+
   targetTemperature.value = apiResult.data.targetTemp;
   lastGoodDataDate.value = apiResult.data.lastLogDateTime;
   inOverTime.value = apiResult.data.inOverTime;
@@ -421,17 +426,17 @@ const getData = async () => {
   const timestampSeconds = Math.floor(Date.now() / 1000);
 
   if (apiResult.data.temps !== null) {
-    apiResult.data.temps.forEach((t: any) => {
+    apiResult.data.temps.forEach((te: any) => {
       // find record in templog and add
-      const foundRecord = currentTemps.value.find((ct: any) => ct.sensor === t.sensor);
+      const foundRecord = currentTemps.value.find((ct: any) => ct.sensor === te.sensor);
       if (foundRecord === undefined) {
         const newRecord: ITempLog = {
-          sensor: t.sensor,
+          sensor: te.sensor,
           color: dynamicColor(),
           temps: [
             {
               time: timestampSeconds,
-              temp: t.temp,
+              temp: te.temp,
             },
           ],
         };
@@ -441,7 +446,7 @@ const getData = async () => {
         foundRecord.temps.push(
           {
             time: timestampSeconds,
-            temp: t.temp,
+            temp: te.temp,
           },
         );
       }
@@ -465,12 +470,12 @@ const getData = async () => {
 };
 
 const changeTargetTemp = async () => {
-  if (targetTemperatureSet.value === undefined) {
+  if (manualOverrideTemperature.value === undefined) {
     return;
   }
 
   // for some reason value is still a string while ref defined as number, bug in vue?
-  const forceInt = parseInt(targetTemperatureSet.value?.toString(), 10);
+  const forceInt = parseInt(manualOverrideTemperature.value?.toString(), 10);
 
   const requestData = {
     command: 'SetTemp',
@@ -569,7 +574,7 @@ const stopStir = async () => {
 
 const debounceTargetTemp = debounce(changeTargetTemp, 1000);
 
-watch(() => targetTemperatureSet.value, debounceTargetTemp);
+watch(() => manualOverrideTemperature.value, debounceTargetTemp);
 
 watch(selectedMashSchedule, () => {
   // reset all our data so we can start over
@@ -668,10 +673,18 @@ const displayStatus = computed(() => {
   let ds = status.value;
 
   if (inOverTime.value) {
-    ds += " (Overtime)";
+    ds += ' (Overtime)';
   }
 
   return ds;
+});
+
+const labelTargetTemp = computed(() => {
+  if (selectedMashSchedule.value == null) {
+    return `${t('control.set_target')} (${appStore.tempUnit})`;
+  }
+
+  return `${t('control.set_target_override')} (${appStore.tempUnit})`;
 });
 
 </script>
@@ -707,70 +720,86 @@ const displayStatus = computed(() => {
           <v-text-field v-model="temperature" readonly :label="`${$t('control.temperature')} (${appStore.tempUnit})`" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperature" readonly
-            :label="`${$t('control.target')} (${appStore.tempUnit})`" />
+          <v-text-field v-model="targetTemperature" readonly :label="`${$t('control.target')} (${appStore.tempUnit})`" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field v-model="targetTemperatureSet" type="number"
-            :label="`${$t('control.set_target')} (${appStore.tempUnit})`" />
+          <v-text-field v-model="manualOverrideTemperature" @focus="focussedField = 'manualOverrideTemperature'" @blur="focussedField = ''" type="number" :label="labelTargetTemp" />
         </v-col>
       </v-row>
       <v-row>
-        <v-col cols="12" md="3">
-          <v-select :label="$t('control.mashSchedule')" :readonly="status !== 'Idle'" v-model="selectedMashSchedule"
-            :items="appStore.mashSchedules" item-title="name" :filled="appStore.mashSchedules"
-            :clearable="status === 'Idle'" return-object />
+        <v-col cols="12" md="6">
+          <v-select
+            :label="$t('control.mashSchedule')"
+            :readonly="status !== 'Idle'"
+            v-model="selectedMashSchedule"
+            :items="appStore.mashSchedules"
+            item-title="name"
+            :filled="appStore.mashSchedules"
+            :clearable="status === 'Idle'"
+            return-object />
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4" block @click="start"> {{ $t('control.start') }} </v-btn>
-
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="outputPercent" readonly :label="`${$t('control.output')} (%)`" />
-        </v-col>
-
-      </v-row>
-      <v-row>
-        <v-col cols="12" md="3" />
-        <v-col cols="12" md="3">
-          <v-btn color="error" class="mt-4" block @click="stop"> {{ $t('control.stop') }} </v-btn> </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model.number="manualOverrideOutput" type="number" :label="$t('control.override_output')"
+          <v-text-field
+            v-model.number="manualOverrideOutput"
+            type="number"
+            :label="$t('control.override_output')"
             readonly />
         </v-col>
         <v-col cols="12" md="3">
           <v-text-field type="number" :label="$t('control.set_override_output')" @change="changeOverrideOutput" />
         </v-col>
-      </v-row>
-      <div class="text-subtitle-2 mt-4 mb-2">{{ $t('control.stir_control') }}</div>
 
+      </v-row>
+      <v-row>
+        <v-col cols="12" md="6">
+          <v-btn v-if="status === 'Idle'" color="success" class="mt-4" block @click="start"> {{ $t('control.start') }} </v-btn>
+          <v-btn v-else color="error" class="mt-4" block @click="stop"> {{ $t('control.stop') }} </v-btn>
+        </v-col>
+
+      </v-row>
+
+      <div class="text-subtitle-2 mt-4 mb-2">{{ $t('control.stir_control') }}</div>
       <v-divider :thickness="7" />
+
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field v-model="stirStatus" readonly :label="$t('control.status')" />
+        </v-col>
+      </v-row>
+
       <v-row>
 
         <v-col cols="12" md="">
 
-          <v-range-slider v-model="stirInterval" :label="$t('control.interval')" step="1" thumb-label="always"
+          <v-range-slider
+            v-model="stirInterval"
+            :label="$t('control.interval')"
+            step="1"
+            thumb-label="always"
             :max="stirMax">
             <template v-slot:append>
-              <v-text-field v-model.number="stirMax" hide-details single-line type="number" variant="outlined"
-                style="width: 70px" density="compact" :label="$t('control.timespan')" />
+              <v-text-field
+                v-model.number="stirMax"
+                hide-details
+                single-line
+                type="number"
+                variant="outlined"
+                style="width: 70px"
+                density="compact"
+                :label="$t('control.timespan')" />
             </template>
           </v-range-slider>
 
         </v-col>
       </v-row>
+
       <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="stirStatus" readonly :label="$t('control.status')" />
+        <v-col cols="12" md="6">
+          <v-btn v-if="stirStatus === 'Idle'" color="success" class="mt-4" block @click="startStir"> {{ $t('control.start') }} </v-btn>
+          <v-btn v-else color="error" class="mt-4" block @click="stopStir"> {{ $t('control.stop') }} </v-btn>
         </v-col>
-        <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4" block @click="startStir"> {{ $t('control.start') }} </v-btn>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-btn color="error" class="mt-4" block @click="stopStir"> {{ $t('control.stop') }} </v-btn>
-        </v-col>
-        <v-col cols="12" md="3" />
       </v-row>
+
     </v-form>
   </v-container>
 </template>

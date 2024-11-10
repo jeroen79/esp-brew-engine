@@ -14,6 +14,7 @@
         "status": "Status",
         "target": "Zieltemperatur",
         "set_target": "setze Zieltemperatur",
+        "set_target_override": "Zieltemperatur überschreiben",
         "start": "Start",
         "stop": "Stop",
         "override_output": "Übersteuerung Leistung (%)",
