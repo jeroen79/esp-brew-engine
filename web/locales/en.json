@@ -1,12 +1,23 @@
 {
+    "general": {
+        "save": "Save",
+        "edit": "Edit",
+        "close": "Close",
+        "ok": "OK",
+        "cancel": "Cancel",
+        "delete_message": "Are you sure you want to delete this item?",
+        "refresh": "Refresh",
+        "delete": "Delete"
+    },
     "control": {
-        "temperature": "Temperature",  
+        "temperature": "Temperature",
         "status": "Status",
         "target": "Target",
         "set_target": "Set Target",
+        "set_target_override": "Override Target",
         "start": "Start",
         "stop": "Stop",
-        "override_output": "Override Output (%)",
+        "override_output": "Set Override Output (%)",
         "set_override_output": "Set Override Output (%)",
         "stir_control": "Stir/Pump Control",
         "interval": "Interval (min)",
@@ -16,7 +27,7 @@
         "avg": "Control/Avg",
         "time": "Time"
     },
-    "links":{
+    "links": {
         "control": "Control",
         "brewing": "Brewing",
         "settings": "Settings",
@@ -31,29 +42,26 @@
         "system": "System Settings",
         "client": "Client Settings"
     },
-    "clientsettings":{
+    "clientsettings": {
         "beep": "Beep",
         "beep_volume": "Beep Volume (%)",
         "speech": "Speech",
         "speech_volume": "Speech Volume (%)",
         "voice": "Voice",
         "speech_rate": "Speech Rate",
-        "test_message": "Test Message",
         "test": "Test",
         "darkMode": "Dark Mode",
-        "save": "Save",
-        "test_message2": "Hi this is a test message"
+        "test_message": "Hi this is a test message"
     },
-    "pidSettings":{
+    "pidSettings": {
         "pidLoopTime": "PID Loop Time",
         "pidLoopTimeDesc": "The time in seconds between PID calculations, since water heating is a slow process this also works best when slow ex. 60sec",
         "stepInterval": "Steps every x seconds",
         "stepIntervalDesc": "The time between steps less means more substeps will be added",
         "mash": "Mash",
-        "boil": "Boil",
-        "save": "Save"
+        "boil": "Boil"
     },
-    "heaterSettings":{
+    "heaterSettings": {
         "name": "Name",
         "pin": "Pin",
         "preference": "Preference",
@@ -62,16 +70,9 @@
         "use_for_boil": "Use for Boil",
         "actions": "Actions",
         "new_heater": "New Heater",
-        "edit": "Edit",
-        "close": "Close",
-        "ok": "Ok",
-        "cancel": "Cancel",
-        "delete": "Are you sure you want to delete this item?",
-        "save": "Save",
-        "refresh": "Refresh",
         "heater_configurations": "Heater Configurations"
     },
-    "wifiSettings":{
+    "wifiSettings": {
         "ssid": "SSID",
         "rssi": "RSSI",
         "channel": "Channel",
@@ -81,16 +82,15 @@
         "msg_ssid_empty": "SSID cannot be empty!",
         "access_point_mode": "Access Point Mode",
         "access_point_modeDesc": "When enabled a wifi network is created by ESP-Brew-Engine, to connect to your own network turn this off!",
-        "join_network":"Join Network (SSID)",
-        "access_point_name":"Access Point Name (SSID)",
-        "password":"Password",
-        "max_wifi_power":"Max Wifi Power (dBm)",
-        "found_networks":"Found Networks",
-        "scan":"Scan",
-        "connect":"Connect",
-        "save":"Save"
+        "join_network": "Join Network (SSID)",
+        "access_point_name": "Access Point Name (SSID)",
+        "password": "Password",
+        "max_wifi_power": "Max Wifi Power (dBm)",
+        "found_networks": "Found Networks",
+        "scan": "Scan",
+        "connect": "Connect"
     },
-    "tempSettings":{
+    "tempSettings": {
         "id": "Id",
         "name": "Name",
         "color": "Color",
@@ -102,18 +102,12 @@
         "last_temp": "Last Temp",
         "actions": "Actions",
         "new_sensor": "New Sensor",
-        "msg_scan":"Please be patient, scanning in progress...",
-        "temp_sensors":"Temp Sensors",
-        "edit":"Edit",
-        "close":"Close",
-        "enabled":"Enabled",
-        "delete":"Are you sure you want to delete this item?",
-        "ok": "Ok",
-        "cancel": "Cancel",
-        "save":"Save",
-        "detect":"Detect"
+        "msg_scan": "Please be patient, scanning in progress...",
+        "temp_sensors": "Temp Sensors",
+        "enabled": "Enabled",
+        "detect": "Detect"
     },
-    "import":{
+    "import": {
         "name": "Name",
         "mash_steps": "Mash Steps",
         "boil_steps": "Boil Steps",
@@ -121,27 +115,22 @@
         "boil_notifications": "Boil Notifications",
         "import": "Import",
         "import_beer": "Import BeerXML",
-        "temporary_tooltip":"By default imports are not saved to flash and only kept in memory, only disable this if you want to save the schedules permanently.",
+        "temporary_tooltip": "By default imports are not saved to flash and only kept in memory, only disable this if you want to save the schedules permanently.",
         "select_beer": "Select Beer",
         "start_sparge": "Start Sparge",
         "no_recipes": "No Recipes found in Beer XML!",
         "import_first": "Please import beer first!",
         "no_file_choosen": "No file choosen"
     },
-    "notificationEditor":{
+    "notificationEditor": {
         "name": "Name",
         "time_from_start": "Time from Start (min)",
         "buzzer": "Buzzer",
         "actions": "Actions",
-        "edit": "Edit",
-        "cancel": "Cancel",
-        "ok": "Ok",
-        "close": "Close",
-        "delete":"Are you sure you want to delete this Notification?",
         "message": "Message",
         "new_notification": "New Notification"
     },
-    "stepEditor":{
+    "stepEditor": {
         "index": "Index",
         "name": "Name",
         "temperature": "Temperature",
@@ -149,27 +138,20 @@
         "extend_step_time": "Extend Step Time if Needed",
         "hold_time": "Hold Time (min)",
         "actions": "Actions",
-        "new_step": "New Step",
-        "edit": "Edit",
-        "close": "Close",
-        "delete":"Are you sure you want to delete this Step?",
-        "cancel": "Cancel",
-        "ok": "Ok"
+        "new_step": "New Step"
     },
     "mashSchedules": {
         "name": "Name",
         "is_boil": "Is Boil Schedule",
-        "save": "Save",
-        "delete": "Delete",
         "mashSchedule": "Mash/Boil Schedule",
-        "max_schedules_reached":"Only {0} can be saved!"
+        "max_schedules_reached": "Only {0} can be saved!",
+        "steps": "Steps",
+        "notifications": "Notifications"
     },
     "systemSettings": {
         "mash_cant_be_converted": "Mash Schedules are not automaticly converted, please update then manualy!",
         "onewire_pin": "Onewire Pin Nr",
         "onewire_pin_tooltip": "Onewire Pin Nr",
-        "thermistor_pin": "Thermistor Pin Nr",
-        "thermistor_pin_tooltip": "IO Number for Thermistor, Set to 0 to disable",
         "stir_pin": "Stir/Pump Pin Nr",
         "stir_pin_tooltip": "IO Number for Stir/Pump (Optional), Set to 0 to disable",
         "buzzer_pin": "Buzzer Pin Nr",
@@ -183,7 +165,6 @@
         "temperature_scale": "Temperature Scale",
         "celsius": "Celsius",
         "fahrenheit": "Fahrenheit",
-        "save": "Save",
         "reboot": "Reboot",
         "factory_reset": "Factory Reset",
         "factory_reset_title": "Are you sure?",
@@ -206,5 +187,4 @@
         "method": "Method",
         "abv_sugar": "ABV With Priming Sugar (approx)"
     }
-
 }

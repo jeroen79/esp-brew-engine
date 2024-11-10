@@ -13,8 +13,8 @@ import TemperatureScale from '@/enums/TemperatureScale';
 import { IMashSchedule } from '@/interfaces/IMashSchedule';
 import { groupBy } from '@/helpers/grouping';
 import { ITitleValue } from '@/interfaces/ITitleValue';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 
 const webConn = inject<WebConn>('webConn');
 const appStore = useAppStore();
@@ -68,8 +68,13 @@ const parseBeer = (beerToImport: Element) => {
       }
 
       const stepTime = parseInt(step.getElementsByTagName('STEP_TIME')[0].textContent || '0', 10);
-      const stepStepTime = parseInt(step.getElementsByTagName('RAMP_TIME')[0].textContent || '0', 10);
-      let stepTemperature = parseInt(step.getElementsByTagName('INFUSE_TEMP')[0].textContent || '0', 10);// always in degree C
+
+      let stepStepTime = 0;
+      if (step.getElementsByTagName('RAMP_TIME').length > 0) { // it seems some xml's like brewfather don't always include this
+        stepStepTime = parseInt(step.getElementsByTagName('RAMP_TIME')[0].textContent || '0', 10);
+      }
+
+      let stepTemperature = parseInt(step.getElementsByTagName('STEP_TEMP')[0].textContent || '0', 10);// always in degree C
 
       // convert to F when device is in F mode
       if (appStore.temperatureScale === TemperatureScale.Fahrenheit) {
@@ -93,15 +98,14 @@ const parseBeer = (beerToImport: Element) => {
         const notification: INotification = {
           name: 'Sparge',
           message: t('import.start_sparge'),
-          timeFromStart: totalMashTime, //time is start of this step
+          timeFromStart: totalMashTime, // time is start of this step
           timePoint: 0,
           buzzer: true,
-          done: false
+          done: false,
         };
 
         beer.mashNotifications.push(notification);
       }
-
 
       totalMashTime += stepStepTime + stepTime;
 
@@ -122,7 +126,14 @@ const parseBeer = (beerToImport: Element) => {
       const fermentable = fermentables[i];
       const fermentableName = fermentable.getElementsByTagName('NAME')[0].textContent;
       const fermentableAmount = parseFloat(fermentable.getElementsByTagName('AMOUNT')[0].textContent || '0') * 1000; // all beerxml weight are in kg
-      const isMashedString = fermentable.getElementsByTagName('RECOMMEND_MASH')[0].textContent;
+
+      let isMashedString:string | null = null;
+      if (fermentable.getElementsByTagName('RECOMMEND_MASH').length > 0) {
+        isMashedString = fermentable.getElementsByTagName('RECOMMEND_MASH')[0].textContent;
+      } else if (fermentable.getElementsByTagName('NOT_FERMENTABLE').length > 0) { // brewfather seems to use non standard NOT_FERMENTABLE tag
+        isMashedString = fermentable.getElementsByTagName('NOT_FERMENTABLE')[0].textContent;
+      }
+
       const isMashed = (isMashedString != null && isMashedString.toLowerCase() === 'true');
 
       const afterBoilString = fermentable.getElementsByTagName('ADD_AFTER_BOIL')[0].textContent;
@@ -373,14 +384,13 @@ const parseFile = () => {
     for (let i = 0; i < recipes.length; i += 1) {
       const name = recipes[i].getElementsByTagName('NAME')[0].textContent;
       foundRecipies.value.push({
-        title: name || "unnamed",
-        value: i
+        title: name || 'unnamed',
+        value: i,
       });
     }
 
-    //Show dialog to select a beer
+    // Show dialog to select a beer
     showSelection.value = true;
-
   }
 };
 
@@ -502,7 +512,7 @@ const temporaryChanged = () => {
 
         <v-card-text>
           <v-container>
-            <v-list :items="foundRecipies" @click:select="selectBeer"></v-list>
+            <v-list :items="foundRecipies" @click:select="selectBeer" />
           </v-container>
         </v-card-text>
 

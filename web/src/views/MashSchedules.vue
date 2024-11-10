@@ -8,13 +8,13 @@ import { useAppStore } from '@/store/app';
 import { INotification, defaultNotification } from '@/interfaces/INotification';
 import StepEditor from '@/components/StepEditor.vue';
 import NotificationEditor from '@/components/NotificationEditor.vue';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 
 const webConn = inject<WebConn>('webConn');
 
 const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info' >('info');
+const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
 
 const appStore = useAppStore();
 
@@ -68,7 +68,7 @@ const saveSchedule = async () => {
     return;
   }
 
-  const newSchedule:IMashSchedule = {
+  const newSchedule: IMashSchedule = {
     name: currentName.value,
     boil: currentBoil.value,
     temporary: false,
@@ -115,7 +115,7 @@ const deleteSchedule = async () => {
 
 <template>
   <v-container class="pa-6" fluid>
-    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{alert}}</v-alert>
+    <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{ alert }}</v-alert>
     <v-form fast-fail @submit.prevent>
       <v-row>
         <v-col cols="12" md="3">
@@ -131,19 +131,19 @@ const deleteSchedule = async () => {
           <v-switch v-model="currentBoil" :label='t("mashSchedules.is_boil")' color="red" />
         </v-col>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="saveSchedule"> {{t('mashSchedules.save')}} </v-btn>
-          <v-btn color="error" class="mt-4 mr-2" @click="deleteSchedule"> {{t('mashSchedules.delete')}} </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="saveSchedule"> {{ t('general.save') }} </v-btn>
+          <v-btn color="error" class="mt-4 mr-2" @click="deleteSchedule"> {{ t('general.delete') }} </v-btn>
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12">
-          <StepEditor v-model="tableStepsData" :items-per-page="20" :allow-new="true" />
+          <StepEditor v-model="tableStepsData" :items-per-page="20" :allow-new="true" :label='t("mashSchedules.steps")' />
         </v-col>
       </v-row>
 
       <v-row>
         <v-col cols="12">
-          <NotificationEditor v-model="tableNotificationsData" :items-per-page="20" :allow-new="true" />
+          <NotificationEditor v-model="tableNotificationsData" :items-per-page="20" :allow-new="true" :label='t("mashSchedules.notifications")' />
         </v-col>
       </v-row>
 

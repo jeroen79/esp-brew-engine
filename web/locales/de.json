@@ -1,9 +1,20 @@
 {
+    "general":{
+        "save": "Speichern",
+        "edit": "Bearbeiten",
+        "close": "Schließen",
+        "ok": "OK",
+        "cancel": "Abbruch",
+        "delete_message": "Sind Sie sicher, dass Sie dieses Element löschen möchten?",
+        "refresh": "Aktualisieren",
+        "delete": "Löschen"
+    },
     "control": {
-        "temperature": "Temperatur",  
+        "temperature": "Temperatur",
         "status": "Status",
         "target": "Zieltemperatur",
         "set_target": "setze Zieltemperatur",
+        "set_target_override": "Zieltemperatur überschreiben",
         "start": "Start",
         "stop": "Stop",
         "override_output": "Übersteuerung Leistung (%)",
@@ -16,7 +27,7 @@
         "avg": "Control/Avg",
         "time": "Zeit"
     },
-    "links":{
+    "links": {
         "control": "Steuerung",
         "brewing": "Brauen",
         "settings": "Einstellungen",
@@ -31,30 +42,26 @@
         "system": "System",
         "client": "Client"
     },
-    "clientsettings":{
+    "clientsettings": {
         "beep": "Signalton",
         "beep_volume": "Lautstärke (%)",
         "speech": "Sprachausgabe",
         "speech_volume": "Lautstärke (%)",
         "voice": "Stimme",
         "speech_rate": "Sprechtempo",
-        "test_message": "Test Ausgabe",
         "test": "Test",
         "darkMode": "Dunkelmodus",
-        "save": "Speichern",
-        "test_message2": "Hallo, dies ist eine Testnachricht"
-        
+        "test_message": "Hallo, dies ist eine Testnachricht"
     },
-    "pidSettings":{
+    "pidSettings": {
         "pidLoopTime": "Schleifenzeit",
         "pidLoopTimeDesc": "Die Zeit in Sekunden zwischen den PID-Berechnungen, da die Wassererwärmung ein langsamer Prozess ist, funktioniert dies auch am besten, wenn sie langsam ist, z. B. 60 Sekunden.",
         "stepInterval": "Schritte alle x Sekunden",
         "stepIntervalDesc": "Je kürzer die Zeit zwischen den Schritten, desto mehr Unterschritte werden hinzugefügt.",
         "mash": "Maischen",
-        "boil": "Kochen",
-        "save": "Speichern"
+        "boil": "Kochen"
     },
-    "heaterSettings":{
+    "heaterSettings": {
         "name": "Name",
         "pin": "Pin",
         "preference": "Präferenz",
@@ -63,16 +70,9 @@
         "use_for_boil": "Verwendung zum Kochen",
         "actions": "Aktionen",
         "new_heater": "Neues Heizgerät",
-        "edit": "Bearbeiten",
-        "close": "Schließen",
-        "ok": "Ok",
-        "cancel": "Abbruch",
-        "delete": "Sind Sie sicher, dass Sie diesen Eintrag löschen möchten?",
-        "save": "Speichern",
-        "refresh": "Aktualisieren",
         "heater_configurations": "Konfiguration Heizgeräte"
     },
-    "wifiSettings":{
+    "wifiSettings": {
         "ssid": "SSID",
         "rssi": "RSSI",
         "channel": "Kanal",
@@ -82,16 +82,15 @@
         "msg_ssid_empty": "SSID kann nicht leer sein!",
         "access_point_mode": "Access Point Mode",
         "access_point_modeDesc": "Wenn aktiviert, wird ein WLAN-Netzwerk von ESP-Brew-Engine erstellt, um sich mit Ihrem eigenen Netzwerk zu verbinden, schalten Sie dies aus!",
-        "join_network":"Netzwerk verbinden (SSID)",
-        "access_point_name":"Name des Zugangspunktes (SSID)",
-        "password":"Passwort",
-        "max_wifi_power":"Max Wifi Power (dBm)",
-        "found_networks":"Gefundene Netzwerke",
-        "scan":"Scan",
-        "connect":"Verbinden",
-        "save":"Speichern"
+        "join_network": "Netzwerk verbinden (SSID)",
+        "access_point_name": "Name des Zugangspunktes (SSID)",
+        "password": "Passwort",
+        "max_wifi_power": "Max Wifi Power (dBm)",
+        "found_networks": "Gefundene Netzwerke",
+        "scan": "Scan",
+        "connect": "Verbinden"
     },
-    "tempSettings":{
+    "tempSettings": {
         "id": "Id",
         "name": "Name",
         "color": "Farbe",
@@ -103,17 +102,10 @@
         "last_temp": "Letzte Temperatur",
         "actions": "Aktionen",
         "new_sensor": "Neuer Sensor",
-        "msg_scan":"Bitte haben Sie Geduld, der Scanvorgang läuft...",
-        "temp_sensors":"Temperatursensoren",
-        "edit":"Bearbeiten",
-        "close":"Schließen",
-        "enabled":"Aktiviert",
-        "delete":"Sind Sie sicher, dass Sie dieses Element löschen möchten?",
-        "ok": "Ok",
-        "cancel": "Abbrechen",
-        "refresh": "Aktualisieren",
-        "save":"Speichern",
-        "detect":"Erkennen"
+        "msg_scan": "Bitte haben Sie Geduld, der Scanvorgang läuft...",
+        "temp_sensors": "Temperatursensoren",
+        "enabled": "Aktiviert",
+        "detect": "Erkennen"
     },
     "import": {
         "name": "Name",
@@ -135,11 +127,6 @@
         "time_from_start": "Zeit ab Start (Min)",
         "buzzer": "Summer",
         "actions": "Aktionen",
-        "edit": "Bearbeiten",
-        "cancel": "Abbrechen",
-        "ok": "OK",
-        "close": "Schließen",
-        "delete": "Sind Sie sicher, dass Sie diese Benachrichtigung löschen möchten?",
         "message": "Nachricht",
         "new_notification": "Neue Benachrichtigung"
     },
@@ -151,27 +138,20 @@
         "extend_step_time": "Schrittdauer bei Bedarf verlängern",
         "hold_time": "Haltezeit (Min)",
         "actions": "Aktionen",
-        "new_step": "Neuer Schritt",
-        "edit": "Bearbeiten",
-        "close": "Schließen",
-        "delete": "Sind Sie sicher, dass Sie diesen Schritt löschen möchten?",
-        "cancel": "Abbrechen",
-        "ok": "OK"
+        "new_step": "Neuer Schritt"
     },
     "mashSchedules": {
         "name": "Name",
         "is_boil": "Kochplan",
-        "save": "Speichern",
-        "delete": "Löschen",
         "mashSchedule": "Maisch-/Kochplan",
-        "max_schedules_reached": "Es können nur {0} gespeichert werden!"
+        "max_schedules_reached": "Es können nur {0} gespeichert werden!",
+        "steps": "Schritte",
+        "notifications": "Benachrichtigungen"
     },
     "systemSettings": {
         "mash_cant_be_converted": "Maischpläne werden nicht automatisch konvertiert, bitte manuell aktualisieren!",
         "onewire_pin": "Onewire Pin Nr",
         "onewire_pin_tooltip": "Onewire Pin Nr",
-        "thermistor_pin": "Thermistor Pin Nr",
-        "thermistor_pin_tooltip": "IO-Nummer für Thermistor, auf 0 setzen um zu deaktivieren",
         "stir_pin": "Rühr-/Pumpen Pin Nr",
         "stir_pin_tooltip": "IO-Nummer für Rühr-/Pumpe (Optional), auf 0 setzen um zu deaktivieren",
         "buzzer_pin": "Summer Pin Nr",
@@ -185,7 +165,6 @@
         "temperature_scale": "Temperaturskala",
         "celsius": "Celsius",
         "fahrenheit": "Fahrenheit",
-        "save": "Speichern",
         "reboot": "Neustarten",
         "factory_reset": "Werkseinstellungen",
         "factory_reset_title": "Sind Sie sicher?",
@@ -208,5 +187,4 @@
         "method": "Methode",
         "abv_sugar": "Alkoholgehalt mit Zuckerzugabe (ungefähr)"
     }
-        
 }

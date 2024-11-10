@@ -134,10 +134,7 @@ onBeforeUnmount(() => {
 
       <v-row>
         <v-col cols="12" md="6">
-          <v-switch
-            v-model="wifiSettings.enableAP"
-            :label='t("wifiSettings.access_point_mode")'
-            color="red"
+          <v-switch v-model="wifiSettings.enableAP" :label='t("wifiSettings.access_point_mode")' color="red"
             @click="clearConfig()">
             <template v-slot:append>
               <v-tooltip :text='t("wifiSettings.access_point_modeDesc")'>
@@ -160,18 +157,15 @@ onBeforeUnmount(() => {
       </v-row>
       <v-row>
         <v-col cols="12" md="6">
-          <v-text-field v-model="wifiSettings.password" :type="hidePwd ? 'password' : 'text'" :label='t("wifiSettings.password")' :append-icon="hidePwd ? mdiEye : mdiEyeOutline" @click:append="() => (hidePwd = !hidePwd)" />
+          <v-text-field v-model="wifiSettings.password" :type="hidePwd ? 'password' : 'text'"
+            :label='t("wifiSettings.password")' :append-icon="hidePwd ? mdiEye : mdiEyeOutline"
+            @click:append="() => (hidePwd = !hidePwd)" />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="12" md="6">
-          <v-slider
-            v-model="wifiSettings.maxPower"
-            :label='t("wifiSettings.max_wifi_power")'
-            step="1"
-            thumb-label="always"
-            max=20
-            min=10 />
+          <v-slider v-model="wifiSettings.maxPower" :label='t("wifiSettings.max_wifi_power")' step="1"
+            thumb-label="always" max=20 min=10 />
         </v-col>
       </v-row>
 
@@ -179,11 +173,7 @@ onBeforeUnmount(() => {
         <v-col cols="12" md="12">
 
           <v-form fast-fail @submit.prevent>
-            <v-data-table
-              :headers="networkTableHeaders"
-              :items="wifiNetworks"
-              density="compact"
-              item-value="name">
+            <v-data-table :headers="networkTableHeaders" :items="wifiNetworks" density="compact" item-value="name">
               <template v-slot:top>
                 <v-toolbar density="compact">
                   <v-toolbar-title>{{ t("wifiSettings.found_networks") }}</v-toolbar-title>
@@ -231,7 +221,7 @@ onBeforeUnmount(() => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ t("wifiSettings.save") }} </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ t("general.save") }} </v-btn>
         </v-col>
       </v-row>
     </v-form>

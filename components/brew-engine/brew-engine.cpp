@@ -838,7 +838,8 @@ void BrewEngine::start()
 	if (!this->controlRun)
 	{
 		this->controlRun = true;
-
+		this->inOverTime = false;
+		this->overrideTargetTemperature = std::nullopt;
 		// clear old temp log
 		this->tempLog.clear();
 
@@ -911,18 +912,35 @@ void BrewEngine::loadSchedule()
 	string iso_string = this->to_iso_8601(prevTime);
 	ESP_LOGI(TAG, "Time:%s, Temp:%f Extend:%d", iso_string.c_str(), prevTemp, execStep0->extendIfNeeded);
 
+	int extendNotifications = 0;
+
 	stepIndex++;
 
 	for (auto const &step : schedule->steps)
 	{
 		// a step can actualy be 2 different executions, 1 step time that needs substeps calcualted, and one fixed
 
-		if (step->stepTime > 0)
+		if (step->stepTime > 0 || step->extendStepTimeIfNeeded)
 		{
 
-			auto stepEndTime = prevTime + minutes(step->stepTime);
+			int stepTime = step->stepTime;
+
+			// when the users request step extended, we need a step so 0 isn't valid we default to 1 min
+			if (stepTime == 0)
+			{
+				stepTime = 1;
+				extendNotifications += 60;
+			}
+
+			auto stepEndTime = prevTime + minutes(stepTime);
 			auto secondsInStep = chrono::duration_cast<chrono::seconds>(stepEndTime - prevTime).count();
 			int subStepsInStep = (secondsInStep / this->stepInterval) - 1;
+
+			// we need atleast one step
+			if (subStepsInStep < 1)
+			{
+				subStepsInStep = 1;
+			}
 
 			float tempDiffPerStep = (step->temperature - prevTemp) / (float)subStepsInStep;
 
@@ -1018,13 +1036,13 @@ void BrewEngine::loadSchedule()
 
 	for (auto const &notification : schedule->notifications)
 	{
-		auto notificationTime = execStep0->time + minutes(notification->timeFromStart);
+		auto notificationTime = execStep0->time + minutes(notification->timeFromStart) + seconds(extendNotifications);
 
 		// copy notification to new map
 		auto newNotification = new Notification();
 		newNotification->name = notification->name;
 		newNotification->message = notification->message;
-		newNotification->timeFromStart = notification->timeFromStart;
+		newNotification->timeFromStart = notification->timeFromStart + (extendNotifications / 60); // in minutes
 		newNotification->timePoint = notificationTime;
 
 		this->notifications.push_back(newNotification);
@@ -1542,8 +1560,15 @@ void BrewEngine::controlLoop(void *arg)
 
 			bool gotoNextStep = false;
 
-			// always set target
-			instance->targetTemperature = nextStep->temperature;
+			// set target when not overriden
+			if (instance->overrideTargetTemperature.has_value())
+			{
+				instance->targetTemperature = instance->overrideTargetTemperature.value();
+			}
+			else
+			{
+				instance->targetTemperature = nextStep->temperature;
+			}
 
 			uint secondsToGo = 0;
 			// if its smaller 0 is ok!
@@ -1558,14 +1583,14 @@ void BrewEngine::controlLoop(void *arg)
 				// string iso_string = instance->to_iso_8601(nextStep->time);
 				// ESP_LOGI(TAG, "Control Time:%s, TempCur:%f, TempTarget:%d, Extend:%d, Overtime: %d", iso_string.c_str(), instance->temperature, nextStep->temperature, nextStep->extendIfNeeded, instance->inOverTime);
 
-				if (nextStep->extendIfNeeded == true && instance->inOverTime == false && abs(nextStep->temperature - instance->temperature) > instance->tempMargin)
+				if (nextStep->extendIfNeeded == true && instance->inOverTime == false && (nextStep->temperature - instance->temperature) >= instance->tempMargin)
 				{
 					// temp must be reached, we keep going but need to triger a recaluclation event when done
 					ESP_LOGI(TAG, "OverTime Start");
 					instance->logRemote("OverTime Start");
 					instance->inOverTime = true;
 				}
-				else if (instance->inOverTime == true && abs(nextStep->temperature - instance->temperature) < instance->tempMargin)
+				else if (instance->inOverTime == true && (nextStep->temperature - instance->temperature) <= instance->tempMargin)
 				{
 					// we reached out temp after overtime, we need to recalc the rest and start going again
 					ESP_LOGI(TAG, "OverTime Done");
@@ -1578,6 +1603,8 @@ void BrewEngine::controlLoop(void *arg)
 				{
 					ESP_LOGI(TAG, "Going to next Step");
 					gotoNextStep = true;
+					// also reset override on step change
+					instance->overrideTargetTemperature = std::nullopt;
 				}
 
 				// else when in overtime just keep going until we reach temp
@@ -1749,6 +1776,7 @@ string BrewEngine::processCommand(const string &payLoad)
 			{"temp", (double)((int)(this->temperature * 10)) / 10}, // round float to 1 digit for display
 			{"temps", jCurrentTemps},
 			{"targetTemp", (double)((int)(this->targetTemperature * 10)) / 10}, // round float to 1 digit for display,
+			{"manualOverrideTargetTemp", nullptr},
 			{"output", this->pidOutput},
 			{"manualOverrideOutput", nullptr},
 			{"status", this->statusText},
@@ -1762,6 +1790,11 @@ string BrewEngine::processCommand(const string &payLoad)
 		if (this->manualOverrideOutput.has_value())
 		{
 			resultData["manualOverrideOutput"] = this->manualOverrideOutput.value();
+		}
+
+		if (this->overrideTargetTemperature.has_value())
+		{
+			resultData["manualOverrideTargetTemp"] = this->overrideTargetTemperature.value();
 		}
 	}
 	else if (command == "GetRunningSchedule")
@@ -1790,12 +1823,31 @@ string BrewEngine::processCommand(const string &payLoad)
 	else if (command == "SetTemp")
 	{
 
-		if (data["targetTemp"].is_number())
+		if (data["targetTemp"].is_null())
 		{
-			this->targetTemperature = (float)data["targetTemp"];
+			this->overrideTargetTemperature = std::nullopt;
+
+			// when not in a program also direclty set targtetemp
+			if (this->selectedMashScheduleName.empty() == true)
+			{
+				this->targetTemperature = 0;
+			}
+		}
+		else if (data["targetTemp"].is_number())
+		{
+
+			this->overrideTargetTemperature = (float)data["targetTemp"];
+
+			// when not in a program also direclty set targtetemp
+			if (this->selectedMashScheduleName.empty() == true)
+			{
+				this->targetTemperature = this->overrideTargetTemperature.value();
+			}
 		}
 		else
 		{
+			this->overrideTargetTemperature = std::nullopt;
+
 			message = "Incorrect data, integer or float expected!";
 			success = false;
 		}

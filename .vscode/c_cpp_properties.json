@@ -25,7 +25,7 @@
             "name": "ESP32-xtensa-esp32",
             "includePath": [
                 "${defaultIncludePath}",
-                "~/.espressif/tools/xtensa-esp32-elf/esp-12.2.0_20230208/**"
+                "~/.espressif/tools/xtensa-esp32-elf/esp-13.2.0_20230928/**"
             ],
             "browse": {
                 "path": [
@@ -33,7 +33,6 @@
                 ],
                 "limitSymbolsToIncludedHeaders": false
             },
-            "compilerPath": "~/.espressif/tools/xtensa-esp32-elf/esp-12.2.0_20230208/xtensa-esp32-elf/bin/xtensa-esp32-elf-gcc",
             "cStandard": "c23",
             "cppStandard": "c++23"
         },
@@ -41,7 +40,7 @@
             "name": "ESP32-riscv32",
             "includePath": [
                 "${defaultIncludePath}",
-                "~/.espressif/tools/riscv32-esp-elf/esp-12.2.0_20230208/**"
+                "~/.espressif/tools/riscv32-esp-elf/esp-*/**"
             ],
             "browse": {
                 "path": [
@@ -49,7 +48,7 @@
                 ],
                 "limitSymbolsToIncludedHeaders": false
             },
-            "compilerPath": "~/.espressif/tools/riscv32-esp-elf/esp-12.2.0_20230208/riscv32-esp-elf/bin/riscv32-esp-elf-gcc",
+            "compilerPath": "~/.espressif/tools/riscv32-esp-elf/esp-13.2.0_20230928/riscv32-esp-elf/bin/riscv32-esp-elf-gcc",
             "cStandard": "c23",
             "cppStandard": "c++23"
         }

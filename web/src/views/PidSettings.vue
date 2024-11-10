@@ -68,7 +68,7 @@ const save = async () => {
             <template v-slot:append>
               <v-tooltip :text="$t('pidSettings.pidLoopTimeDesc')">
                 <template v-slot:activator="{ props }">
-                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
               </v-tooltip>
             </template>
@@ -82,7 +82,7 @@ const save = async () => {
             <template v-slot:append>
               <v-tooltip :text="$t('pidSettings.stepIntervalDesc')">
                 <template v-slot:activator="{ props }">
-                  <v-icon size="small" v-bind="props">{{mdiHelp}}</v-icon>
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
               </v-tooltip>
             </template>
@@ -90,7 +90,7 @@ const save = async () => {
         </v-col>
       </v-row>
 
-      <div class="text-subtitle-2 mt-4 mb-2">{{$t('pidSettings.mash')}}</div>
+      <div class="text-subtitle-2 mt-4 mb-2">{{ $t('pidSettings.mash') }}</div>
 
       <v-divider :thickness="7" />
 
@@ -124,7 +124,7 @@ const save = async () => {
 
       <v-row>
         <v-col cols="12" md="3">
-          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{$t('clientsettings.save')}} </v-btn>
+          <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ $t('general.save') }} </v-btn>
         </v-col>
       </v-row>
     </v-form>

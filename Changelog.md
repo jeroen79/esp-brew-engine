@@ -1,3 +1,10 @@
+# Version 1.5.0
+- Added I18n Translation system.
+- Added Translations (de,nl).
+- Small Gui changes.
+- Bugfix: brewfather xml import failed due to missing attributes in xml.
+- Allow Override temp while running in a schedule.
+
 # Version 1.4.0
 - Extra setting to configure stepInterval.
 - Optimized substeps calculation.

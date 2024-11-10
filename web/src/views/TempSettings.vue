@@ -3,8 +3,8 @@ import { ref, onMounted, onBeforeUnmount, inject } from 'vue';
 import { mdiPencil, mdiDelete, mdiPalette } from '@mdi/js';
 import WebConn from '@/helpers/webConn';
 import { ITempSensor } from '@/interfaces/ITempSensor';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 
 const webConn = inject<WebConn>('webConn');
 
@@ -64,7 +64,7 @@ const detectTempSensors = async () => {
     data: null,
   };
 
-  alert.value = t("tempSettings.msg_scan");
+  alert.value = t('tempSettings.msg_scan');
   alertType.value = 'info';
 
   const apiResult = await webConn?.doPostRequest(requestData);
@@ -131,26 +131,22 @@ const save = async () => {
   <v-container class="pa-6" fluid>
     <v-alert :type="alertType" v-if="alert" closable @click:close="alert = ''">{{ alert }}</v-alert>
     <v-form fast-fail @submit.prevent>
-      <v-data-table
-        :headers="tableHeaders"
-        :items="tempSensors"
-        density="compact"
-        item-value="name">
+      <v-data-table :headers="tableHeaders" :items="tempSensors" density="compact" item-value="name">
         <template v-slot:top>
           <v-toolbar density="compact">
-            <v-toolbar-title>{{t('tempSettings.temp_sensors')}}</v-toolbar-title>
+            <v-toolbar-title>{{ t('tempSettings.temp_sensors') }}</v-toolbar-title>
             <v-spacer />
             <v-btn color="secondary" variant="outlined" class="mr-5" @click="getData()">
-              {{t('tempSettings.refresh')}}
+              {{ t('general.refresh') }}
             </v-btn>
             <v-btn color="secondary" variant="outlined" class="mr-5" @click="detectTempSensors()">
-              {{t('tempSettings.detect')}}
+              {{ t('tempSettings.detect') }}
             </v-btn>
 
             <v-dialog v-model="dialog" max-width="500px">
               <v-card>
                 <v-toolbar density="compact" color="dialog-header">
-                  <v-toolbar-title>{{t('tempSettings.edit')}}</v-toolbar-title>
+                  <v-toolbar-title>{{ t('general.edit') }}</v-toolbar-title>
                 </v-toolbar>
 
                 <v-card-text>
@@ -179,18 +175,18 @@ const save = async () => {
                 <v-card-actions>
                   <v-spacer />
                   <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
-                    {{t('tempSettings.close')}}
+                    {{ t('general.close') }}
                   </v-btn>
                 </v-card-actions>
               </v-card>
             </v-dialog>
             <v-dialog v-model="dialogDelete" max-width="500px">
               <v-card>
-                <v-card-title class="text-h5">{{t('tempSettings.delete')}}</v-card-title>
+                <v-card-title class="text-h5">{{ t('general.delete_message') }}</v-card-title>
                 <v-card-actions>
                   <v-spacer />
-                  <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{t('tempSettings.cancel')}}</v-btn>
-                  <v-btn color="blue-darken-1" variant="text" @click="deleteItemOk">{{t('tempSettings.ok')}}</v-btn>
+                  <v-btn color="blue-darken-1" variant="text" @click="closeDeleteDialog">{{ t('general.cancel')}}</v-btn>
+                  <v-btn color="blue-darken-1" variant="text" @click="deleteItemOk">{{ t('general.ok') }}</v-btn>
                   <v-spacer />
                 </v-card-actions>
               </v-card>
@@ -215,7 +211,7 @@ const save = async () => {
         </template>
       </v-data-table>
 
-      <v-btn color="success" class="mt-4 mr-2" @click="save"> {{t('tempSettings.save')}} </v-btn>
+      <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ t('general.save') }} </v-btn>
 
     </v-form>
   </v-container>
