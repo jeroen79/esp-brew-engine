@@ -1,7 +1,7 @@
 /* eslint-disable import/prefer-default-export */
-import { IClientSettings } from '@/interfaces/IClientSettings';
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import type { IClientSettings } from "@/interfaces/IClientSettings";
+import { defineStore } from "pinia";
+import { ref } from "vue";
 
 const defaultClientSettings: IClientSettings = {
   beepEnabled: true,
@@ -10,16 +10,16 @@ const defaultClientSettings: IClientSettings = {
   speechVolume: 0.5,
   speechRate: 0.7,
   voiceUri: null,
-  darkMode: true
+  darkMode: true,
 };
 
 export const useClientStore = () => {
-  const innerStore = defineStore('client', () => {
+  const innerStore = defineStore("client", () => {
     const clientSettingsLoaded = ref(false);
     const clientSettings = ref<IClientSettings>(defaultClientSettings);
 
     async function getLocalSettings() {
-      const jsonSettings = localStorage.getItem('clientSettings');
+      const jsonSettings = localStorage.getItem("clientSettings");
 
       if (jsonSettings != null) {
         clientSettings.value = JSON.parse(jsonSettings);
@@ -33,11 +33,14 @@ export const useClientStore = () => {
     async function saveLocalSettings() {
       const jsonSettings = JSON.stringify(clientSettings.value);
 
-      localStorage.setItem('clientSettings', jsonSettings);
+      localStorage.setItem("clientSettings", jsonSettings);
     }
 
     return {
-      clientSettingsLoaded, getLocalSettings, saveLocalSettings, clientSettings,
+      clientSettingsLoaded,
+      getLocalSettings,
+      saveLocalSettings,
+      clientSettings,
     };
   });
 

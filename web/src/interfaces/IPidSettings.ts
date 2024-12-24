@@ -7,4 +7,5 @@ export interface IPidSettings {
   boilkD: number;
   pidLoopTime: number;
   stepInterval: number;
+  boostModeUntil: number;
 }

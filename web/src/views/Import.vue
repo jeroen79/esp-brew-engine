@@ -1,26 +1,26 @@
 <script lang="ts" setup>
-import { mdiHelp } from '@mdi/js';
-import WebConn from '@/helpers/webConn';
-import ImportedBeer from '@/classes/ImportedBeer';
-import { inject, ref } from 'vue';
-import { IImportedBeer } from '@/interfaces/IImportedBeer';
-import { IMashStep } from '@/interfaces/IMashStep';
-import { useAppStore } from '@/store/app';
-import { INotification } from '@/interfaces/INotification';
-import StepEditor from '@/components/StepEditor.vue';
-import NotificationEditor from '@/components/NotificationEditor.vue';
-import TemperatureScale from '@/enums/TemperatureScale';
-import { IMashSchedule } from '@/interfaces/IMashSchedule';
-import { groupBy } from '@/helpers/grouping';
-import { ITitleValue } from '@/interfaces/ITitleValue';
-import { useI18n } from 'vue-i18n';
-const { t } = useI18n({ useScope: 'global' });
+import ImportedBeer from "@/classes/ImportedBeer";
+import NotificationEditor from "@/components/NotificationEditor.vue";
+import StepEditor from "@/components/StepEditor.vue";
+import TemperatureScale from "@/enums/TemperatureScale";
+import { groupBy } from "@/helpers/grouping";
+import WebConn from "@/helpers/webConn";
+import { IImportedBeer } from "@/interfaces/IImportedBeer";
+import { IMashSchedule } from "@/interfaces/IMashSchedule";
+import { IMashStep } from "@/interfaces/IMashStep";
+import { INotification } from "@/interfaces/INotification";
+import { ITitleValue } from "@/interfaces/ITitleValue";
+import { useAppStore } from "@/store/app";
+import { mdiHelp } from "@mdi/js";
+import { inject, ref } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
-const webConn = inject<WebConn>('webConn');
+const webConn = inject<WebConn>("webConn");
 const appStore = useAppStore();
 
-const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
+const alert = ref<string>("");
+const alertType = ref<"error" | "success" | "warning" | "info">("info");
 
 const chosenFiles = ref<Array<File>>([]);
 const fileData = ref<any>();
@@ -32,7 +32,7 @@ const showSelection = ref(false);
 const temporary = ref(true);
 
 const importedBeer = ref<IImportedBeer>({
-  name: '',
+  name: "",
   mashSteps: [],
   mashNotifications: [],
   mashNotificationsGrouped: [],
@@ -43,12 +43,12 @@ const importedBeer = ref<IImportedBeer>({
 
 const parseBeer = (beerToImport: Element) => {
   const beer = new ImportedBeer();
-  beer.name = beerToImport.getElementsByTagName('NAME')[0].textContent;
+  beer.name = beerToImport.getElementsByTagName("NAME")[0].textContent;
 
   // Convert Mash Steps
-  const mashSteps = beerToImport.getElementsByTagName('MASH')[0].getElementsByTagName('MASH_STEPS')[0].getElementsByTagName('MASH_STEP');
+  const mashSteps = beerToImport.getElementsByTagName("MASH")[0].getElementsByTagName("MASH_STEPS")[0].getElementsByTagName("MASH_STEP");
 
-  const boilTime = parseInt(beerToImport.getElementsByTagName('BOIL_TIME')[0].textContent || '0', 10);
+  const boilTime = Number.parseInt(beerToImport.getElementsByTagName("BOIL_TIME")[0].textContent || "0", 10);
   let totalMashTime = 0;
   let grainAddTime = 0;
 
@@ -56,31 +56,37 @@ const parseBeer = (beerToImport: Element) => {
     for (let i = 0; i < mashSteps.length; i += 1) {
       const step = mashSteps[i];
 
-      const stepType = step.getElementsByTagName('TYPE')[0].textContent;
-      if (stepType !== 'Temperature' && stepType !== 'Infusion') {
+      const stepType = step.getElementsByTagName("TYPE")[0].textContent;
+      if (stepType !== "Temperature" && stepType !== "Infusion") {
         continue;
       }
 
-      let stepName = step.getElementsByTagName('NAME')[0].textContent;
+      let stepName = step.getElementsByTagName("NAME")[0].textContent;
 
       if (stepName == null) {
         stepName = `Step ${i}`;
       }
 
-      const stepTime = parseInt(step.getElementsByTagName('STEP_TIME')[0].textContent || '0', 10);
+      const stepTime = Number.parseInt(step.getElementsByTagName("STEP_TIME")[0].textContent || "0", 10);
 
       let stepStepTime = 0;
-      if (step.getElementsByTagName('RAMP_TIME').length > 0) { // it seems some xml's like brewfather don't always include this
-        stepStepTime = parseInt(step.getElementsByTagName('RAMP_TIME')[0].textContent || '0', 10);
+      if (step.getElementsByTagName("RAMP_TIME").length > 0) {
+        // it seems some xml's like brewfather don't always include this
+        stepStepTime = Number.parseInt(step.getElementsByTagName("RAMP_TIME")[0].textContent || "0", 10);
       }
 
-      let stepTemperature = parseInt(step.getElementsByTagName('STEP_TEMP')[0].textContent || '0', 10);// always in degree C
+      let stepTemperature = Number.parseInt(step.getElementsByTagName("STEP_TEMP")[0].textContent || "0", 10); // always in degree C
 
       // convert to F when device is in F mode
       if (appStore.temperatureScale === TemperatureScale.Fahrenheit) {
         // Fahrenheit = (Celsius * 1.8) + 32
-        const tempF = (stepTemperature * 1.8) + 32;
+        const tempF = stepTemperature * 1.8 + 32;
         stepTemperature = Math.round(tempF);
+      }
+
+      let allowBoost = false;
+      if (i === 0) {
+        allowBoost = true;
       }
 
       const mashStep: IMashStep = {
@@ -90,14 +96,15 @@ const parseBeer = (beerToImport: Element) => {
         stepTime: stepStepTime,
         time: stepTime,
         extendStepTimeIfNeeded: true,
+        allowBoost: allowBoost,
       };
       beer.mashSteps.push(mashStep);
 
       // add start sparge notifiation, sprage type doesn't exist yet in beerxml
-      if (stepName?.toLowerCase().indexOf('sparge') > -1) {
+      if (stepName?.toLowerCase().indexOf("sparge") > -1) {
         const notification: INotification = {
-          name: 'Sparge',
-          message: t('import.start_sparge'),
+          name: "Sparge",
+          message: t("import.start_sparge"),
           timeFromStart: totalMashTime, // time is start of this step
           timePoint: 0,
           buzzer: true,
@@ -117,27 +124,28 @@ const parseBeer = (beerToImport: Element) => {
   }
 
   // Add grain add Notification
-  const fermentables = beerToImport.getElementsByTagName('FERMENTABLES')[0].getElementsByTagName('FERMENTABLE');
+  const fermentables = beerToImport.getElementsByTagName("FERMENTABLES")[0].getElementsByTagName("FERMENTABLE");
   if (fermentables != null && fermentables.length > 0) {
-    let fermentablesText = '';
-    let lateBoilText = '';
+    let fermentablesText = "";
+    let lateBoilText = "";
 
     for (let i = 0; i < fermentables.length; i += 1) {
       const fermentable = fermentables[i];
-      const fermentableName = fermentable.getElementsByTagName('NAME')[0].textContent;
-      const fermentableAmount = parseFloat(fermentable.getElementsByTagName('AMOUNT')[0].textContent || '0') * 1000; // all beerxml weight are in kg
+      const fermentableName = fermentable.getElementsByTagName("NAME")[0].textContent;
+      const fermentableAmount = Number.parseFloat(fermentable.getElementsByTagName("AMOUNT")[0].textContent || "0") * 1000; // all beerxml weight are in kg
 
-      let isMashedString:string | null = null;
-      if (fermentable.getElementsByTagName('RECOMMEND_MASH').length > 0) {
-        isMashedString = fermentable.getElementsByTagName('RECOMMEND_MASH')[0].textContent;
-      } else if (fermentable.getElementsByTagName('NOT_FERMENTABLE').length > 0) { // brewfather seems to use non standard NOT_FERMENTABLE tag
-        isMashedString = fermentable.getElementsByTagName('NOT_FERMENTABLE')[0].textContent;
+      let isMashedString: string | null = null;
+      if (fermentable.getElementsByTagName("RECOMMEND_MASH").length > 0) {
+        isMashedString = fermentable.getElementsByTagName("RECOMMEND_MASH")[0].textContent;
+      } else if (fermentable.getElementsByTagName("NOT_FERMENTABLE").length > 0) {
+        // brewfather seems to use non standard NOT_FERMENTABLE tag
+        isMashedString = fermentable.getElementsByTagName("NOT_FERMENTABLE")[0].textContent;
       }
 
-      const isMashed = (isMashedString != null && isMashedString.toLowerCase() === 'true');
+      const isMashed = isMashedString != null && isMashedString.toLowerCase() === "true";
 
-      const afterBoilString = fermentable.getElementsByTagName('ADD_AFTER_BOIL')[0].textContent;
-      const afterBoil = (afterBoilString != null && afterBoilString.toLowerCase() === 'true');
+      const afterBoilString = fermentable.getElementsByTagName("ADD_AFTER_BOIL")[0].textContent;
+      const afterBoil = afterBoilString != null && afterBoilString.toLowerCase() === "true";
 
       if (isMashed) {
         fermentablesText += `${fermentableAmount}g of ${fermentableName}\n`;
@@ -146,9 +154,9 @@ const parseBeer = (beerToImport: Element) => {
       }
     }
 
-    if (fermentablesText !== '') {
+    if (fermentablesText !== "") {
       const notification: INotification = {
-        name: 'Fermentables',
+        name: "Fermentables",
         message: fermentablesText,
         timeFromStart: grainAddTime,
         timePoint: 0,
@@ -158,9 +166,9 @@ const parseBeer = (beerToImport: Element) => {
       beer.mashNotifications.push(notification);
     }
 
-    if (lateBoilText !== '') {
+    if (lateBoilText !== "") {
       const notification: INotification = {
-        name: 'Late Additions',
+        name: "Late Additions",
         message: lateBoilText,
         timeFromStart: boilTime,
         timePoint: 0,
@@ -175,51 +183,52 @@ const parseBeer = (beerToImport: Element) => {
   let boilTemp = 100;
 
   // Some beerxmls seems to include eqyuipent that can contain biol settings in C
-  if (beerToImport.getElementsByTagName('EQUIPMENT').length > 0) {
-    const equipment = beerToImport.getElementsByTagName('EQUIPMENT')[0];
-    if (equipment.getElementsByTagName('BOILING_POINT').length > 0) {
-      boilTemp = parseInt(equipment.getElementsByTagName('BOILING_POINT')[0].textContent || '0', 10);
+  if (beerToImport.getElementsByTagName("EQUIPMENT").length > 0) {
+    const equipment = beerToImport.getElementsByTagName("EQUIPMENT")[0];
+    if (equipment.getElementsByTagName("BOILING_POINT").length > 0) {
+      boilTemp = Number.parseInt(equipment.getElementsByTagName("BOILING_POINT")[0].textContent || "0", 10);
     }
   }
 
   // convert to F when device is in F mode
   if (appStore.temperatureScale === TemperatureScale.Fahrenheit) {
     // Fahrenheit = (Celsius * 1.8) + 32
-    const tempF = (boilTemp * 1.8) + 32;
+    const tempF = boilTemp * 1.8 + 32;
     boilTemp = Math.round(tempF);
   }
 
   const boilStep: IMashStep = {
     index: 0,
-    name: 'Boil',
+    name: "Boil",
     temperature: boilTemp,
     stepTime: 0,
     time: boilTime,
     extendStepTimeIfNeeded: true,
+    allowBoost: true,
   };
   beer.boilSteps.push(boilStep);
 
   // Convert Hops to Notifications
-  const hops = beerToImport.getElementsByTagName('HOPS')[0].getElementsByTagName('HOP');
+  const hops = beerToImport.getElementsByTagName("HOPS")[0].getElementsByTagName("HOP");
   if (hops != null && hops.length > 0) {
     for (let i = 0; i < hops.length; i += 1) {
       const hop = hops[i];
-      const hopUse = hop.getElementsByTagName('USE')[0].textContent || '';
+      const hopUse = hop.getElementsByTagName("USE")[0].textContent || "";
 
       // we don't run that long, dry hop is not our job
-      if (hopUse === 'Dry Hop' || hopUse === 'Dry') {
+      if (hopUse === "Dry Hop" || hopUse === "Dry") {
         continue;
       }
 
-      const hopName = hop.getElementsByTagName('NAME')[0].textContent;
-      const hopAmount = parseFloat(hop.getElementsByTagName('AMOUNT')[0].textContent || '0') * 1000; // all beerxml weight are in kg
-      const hopInfusTime = parseInt(hop.getElementsByTagName('TIME')[0].textContent || '0', 10);// this is not the add time but the infusion time
+      const hopName = hop.getElementsByTagName("NAME")[0].textContent;
+      const hopAmount = Number.parseFloat(hop.getElementsByTagName("AMOUNT")[0].textContent || "0") * 1000; // all beerxml weight are in kg
+      const hopInfusTime = Number.parseInt(hop.getElementsByTagName("TIME")[0].textContent || "0", 10); // this is not the add time but the infusion time
 
-      if (hopUse === 'Boil') {
+      if (hopUse === "Boil") {
         const hopAddTime = boilTime - hopInfusTime;
 
         const notification: INotification = {
-          name: 'Hop',
+          name: "Hop",
           message: `${hopAmount}g of ${hopName}`,
           timeFromStart: hopAddTime,
           timePoint: 0,
@@ -227,11 +236,11 @@ const parseBeer = (beerToImport: Element) => {
         };
 
         beer.boilNotifications.push(notification);
-      } else if (hopUse === 'Mash') {
+      } else if (hopUse === "Mash") {
         const hopAddTime = totalMashTime - hopInfusTime;
 
         const notification: INotification = {
-          name: 'Hop',
+          name: "Hop",
           message: `${hopAmount}g of ${hopName}`,
           timeFromStart: hopAddTime,
           timePoint: 0,
@@ -244,22 +253,22 @@ const parseBeer = (beerToImport: Element) => {
   }
 
   // Convert Misc like herbs etc
-  const miscs = beerToImport.getElementsByTagName('MISCS')[0].getElementsByTagName('MISC');
+  const miscs = beerToImport.getElementsByTagName("MISCS")[0].getElementsByTagName("MISC");
   if (miscs != null && miscs.length > 0) {
     for (let i = 0; i < miscs.length; i += 1) {
       const misc = miscs[i];
-      const miscUse = misc.getElementsByTagName('USE')[0].textContent || '';
+      const miscUse = misc.getElementsByTagName("USE")[0].textContent || "";
 
-      if (miscUse === 'Primary') {
+      if (miscUse === "Primary") {
         continue;
       }
 
-      const miscName = misc.getElementsByTagName('NAME')[0].textContent;
-      const miscType = misc.getElementsByTagName('TYPE')[0].textContent;
-      const miscInfusTime = parseInt(misc.getElementsByTagName('TIME')[0].textContent || '0', 10);// this is not the add time but the infusion time
-      const miscAmount = parseFloat(misc.getElementsByTagName('AMOUNT')[0].textContent || '0') * 1000; // all beerxml weight are in kg
+      const miscName = misc.getElementsByTagName("NAME")[0].textContent;
+      const miscType = misc.getElementsByTagName("TYPE")[0].textContent;
+      const miscInfusTime = Number.parseInt(misc.getElementsByTagName("TIME")[0].textContent || "0", 10); // this is not the add time but the infusion time
+      const miscAmount = Number.parseFloat(misc.getElementsByTagName("AMOUNT")[0].textContent || "0") * 1000; // all beerxml weight are in kg
 
-      if (miscUse === 'Boil') {
+      if (miscUse === "Boil") {
         const miscAddTime = boilTime - miscInfusTime;
 
         const notification: INotification = {
@@ -271,7 +280,7 @@ const parseBeer = (beerToImport: Element) => {
         };
 
         beer.boilNotifications.push(notification);
-      } else if (miscUse === 'Mash') {
+      } else if (miscUse === "Mash") {
         const notification: INotification = {
           name: `${miscType}`,
           message: `${miscAmount}g of ${miscName}`,
@@ -289,18 +298,19 @@ const parseBeer = (beerToImport: Element) => {
   const groupedMash = groupBy(beer.mashNotifications, (n) => n.timeFromStart);
   beer.mashNotificationsGrouped = [];
   groupedMash.forEach((group, key) => {
-    if (group.values.length === 1) { // only one so just add
+    if (group.values.length === 1) {
+      // only one so just add
       beer.mashNotificationsGrouped.push(group[0]);
     } else {
       // else combine
-      let newName = '';
-      let newMessage = '';
+      let newName = "";
+      let newMessage = "";
       let buzzer = false;
 
       group.forEach((notification) => {
         // when not yet in name add
         if (newName.indexOf(notification.name) === -1) {
-          if (newName === '') {
+          if (newName === "") {
             newName = notification.name;
           } else {
             newName += ` / ${notification.name}`;
@@ -327,18 +337,19 @@ const parseBeer = (beerToImport: Element) => {
   const groupedBoil = groupBy(beer.boilNotifications, (n) => n.timeFromStart);
   beer.boilNotificationsGrouped = [];
   groupedBoil.forEach((group, key) => {
-    if (group.values.length === 1) { // only one so just add
+    if (group.values.length === 1) {
+      // only one so just add
       beer.boilNotificationsGrouped.push(group[0]);
     } else {
       // else combine
-      let newName = '';
-      let newMessage = '';
+      let newName = "";
+      let newMessage = "";
       let buzzer = false;
 
       group.forEach((notification) => {
         // when not yet in name add
         if (newName.indexOf(notification.name) === -1) {
-          if (newName === '') {
+          if (newName === "") {
             newName = notification.name;
           } else {
             newName += ` / ${notification.name}`;
@@ -367,24 +378,24 @@ const parseBeer = (beerToImport: Element) => {
 
 const parseFile = () => {
   const parser = new DOMParser();
-  xmlDoc.value = parser.parseFromString(fileData.value, 'text/xml');
+  xmlDoc.value = parser.parseFromString(fileData.value, "text/xml");
 
-  const recipeCount = xmlDoc.value.getElementsByTagName('RECIPE').length;
+  const recipeCount = xmlDoc.value.getElementsByTagName("RECIPE").length;
   if (recipeCount === 0) {
-    alert.value = t('import.no_recipes');
-    alertType.value = 'warning';
+    alert.value = t("import.no_recipes");
+    alertType.value = "warning";
   } else if (recipeCount === 1) {
-    const firstBeer = xmlDoc.value.getElementsByTagName('RECIPE')[0];
+    const firstBeer = xmlDoc.value.getElementsByTagName("RECIPE")[0];
 
     parseBeer(firstBeer);
   } else {
     foundRecipies.value = [];
-    const recipes = xmlDoc.value.getElementsByTagName('RECIPE');
+    const recipes = xmlDoc.value.getElementsByTagName("RECIPE");
 
     for (let i = 0; i < recipes.length; i += 1) {
-      const name = recipes[i].getElementsByTagName('NAME')[0].textContent;
+      const name = recipes[i].getElementsByTagName("NAME")[0].textContent;
       foundRecipies.value.push({
-        title: name || 'unnamed',
+        title: name || "unnamed",
         value: i,
       });
     }
@@ -402,15 +413,15 @@ const selectBeer = (args: any) => {
   showSelection.value = false;
 
   if (args.id > -1) {
-    const beer = xmlDoc.value.getElementsByTagName('RECIPE')[args.id];
+    const beer = xmlDoc.value.getElementsByTagName("RECIPE")[args.id];
     parseBeer(beer);
   }
 };
 
 const fileSelected = (event: any) => {
   if (chosenFiles.value == null || chosenFiles.value.length === 0) {
-    alert.value = t('import.no_file_choosen');
-    alertType.value = 'warning';
+    alert.value = t("import.no_file_choosen");
+    alertType.value = "warning";
   }
 
   const file: Blob = chosenFiles.value[0];
@@ -427,9 +438,9 @@ const refreshAppStoreSchedules = async () => {
 };
 
 const upload = async () => {
-  if (importedBeer.value == null || importedBeer.value.name == null || importedBeer.value.name === '') {
-    alert.value = t('import.import_first');
-    alertType.value = 'warning';
+  if (importedBeer.value == null || importedBeer.value.name == null || importedBeer.value.name === "") {
+    alert.value = t("import.import_first");
+    alertType.value = "warning";
     return;
   }
 
@@ -444,14 +455,14 @@ const upload = async () => {
   };
 
   const requestData = {
-    command: (temporary.value) ? 'SetMashSchedule' : 'SaveMashSchedule',
+    command: temporary.value ? "SetMashSchedule" : "SaveMashSchedule",
     data: newMashSchedule,
   };
 
   const result = await webConn?.doPostRequest(requestData);
 
   if (result?.message != null) {
-    alertType.value = 'error';
+    alertType.value = "error";
     alert.value = result?.message;
   }
 
@@ -466,18 +477,18 @@ const upload = async () => {
   };
 
   const requestData2 = {
-    command: (temporary.value) ? 'SetMashSchedule' : 'SaveMashSchedule',
+    command: temporary.value ? "SetMashSchedule" : "SaveMashSchedule",
     data: newBoilSchedule,
   };
 
   const result2 = await webConn?.doPostRequest(requestData2);
 
   if (result2?.message != null) {
-    alertType.value = 'error';
+    alertType.value = "error";
     alert.value = result2?.message;
   } else {
-    alertType.value = 'info';
-    alert.value = 'Schedules Imported!';
+    alertType.value = "info";
+    alert.value = "Schedules Imported!";
 
     refreshAppStoreSchedules();
   }
@@ -492,12 +503,11 @@ const temporaryChanged = () => {
     const count = appStore.mashSchedules.filter((s) => s.name !== mashName && s.name !== boilName).length;
     if (count > appStore.maxSchedules.valueOf() - 2) {
       alert.value = `Only ${appStore.maxSchedules} Schedules can be saved!`;
-      alertType.value = 'warning';
+      alertType.value = "warning";
       temporary.value = true;
     }
   }
 };
-
 </script>
 
 <template>

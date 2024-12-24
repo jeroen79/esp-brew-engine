@@ -14,6 +14,7 @@ public:
     system_clock::time_point time;
     float temperature;
     bool extendIfNeeded;
+    bool allowBoost;
 
     json to_json()
     {
@@ -23,6 +24,7 @@ public:
         jStep["temperature"] = this->temperature;
         jStep["time"] = seconds;
         jStep["extendIfNeeded"] = this->extendIfNeeded;
+        jStep["allowBoost"] = this->allowBoost;
 
         return jStep;
     };

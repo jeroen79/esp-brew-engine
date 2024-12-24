@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { INotification, defaultNotification } from '@/interfaces/INotification';
-import { mdiDelete, mdiPencil } from '@mdi/js';
-import { ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-const { t } = useI18n({ useScope: 'global' });
+import { INotification, defaultNotification } from "@/interfaces/INotification";
+import { mdiDelete, mdiPencil } from "@mdi/js";
+import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
 const props = defineProps({
-  label: { type: String, required: false, default: 'Notifications' },
+  label: { type: String, required: false, default: "Notifications" },
   itemsPerPage: { type: Number, required: false, default: 50 },
   allowNew: { type: Boolean, required: false, default: true },
 });
@@ -15,23 +15,29 @@ const props = defineProps({
 const notifications = defineModel<Array<INotification>>({ required: true });
 
 const itemsPerPage = ref<number>(props.itemsPerPage);
-watch(() => props.itemsPerPage, () => {
-  itemsPerPage.value = props.itemsPerPage;
-});
+watch(
+  () => props.itemsPerPage,
+  () => {
+    itemsPerPage.value = props.itemsPerPage;
+  },
+);
 
 const allowNew = ref<boolean>(props.allowNew);
-watch(() => props.allowNew, () => {
-  allowNew.value = props.allowNew;
-});
+watch(
+  () => props.allowNew,
+  () => {
+    allowNew.value = props.allowNew;
+  },
+);
 
 // Notifications
 const tableNotificationsHeaders = ref<Array<any>>([
-  { title: t('notificationEditor.name'), key: 'name', align: 'start' },
-  { title: t('notificationEditor.time_from_start'), key: 'timeFromStart', align: 'start' },
-  { title: t('notificationEditor.buzzer'), key: 'buzzer', align: 'start' },
-  { title: t('notificationEditor.actions'), key: 'actions', sortable: false },
+  { title: t("notificationEditor.name"), key: "name", align: "start" },
+  { title: t("notificationEditor.time_from_start"), key: "timeFromStart", align: "start" },
+  { title: t("notificationEditor.buzzer"), key: "buzzer", align: "start" },
+  { title: t("notificationEditor.actions"), key: "actions", sortable: false },
 ]);
-const sortNotificationsBy = ref<Array<any>>([{ key: 'index', order: 'asc' }]);
+const sortNotificationsBy = ref<Array<any>>([{ key: "index", order: "asc" }]);
 
 const showNotificationDialog = ref<boolean>(false);
 const showNotificationDeleteDialog = ref<boolean>(false);

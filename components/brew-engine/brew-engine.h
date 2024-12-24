@@ -51,6 +51,13 @@ enum TemperatureScale
     Fahrenheit = 1
 };
 
+enum BoostStatus
+{
+    Off = 0,
+    Boost = 1,
+    Rest = 2
+};
+
 using namespace std;
 using namespace std::chrono;
 using std::cout;
@@ -135,13 +142,17 @@ private:
     bool resetPitTime = false; // bool to reset pit , we do this when out target changes
     float tempMargin = 0.5;    // we don't want to nitpick about 0.5°C, water heating is not that percise
 
+    uint8_t boostModeUntil = 85;
+
     // execution
     bool run = false;
     bool controlRun = false;   // true when a program is running
     bool boilRun = false;      // true when a boil schedule  is running
     bool skipTempLoop = false; // When we are changing temp settings we temporarily need to skip our temp loop
+    BoostStatus boostStatus;   // Status of boost
 
     bool inOverTime = false; // when a step time isn't reached we go in overtime, we need this to know that we need recalcualtion
+
     string statusText = "Idle";
     std::map<string, MashSchedule *> mashSchedules;
     string selectedMashScheduleName;

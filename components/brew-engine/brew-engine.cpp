@@ -211,6 +211,8 @@ void BrewEngine::readSettings()
 
 	this->pidLoopTime = this->settingsManager->Read("pidLoopTime", (uint16_t)CONFIG_PID_LOOPTIME);
 	this->stepInterval = this->settingsManager->Read("stepInterval", (uint16_t)CONFIG_PID_LOOPTIME); // we use same as pidloop time
+
+	this->boostModeUntil = this->settingsManager->Read("boostModeUntil", (uint8_t)this->boostModeUntil);
 }
 
 void BrewEngine::setMashSchedule(const json &jSchedule)
@@ -305,6 +307,8 @@ void BrewEngine::savePIDSettings()
 	this->settingsManager->Write("pidLoopTime", this->pidLoopTime);
 	this->settingsManager->Write("stepInterval", this->stepInterval);
 
+	this->settingsManager->Write("boostModeUntil", this->boostModeUntil);
+
 	ESP_LOGI(TAG, "Saving PID Settings Done");
 }
 
@@ -320,6 +324,7 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s1->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
 	defaultMash_s1->stepTime = 5;
 	defaultMash_s1->extendStepTimeIfNeeded = true;
+	defaultMash_s1->allowBoost = true;
 	defaultMash_s1->time = 45;
 	defaultMash->steps.push_back(defaultMash_s1);
 
@@ -329,6 +334,7 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s2->temperature = (this->temperatureScale == Celsius) ? 72 : 160;
 	defaultMash_s2->stepTime = 5;
 	defaultMash_s2->extendStepTimeIfNeeded = true;
+	defaultMash_s2->allowBoost = false;
 	defaultMash_s2->time = 20;
 	defaultMash->steps.push_back(defaultMash_s2);
 
@@ -338,6 +344,7 @@ void BrewEngine::addDefaultMash()
 	defaultMash_s3->temperature = (this->temperatureScale == Celsius) ? 78 : 170;
 	defaultMash_s3->stepTime = 5;
 	defaultMash_s3->extendStepTimeIfNeeded = true;
+	defaultMash_s3->allowBoost = false;
 	defaultMash_s3->time = 5;
 	defaultMash->steps.push_back(defaultMash_s3);
 
@@ -367,6 +374,7 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s1->temperature = (this->temperatureScale == Celsius) ? 43 : 110;
 	ryeMash_s1->stepTime = 5;
 	ryeMash_s1->extendStepTimeIfNeeded = true;
+	ryeMash_s1->allowBoost = true;
 	ryeMash_s1->time = 20;
 	ryeMash->steps.push_back(ryeMash_s1);
 
@@ -376,6 +384,7 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s2->temperature = (this->temperatureScale == Celsius) ? 64 : 150;
 	ryeMash_s2->stepTime = 5;
 	ryeMash_s2->extendStepTimeIfNeeded = true;
+	ryeMash_s2->allowBoost = false;
 	ryeMash_s2->time = 45;
 	ryeMash->steps.push_back(ryeMash_s2);
 
@@ -385,6 +394,7 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s3->temperature = (this->temperatureScale == Celsius) ? 72 : 160;
 	ryeMash_s3->stepTime = 5;
 	ryeMash_s3->extendStepTimeIfNeeded = true;
+	ryeMash_s3->allowBoost = false;
 	ryeMash_s3->time = 20;
 	ryeMash->steps.push_back(ryeMash_s3);
 
@@ -394,6 +404,7 @@ void BrewEngine::addDefaultMash()
 	ryeMash_s4->temperature = (this->temperatureScale == Celsius) ? 78 : 170;
 	ryeMash_s4->stepTime = 5;
 	ryeMash_s4->extendStepTimeIfNeeded = true;
+	ryeMash_s4->allowBoost = false;
 	ryeMash_s4->time = 5;
 	ryeMash->steps.push_back(ryeMash_s4);
 
@@ -839,6 +850,7 @@ void BrewEngine::start()
 	{
 		this->controlRun = true;
 		this->inOverTime = false;
+		this->boostStatus = Off;
 		this->overrideTargetTemperature = std::nullopt;
 		// clear old temp log
 		this->tempLog.clear();
@@ -933,13 +945,24 @@ void BrewEngine::loadSchedule()
 			}
 
 			auto stepEndTime = prevTime + minutes(stepTime);
-			auto secondsInStep = chrono::duration_cast<chrono::seconds>(stepEndTime - prevTime).count();
-			int subStepsInStep = (secondsInStep / this->stepInterval) - 1;
 
-			// we need atleast one step
-			if (subStepsInStep < 1)
+			int subStepsInStep;
+
+			// When boost mode is active we don't want substeps this only complicates things
+			if (step->allowBoost && this->boostModeUntil > 0)
 			{
 				subStepsInStep = 1;
+			}
+			else
+			{
+				auto secondsInStep = chrono::duration_cast<chrono::seconds>(stepEndTime - prevTime).count();
+				subStepsInStep = (secondsInStep / this->stepInterval) - 1;
+
+				// we need atleast one step
+				if (subStepsInStep < 1)
+				{
+					subStepsInStep = 1;
+				}
 			}
 
 			float tempDiffPerStep = (step->temperature - prevTemp) / (float)subStepsInStep;
@@ -958,6 +981,15 @@ void BrewEngine::loadSchedule()
 				execStep->time = executionStepTime;
 				execStep->temperature = subStepTemp;
 				execStep->extendIfNeeded = false;
+
+				if (step->allowBoost && this->boostModeUntil > 0)
+				{
+					execStep->allowBoost = true;
+				}
+				else
+				{
+					execStep->allowBoost = false;
+				}
 
 				// set extend if needed on last step if configured
 				if (j == (subStepsInStep - 1) && step->extendStepTimeIfNeeded)
@@ -1106,6 +1138,8 @@ void BrewEngine::recalculateScheduleAfterOverTime()
 void BrewEngine::stop()
 {
 	this->controlRun = false;
+	this->boostStatus = Off;
+	this->inOverTime = false;
 	this->statusText = "Idle";
 }
 
@@ -1397,15 +1431,26 @@ void BrewEngine::pidLoop(void *arg)
 
 	while (instance->run && instance->controlRun)
 	{
-		// output is %
+		// Output is %
 		int outputPercent = (int)pid.getOutput((double)instance->temperature, (double)instance->targetTemperature);
 		instance->pidOutput = outputPercent;
 		ESP_LOGI(TAG, "Pid Output: %d Target: %f", instance->pidOutput, instance->targetTemperature);
 
-		// manual override
+		// Manual override and boost
 		if (instance->manualOverrideOutput.has_value())
 		{
+			// Here we don't override the pidOutput display since we want the user to see the pid values even when overriding
 			outputPercent = instance->manualOverrideOutput.value();
+		}
+		else if (instance->boostStatus == Boost)
+		{
+			outputPercent = 100;
+			instance->pidOutput = 100;
+		}
+		else if (instance->boostStatus == Rest)
+		{
+			outputPercent = 0;
+			instance->pidOutput = 0;
 		}
 
 		// set all to 0
@@ -1498,6 +1543,8 @@ void BrewEngine::pidLoop(void *arg)
 		}
 	}
 
+	instance->pidOutput = 0;
+
 	vTaskDelete(NULL);
 }
 
@@ -1545,6 +1592,10 @@ void BrewEngine::controlLoop(void *arg)
 	// the pid needs to reset one step later so the next temp is set, oherwise it has a delay
 	bool resetPIDNextStep = false;
 
+	// For boost mode to see if temp starts to drop
+	float prevTemperature = instance->temperature;
+	uint boostUntil = 0;
+
 	while (instance->run && instance->controlRun)
 	{
 
@@ -1575,6 +1626,40 @@ void BrewEngine::controlLoop(void *arg)
 			if (nextAction > now)
 			{
 				secondsToGo = chrono::duration_cast<chrono::seconds>(nextAction - now).count();
+			}
+
+			// Boost mode logic
+			if (nextStep->allowBoost)
+			{
+				if (boostUntil == 0)
+				{
+					boostUntil = (uint)((nextStep->temperature / 100) * (float)instance->boostModeUntil);
+				}
+
+				if (instance->boostStatus == Off && instance->temperature < boostUntil)
+				{
+
+					ESP_LOGI(TAG, "Boost Start Until: %d", boostUntil);
+					instance->logRemote("Boost Start");
+					instance->boostStatus = Boost;
+				}
+				else if (instance->boostStatus == Boost && instance->temperature >= boostUntil)
+				{
+					// When in boost mode we wait unit boost temp is reched, pid is locked to 100% in boost mode
+					ESP_LOGI(TAG, "Boost Rest Start");
+					instance->logRemote("Boost Rest Start");
+					instance->boostStatus = Rest;
+				}
+				else if (instance->boostStatus == Rest && instance->temperature < prevTemperature)
+				{
+					// When in boost rest mode, we wait until temperature drops pid is locked to 0%
+					ESP_LOGI(TAG, "Boost Rest End");
+					instance->logRemote("Boost Rest End");
+					instance->boostStatus = Off;
+
+					// Reset pid
+					instance->resetPitTime = true;
+				}
 			}
 
 			if (secondsToGo < 1)
@@ -1620,6 +1705,10 @@ void BrewEngine::controlLoop(void *arg)
 			if (gotoNextStep)
 			{
 				instance->currentMashStep++;
+
+				// Also reset boost
+				instance->boostStatus = Off;
+
 				resetPIDNextStep = true;
 			}
 
@@ -1655,6 +1744,9 @@ void BrewEngine::controlLoop(void *arg)
 			ESP_LOGI(TAG, "Program Finished");
 			instance->stop();
 		}
+
+		// For boost mode to see if temp starts to drop
+		prevTemperature = instance->temperature;
 
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
@@ -1785,6 +1877,7 @@ string BrewEngine::processCommand(const string &payLoad)
 			{"tempLog", jTempLog},
 			{"runningVersion", this->runningVersion},
 			{"inOverTime", this->inOverTime},
+			{"boostStatus", this->boostStatus},
 		};
 
 		if (this->manualOverrideOutput.has_value())
@@ -1943,6 +2036,7 @@ string BrewEngine::processCommand(const string &payLoad)
 			{"boilkD", this->boilkD},
 			{"pidLoopTime", this->pidLoopTime},
 			{"stepInterval", this->stepInterval},
+			{"boostModeUntil", this->boostModeUntil},
 		};
 	}
 	else if (command == "SavePIDSettings")
@@ -1955,6 +2049,7 @@ string BrewEngine::processCommand(const string &payLoad)
 		this->boilkD = data["boilkD"].get<double>();
 		this->pidLoopTime = data["pidLoopTime"].get<uint16_t>();
 		this->stepInterval = data["stepInterval"].get<uint16_t>();
+		this->boostModeUntil = data["boostModeUntil"].get<uint8_t>();
 		this->savePIDSettings();
 	}
 	else if (command == "GetTempSettings")

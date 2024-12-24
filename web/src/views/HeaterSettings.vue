@@ -1,34 +1,34 @@
 <script lang="ts" setup>
-import { mdiDelete, mdiPencil } from '@mdi/js';
-import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
-import { IHeater } from '@/interfaces/IHeater';
-import WebConn from '@/helpers/webConn';
-import { useI18n } from 'vue-i18n';
-const { t } = useI18n({ useScope: 'global' });
+import WebConn from "@/helpers/webConn";
+import { IHeater } from "@/interfaces/IHeater";
+import { mdiDelete, mdiPencil } from "@mdi/js";
+import { inject, onBeforeUnmount, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
-const webConn = inject<WebConn>('webConn');
+const webConn = inject<WebConn>("webConn");
 
 const HeaterConfigs = ref<Array<IHeater>>([]);
 
 const tableHeaders = ref<Array<any>>([
-  { title: t('heaterSettings.name'), key: 'name', align: 'start' },
-  { title: t('heaterSettings.pin'), key: 'pinNr', align: 'start' },
-  { title: t('heaterSettings.preference'), key: 'preference', align: 'start' },
-  { title: t('heaterSettings.power'), key: 'watt', align: 'start' },
-  { title: t('heaterSettings.use_for_mash'), key: 'useForMash', align: 'end' },
-  { title: t('heaterSettings.use_for_boil'), key: 'useForBoil', align: 'end' },
-  { title: t('heaterSettings.actions'), key: 'actions', align: 'end', sortable: false },
+  { title: t("heaterSettings.name"), key: "name", align: "start" },
+  { title: t("heaterSettings.pin"), key: "pinNr", align: "start" },
+  { title: t("heaterSettings.preference"), key: "preference", align: "start" },
+  { title: t("heaterSettings.power"), key: "watt", align: "start" },
+  { title: t("heaterSettings.use_for_mash"), key: "useForMash", align: "end" },
+  { title: t("heaterSettings.use_for_boil"), key: "useForBoil", align: "end" },
+  { title: t("heaterSettings.actions"), key: "actions", align: "end", sortable: false },
 ]);
 
 const dialog = ref<boolean>(false);
 const dialogDelete = ref<boolean>(false);
 
-const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
+const alert = ref<string>("");
+const alertType = ref<"error" | "success" | "warning" | "info">("info");
 
 const defaultHeater: IHeater = {
   id: 0,
-  name: t('heaterSettings.new_heater'),
+  name: t("heaterSettings.new_heater"),
   pinNr: 0,
   preference: 0,
   watt: 0,
@@ -40,7 +40,7 @@ const editedItem = ref<IHeater>(defaultHeater);
 
 const getData = async () => {
   const requestData = {
-    command: 'GetHeaterSettings',
+    command: "GetHeaterSettings",
     data: null,
   };
 
@@ -66,9 +66,7 @@ onMounted(() => {
   getData();
 });
 
-onBeforeUnmount(() => {
-
-});
+onBeforeUnmount(() => {});
 
 const closeDialog = async () => {
   dialog.value = false;
@@ -100,18 +98,17 @@ const save = async () => {
   }
 
   const requestData = {
-    command: 'SaveHeaterSettings',
+    command: "SaveHeaterSettings",
     data: HeaterConfigs.value,
   };
 
   const result = await webConn?.doPostRequest(requestData);
 
   if (result?.message != null) {
-    alertType.value = 'warning';
+    alertType.value = "warning";
     alert.value = result?.message;
   }
 };
-
 </script>
 
 <template><v-container class="pa-6" fluid>

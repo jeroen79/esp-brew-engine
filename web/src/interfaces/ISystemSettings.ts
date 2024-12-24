@@ -1,4 +1,4 @@
-import TemperatureScale from '@/enums/TemperatureScale';
+import type TemperatureScale from "@/enums/TemperatureScale";
 
 export interface ISystemSettings {
   onewirePin: number;

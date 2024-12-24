@@ -1,37 +1,38 @@
 <script lang="ts" setup>
-import { mdiHelp } from '@mdi/js';
-import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
-import WebConn from '@/helpers/webConn';
-import { ISystemSettings } from '@/interfaces/ISystemSettings';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import WebConn from "@/helpers/webConn";
+import { ISystemSettings } from "@/interfaces/ISystemSettings";
+import { mdiHelp } from "@mdi/js";
+import { inject, onBeforeUnmount, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
-const webConn = inject<WebConn>('webConn');
+const webConn = inject<WebConn>("webConn");
 
-const systemSettings = ref<ISystemSettings>({ // add default value, vue has issues with null values atm
+const systemSettings = ref<ISystemSettings>({
+  // add default value, vue has issues with null values atm
   onewirePin: 0,
   stirPin: 0,
   buzzerPin: 0,
   buzzerTime: 2,
   invertOutputs: false,
-  mqttUri: '',
+  mqttUri: "",
   temperatureScale: 0,
 });
 
 // is same as enum TemperatureScale, but this wel never change, converting enum to options would be wastefull
 const temperatureScales = [
-  { title: t('systemSettings.celsius'), value: 0 },
-  { title: t('systemSettings.fahrenheit'), value: 1 },
+  { title: t("systemSettings.celsius"), value: 0 },
+  { title: t("systemSettings.fahrenheit"), value: 1 },
 ];
 
-const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
+const alert = ref<string>("");
+const alertType = ref<"error" | "success" | "warning" | "info">("info");
 
 const dialogFactoryReset = ref<boolean>(false);
 
 const getData = async () => {
   const requestData = {
-    command: 'GetSystemSettings',
+    command: "GetSystemSettings",
     data: null,
   };
 
@@ -47,9 +48,7 @@ onMounted(() => {
   getData();
 });
 
-onBeforeUnmount(() => {
-
-});
+onBeforeUnmount(() => {});
 
 const save = async () => {
   if (systemSettings.value == null) {
@@ -57,82 +56,81 @@ const save = async () => {
   }
 
   const requestData = {
-    command: 'SaveSystemSettings',
+    command: "SaveSystemSettings",
     data: systemSettings.value,
   };
 
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
     alert.value = result?.message;
-    alertType.value = 'warning';
+    alertType.value = "warning";
     window.scrollTo(0, 0);
   }
 };
 
 const recovery = async () => {
   const requestData = {
-    command: 'BootIntoRecovery',
+    command: "BootIntoRecovery",
   };
 
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
-    alertType.value = 'warning';
+    alertType.value = "warning";
     alert.value = result?.message;
     window.scrollTo(0, 0);
   }
 
   if (result?.success) {
     setTimeout(() => {
-      document.location.href = '/';
+      document.location.href = "/";
     }, 10000);
   }
 };
 
 const reboot = async () => {
   const requestData = {
-    command: 'Reboot',
+    command: "Reboot",
   };
 
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
-    alertType.value = 'warning';
+    alertType.value = "warning";
     alert.value = result?.message;
     window.scrollTo(0, 0);
   }
 
   if (result?.success) {
     setTimeout(() => {
-      document.location.href = '/';
+      document.location.href = "/";
     }, 10000);
   }
 };
 
 const factoryReset = async () => {
   const requestData = {
-    command: 'FactoryReset',
+    command: "FactoryReset",
   };
 
   dialogFactoryReset.value = false;
 
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
-    alertType.value = 'warning';
+    alertType.value = "warning";
     alert.value = result?.message;
     window.scrollTo(0, 0);
   }
 
   if (result?.success) {
     setTimeout(() => {
-      document.location.href = '/';
+      document.location.href = "/";
     }, 10000);
   }
 };
 
 const scaleChanged = () => {
-  alertType.value = 'info';
-  alert.value = t('systemSettings.mash_cant_be_converted');
+  alertType.value = "info";
+  alert.value = t("systemSettings.mash_cant_be_converted");
 };
-
 </script>
 
 <template>
