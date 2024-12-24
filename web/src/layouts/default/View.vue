@@ -1,41 +1,40 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
-import { mdiKnob, mdiAltimeter, mdiReceiptTextClock, mdiThermometerLines, mdiThermometer, mdiWifi, mdiWrenchCogOutline, mdiHeatingCoil, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit, mdiImport } from '@mdi/js';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import { mdiAltimeter, mdiCookieSettingsOutline, mdiFullscreen, mdiFullscreenExit, mdiHeatingCoil, mdiImport, mdiKnob, mdiReceiptTextClock, mdiThermometer, mdiThermometerLines, mdiWifi, mdiWrenchCogOutline } from "@mdi/js";
+import { ref } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
 const drawer = ref(true);
 const linksBrewing = ref([
-  [mdiKnob, t('links.control'), 'control'],
-  [mdiImport, t('links.import'), 'import'],
+  [mdiKnob, t("links.control"), "control"],
+  [mdiImport, t("links.import"), "import"],
 ]);
 
-const linksTools = ref([
-  [mdiAltimeter, t('links.refractometer'), 'refractometer'],
-]);
+const linksTools = ref([[mdiAltimeter, t("links.refractometer"), "refractometer"]]);
 
 const linksSettings = ref([
-  [mdiReceiptTextClock, t('links.schedules'), 'mashschedules'],
-  [mdiThermometerLines, t('links.pid_settings'), 'pidsettings'],
-  [mdiThermometer, t('links.temp_settings'), 'tempsettings'],
-  [mdiHeatingCoil, t('links.heater'), 'heaterSettings'],
-  [mdiWifi, t('links.wifi'), 'wifiSettings'],
-  [mdiWrenchCogOutline, t('links.system'), 'systemSettings'],
-  [mdiCookieSettingsOutline, t('links.client'), 'clientSettings'],
+  [mdiReceiptTextClock, t("links.schedules"), "mashschedules"],
+  [mdiThermometerLines, t("links.pid_settings"), "pidsettings"],
+  [mdiThermometer, t("links.temp_settings"), "tempsettings"],
+  [mdiHeatingCoil, t("links.heater"), "heaterSettings"],
+  [mdiWifi, t("links.wifi"), "wifiSettings"],
+  [mdiWrenchCogOutline, t("links.system"), "systemSettings"],
+  [mdiCookieSettingsOutline, t("links.client"), "clientSettings"],
 ]);
 
 const version = ref<string>(import.meta.env.VITE_APP_VERSION);
 
 const fullscreen = ref<boolean>(false);
 
-if (import.meta.env.MODE === 'development') {
+if (import.meta.env.MODE === "development") {
   version.value = `${import.meta.env.VITE_APP_VERSION}_dev`;
 }
 
 const enterFullscreen = () => {
   const elem = document.documentElement;
 
-  elem.requestFullscreen({ navigationUI: 'hide' })
+  elem
+    .requestFullscreen({ navigationUI: "hide" })
     .then(() => {
       fullscreen.value = true;
     })
@@ -48,7 +47,6 @@ const exitFullscreen = () => {
   document.exitFullscreen();
   fullscreen.value = false;
 };
-
 </script>
 
 <template>

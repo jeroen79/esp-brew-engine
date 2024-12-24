@@ -1,5 +1,5 @@
-import { IMashStep } from './IMashStep';
-import { INotification } from './INotification';
+import type { IMashStep } from "./IMashStep";
+import type { INotification } from "./INotification";
 
 export interface IMashSchedule {
   name: string;

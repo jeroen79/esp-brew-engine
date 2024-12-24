@@ -1,24 +1,25 @@
 <script lang="ts" setup>
-import { CategoryScale, Chart as ChartJS, Filler, Legend, LineElement, LinearScale, PointElement, TimeScale, Title, Tooltip } from 'chart.js';
-import TemperatureScale from '@/enums/TemperatureScale';
-import WebConn from '@/helpers/webConn';
-import { IDataPacket } from '@/interfaces/IDataPacket';
-import { IExecutionStep } from '@/interfaces/IExecutionStep';
-import { IMashSchedule } from '@/interfaces/IMashSchedule';
-import { ITempLog } from '@/interfaces/ITempLog';
-import { ITempSensor } from '@/interfaces/ITempSensor';
-import { useAppStore } from '@/store/app';
-import 'chartjs-adapter-dayjs-4';
-import annotationPlugin from 'chartjs-plugin-annotation';
-import debounce from 'lodash.debounce';
-import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { Line } from 'vue-chartjs';
-import { INotification } from '@/interfaces/INotification';
-import { useClientStore } from '@/store/client';
-import { useI18n } from 'vue-i18n';
-const { t } = useI18n({ useScope: 'global' });
+import TemperatureScale from "@/enums/TemperatureScale";
+import WebConn from "@/helpers/webConn";
+import { IDataPacket } from "@/interfaces/IDataPacket";
+import { IExecutionStep } from "@/interfaces/IExecutionStep";
+import { IMashSchedule } from "@/interfaces/IMashSchedule";
+import { ITempLog } from "@/interfaces/ITempLog";
+import { ITempSensor } from "@/interfaces/ITempSensor";
+import { useAppStore } from "@/store/app";
+import { CategoryScale, Chart as ChartJS, Filler, Legend, LineElement, LinearScale, PointElement, TimeScale, Title, Tooltip } from "chart.js";
+import "chartjs-adapter-dayjs-4";
+import { INotification } from "@/interfaces/INotification";
+import { useClientStore } from "@/store/client";
+import annotationPlugin from "chartjs-plugin-annotation";
+import debounce from "lodash.debounce";
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { Line } from "vue-chartjs";
+import { useI18n } from "vue-i18n";
+import BoostStatus from "@/enums/BoostStatus";
+const { t } = useI18n({ useScope: "global" });
 
-const webConn = inject<WebConn>('webConn');
+const webConn = inject<WebConn>("webConn");
 
 const appStore = useAppStore();
 const clientStore = useClientStore();
@@ -31,12 +32,13 @@ const targetTemperature = ref<number>();
 const manualOverrideTemperature = ref<number>();
 const manualOverrideOutput = ref<number | null>(null);
 const inOverTime = ref<boolean>(false);
+const boostStatus = ref<BoostStatus>(BoostStatus.Off);
 
 const intervalId = ref<any>();
 
 const notificationDialog = ref<boolean>(false);
-const notificationDialogTitle = ref<string>('');
-const notificationDialogText = ref<string>('');
+const notificationDialogTitle = ref<string>("");
+const notificationDialogText = ref<string>("");
 
 const notificationTimeouts = ref<Array<number>>([]);
 const notificationsShown = ref<Array<number>>([]);
@@ -62,7 +64,7 @@ const speechVoice = ref<SpeechSynthesisVoice | null>(null);
 const stirInterval = ref<Array<number>>([0, 3]);
 const stirMax = ref<number>(6);
 
-const focussedField = ref<string>('');
+const focussedField = ref<string>("");
 
 const dynamicColor = () => {
   const r = Math.floor(Math.random() * 255);
@@ -82,7 +84,7 @@ const beep = async () => {
   gainNode.gain.value = clientStore.clientSettings.beepVolume; // volume
   gainNode.connect(audioCtx.destination);
 
-  oscillator.type = 'square';
+  oscillator.type = "square";
   oscillator.frequency.setValueAtTime(2000, audioCtx.currentTime); // value in hertz
 
   oscillator.connect(gainNode);
@@ -134,7 +136,7 @@ const showNotificaton = async (notification: INotification, alert: boolean) => {
   notificationsShown.value.push(notification.timePoint);
 
   notificationDialogTitle.value = notification.name;
-  notificationDialogText.value = notification.message.replaceAll('\n', '<br/>');
+  notificationDialogText.value = notification.message.replaceAll("\n", "<br/>");
   notificationDialog.value = true;
 
   if (alert && clientStore.clientSettings.beepEnabled) {
@@ -166,7 +168,7 @@ const chartAnnotations = computed(() => {
     currentNotifications = [...notifications.value];
   } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value != null) {
     // when we have no steps and we are idle we can compute notifications from the schedule settings
-    if (status.value === 'Idle') {
+    if (status.value === "Idle") {
       const scheduleNotifications = [...selectedMashSchedule.value.notifications];
 
       currentNotifications = scheduleNotifications.map((notification) => {
@@ -185,17 +187,17 @@ const chartAnnotations = computed(() => {
   currentNotifications.forEach((notification) => {
     const notificationTime = notification.timePoint * 1000;
     const notificationPoint = {
-      type: 'line',
+      type: "line",
       xMin: notificationTime,
       xMax: notificationTime,
-      borderColor: 'rgb(255, 99, 132)',
+      borderColor: "rgb(255, 99, 132)",
       borderWidth: 2,
       label: {
         content: notification.name,
-        drawTime: 'afterDatasetsDraw',
+        drawTime: "afterDatasetsDraw",
         display: true,
         yAdjust: -110,
-        position: 'top',
+        position: "top",
       },
       click(context: any, event: any) {
         showNotificaton(notification, false);
@@ -222,7 +224,7 @@ const chartData = computed(() => {
   } else if (selectedMashSchedule.value !== null && selectedMashSchedule.value.steps !== null && startDateTime.value != null) {
     // when we have no steps and we are idle we can show the slected mash schedule
     // if the status is idle we can just project the selectes mash shedule
-    if (status.value === 'Idle') {
+    if (status.value === "Idle") {
       // sort data on index
       const steps = [...selectedMashSchedule.value.steps];
       steps.sort((a, b) => a.index - b.index);
@@ -236,14 +238,14 @@ const chartData = computed(() => {
       scheduleData.push(startPoint);
 
       steps.forEach((step) => {
-        lastTimePoint += (step.stepTime * 60);
+        lastTimePoint += step.stepTime * 60;
         const startStepPoint = {
           x: lastTimePoint * 1000,
           y: step.temperature,
         };
         scheduleData.push(startStepPoint);
 
-        lastTimePoint += (step.time * 60);
+        lastTimePoint += step.time * 60;
         const endStepPoint = {
           x: lastTimePoint * 1000,
           y: step.temperature,
@@ -268,22 +270,22 @@ const chartData = computed(() => {
 
   let datasets = [
     {
-      label: `${t('control.avg')} ${appStore.tempUnit}`,
-      backgroundColor: 'rgba(255, 255, 255, 0.7)',
-      borderColor: 'rgba(255, 255, 255, 0.9)',
+      label: `${t("control.avg")} ${appStore.tempUnit}`,
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      borderColor: "rgba(255, 255, 255, 0.9)",
       lineTension: 0,
       fill: false,
-      xAxisID: 'xAxis',
-      yAxisID: 'yAxis',
+      xAxisID: "xAxis",
+      yAxisID: "yAxis",
       data: realData,
     },
     {
-      label: `${t('control.target')} ${appStore.tempUnit}`,
-      backgroundColor: 'rgba(0, 158, 85, 0.3)',
-      borderColor: 'rgba(0, 158, 85, 0.9)',
+      label: `${t("control.target")} ${appStore.tempUnit}`,
+      backgroundColor: "rgba(0, 158, 85, 0.3)",
+      borderColor: "rgba(0, 158, 85, 0.9)",
       lineTension: 0,
-      xAxisID: 'xAxis',
-      yAxisID: 'yAxis',
+      xAxisID: "xAxis",
+      yAxisID: "yAxis",
       fill: true,
       data: scheduleData,
     },
@@ -310,8 +312,8 @@ const chartData = computed(() => {
       borderColor: color,
       lineWidth: 0.2,
       lineTension: 0,
-      xAxisID: 'xAxis',
-      yAxisID: 'yAxis',
+      xAxisID: "xAxis",
+      yAxisID: "yAxis",
       fill: false,
       pointRadius: 0,
       data: setData,
@@ -342,16 +344,18 @@ const setNotifications = (newNotifications: Array<INotification>) => {
   const timeoutIds: Array<number> = [];
 
   // Notifications we have not show yet
-  newNotifications.filter((n) => notificationsShown.value.includes(n.timePoint) === false).forEach((notification) => {
-    const timeTill = (notification.timePoint * 1000) - Date.now();
-    // We do want past notification due to overtime, but these are verry short in the past! max 10 seconds
-    if (timeTill > -10000) {
-      const timeoutId = window.setTimeout(() => {
-        showNotificaton(notification, true);
-      }, timeTill);
-      timeoutIds.push(timeoutId);
-    }
-  });
+  newNotifications
+    .filter((n) => notificationsShown.value.includes(n.timePoint) === false)
+    .forEach((notification) => {
+      const timeTill = notification.timePoint * 1000 - Date.now();
+      // We do want past notification due to overtime, but these are verry short in the past! max 10 seconds
+      if (timeTill > -10000) {
+        const timeoutId = window.setTimeout(() => {
+          showNotificaton(notification, true);
+        }, timeTill);
+        timeoutIds.push(timeoutId);
+      }
+    });
 
   notificationTimeouts.value = timeoutIds;
 
@@ -360,7 +364,7 @@ const setNotifications = (newNotifications: Array<INotification>) => {
 
 const getRunningSchedule = async () => {
   const requestData = {
-    command: 'GetRunningSchedule',
+    command: "GetRunningSchedule",
     data: null,
   };
 
@@ -378,7 +382,7 @@ const getRunningSchedule = async () => {
 
 const getData = async () => {
   const requestData = {
-    command: 'Data',
+    command: "Data",
     data: {
       LastDate: lastGoodDataDate.value,
     },
@@ -396,13 +400,14 @@ const getData = async () => {
   outputPercent.value = apiResult.data.output;
   manualOverrideOutput.value = apiResult.data.manualOverrideOutput;
 
-  if (focussedField.value !== 'manualOverrideTemperature') {
+  if (focussedField.value !== "manualOverrideTemperature") {
     manualOverrideTemperature.value = apiResult.data.manualOverrideTargetTemp;
   }
 
   targetTemperature.value = apiResult.data.targetTemp;
   lastGoodDataDate.value = apiResult.data.lastLogDateTime;
   inOverTime.value = apiResult.data.inOverTime;
+  boostStatus.value = apiResult.data.boostStatus;
   const serverRunningVersion = apiResult.data.runningVersion;
 
   // notifications move with overtime and will be re-added when it is done
@@ -410,7 +415,7 @@ const getData = async () => {
     clearAllNotificationTimeouts();
   }
 
-  if (status.value === 'Running' && lastRunningVersion.value !== serverRunningVersion) {
+  if (status.value === "Running" && lastRunningVersion.value !== serverRunningVersion) {
     // the schedule has changed, we need to update
     getRunningSchedule();
   }
@@ -443,12 +448,10 @@ const getData = async () => {
 
         currentTemps.value.push(newRecord);
       } else {
-        foundRecord.temps.push(
-          {
-            time: timestampSeconds,
-            temp: te.temp,
-          },
-        );
+        foundRecord.temps.push({
+          time: timestampSeconds,
+          temp: te.temp,
+        });
       }
     });
   }
@@ -456,7 +459,7 @@ const getData = async () => {
   // we only need to get the tempsensort once
   if (tempSensors.value == null || tempSensors.value.length === 0) {
     const requestData3 = {
-      command: 'GetTempSettings',
+      command: "GetTempSettings",
       data: null,
     };
     const apiResult3 = await webConn?.doPostRequest(requestData3);
@@ -475,10 +478,10 @@ const changeTargetTemp = async () => {
   }
 
   // for some reason value is still a string while ref defined as number, bug in vue?
-  const forceInt = parseInt(manualOverrideTemperature.value?.toString(), 10);
+  const forceInt = Number.parseInt(manualOverrideTemperature.value?.toString(), 10);
 
   const requestData = {
-    command: 'SetTemp',
+    command: "SetTemp",
     data: {
       targetTemp: forceInt,
     },
@@ -493,10 +496,10 @@ const changeOverrideOutput = (event: any) => {
     return;
   }
 
-  const forceInt = parseInt(event.target.value.toString(), 10);
+  const forceInt = Number.parseInt(event.target.value.toString(), 10);
 
   const requestData = {
-    command: 'SetOverrideOutput',
+    command: "SetOverrideOutput",
     data: {
       output: forceInt,
     },
@@ -513,7 +516,7 @@ const setStartDateNow = () => {
 
 const start = async () => {
   const requestData = {
-    command: 'Start',
+    command: "Start",
     data: {
       selectedMashSchedule: null as string | null,
     },
@@ -538,7 +541,7 @@ const start = async () => {
 
 const stop = async () => {
   const requestData = {
-    command: 'Stop',
+    command: "Stop",
     data: null,
   };
 
@@ -550,7 +553,7 @@ const stop = async () => {
 
 const startStir = async () => {
   const requestData = {
-    command: 'StartStir',
+    command: "StartStir",
     data: {
       max: stirMax.value,
       intervalStart: stirInterval.value[0],
@@ -564,7 +567,7 @@ const startStir = async () => {
 
 const stopStir = async () => {
   const requestData = {
-    command: 'StopStir',
+    command: "StopStir",
     data: null,
   };
 
@@ -606,41 +609,41 @@ const chartOptions = computed<any>(() => {
       xAxis: {
         title: {
           display: true,
-          text: t('control.time'),
-          color: '#ffffff',
+          text: t("control.time"),
+          color: "#ffffff",
         },
-        type: 'time',
+        type: "time",
         time: {
-          unit: 'minute',
+          unit: "minute",
           displayFormats: {
-            millisecond: 'HH:mm',
-            second: 'HH:mm',
-            minute: 'HH:mm',
-            hour: 'HH:mm',
-            day: 'HH:mm',
-            week: 'HH:mm',
-            month: 'HH:mm',
-            quarter: 'HH:mm',
-            year: 'HH:mm',
+            millisecond: "HH:mm",
+            second: "HH:mm",
+            minute: "HH:mm",
+            hour: "HH:mm",
+            day: "HH:mm",
+            week: "HH:mm",
+            month: "HH:mm",
+            quarter: "HH:mm",
+            year: "HH:mm",
           },
         },
         ticks: {
-          color: '#ffffff',
+          color: "#ffffff",
         },
       },
       yAxis: {
         title: {
           display: true,
           text: appStore.tempUnit,
-          color: '#ffffff',
+          color: "#ffffff",
         },
-        type: 'linear',
+        type: "linear",
         suggestedMin,
         suggestedMax,
         ticks: {
-          color: '#ffffff',
+          color: "#ffffff",
         },
-        grid: { color: '#bdbdbc' },
+        grid: { color: "#bdbdbc" },
       },
     },
     plugins: {
@@ -673,7 +676,15 @@ const displayStatus = computed(() => {
   let ds = status.value;
 
   if (inOverTime.value) {
-    ds += ' (Overtime)';
+    ds += " (Overtime)";
+  }
+
+  if (boostStatus.value === BoostStatus.Boost) {
+    ds += " (Boost)";
+  }
+
+  if (boostStatus.value === BoostStatus.Rest) {
+    ds += " (Boost Rest)";
   }
 
   return ds;
@@ -681,12 +692,11 @@ const displayStatus = computed(() => {
 
 const labelTargetTemp = computed(() => {
   if (selectedMashSchedule.value == null) {
-    return `${t('control.set_target')} (${appStore.tempUnit})`;
+    return `${t("control.set_target")} (${appStore.tempUnit})`;
   }
 
-  return `${t('control.set_target_override')} (${appStore.tempUnit})`;
+  return `${t("control.set_target_override")} (${appStore.tempUnit})`;
 });
-
 </script>
 
 <template>
@@ -740,13 +750,13 @@ const labelTargetTemp = computed(() => {
         </v-col>
         <v-col cols="12" md="3">
           <v-text-field
-            v-model.number="manualOverrideOutput"
+            v-model.number="outputPercent"
             type="number"
-            :label="$t('control.override_output')"
+            :label="$t('control.output')"
             readonly />
         </v-col>
         <v-col cols="12" md="3">
-          <v-text-field type="number" :label="$t('control.set_override_output')" @change="changeOverrideOutput" />
+          
         </v-col>
 
       </v-row>
@@ -754,6 +764,16 @@ const labelTargetTemp = computed(() => {
         <v-col cols="12" md="6">
           <v-btn v-if="status === 'Idle'" color="success" class="mt-4" block @click="start"> {{ $t('control.start') }} </v-btn>
           <v-btn v-else color="error" class="mt-4" block @click="stop"> {{ $t('control.stop') }} </v-btn>
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field
+            v-model.number="manualOverrideOutput"
+            type="number"
+            :label="$t('control.override_output')"
+            readonly />
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" :label="$t('control.set_override_output')" @change="changeOverrideOutput" />
         </v-col>
 
       </v-row>

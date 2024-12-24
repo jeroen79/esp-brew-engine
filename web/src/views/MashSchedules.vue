@@ -1,27 +1,27 @@
 <script lang="ts" setup>
-import { mdiDelete, mdiPencil } from '@mdi/js';
-import { computed, inject, ref, watch, watchEffect } from 'vue';
-import WebConn from '@/helpers/webConn';
-import { IMashSchedule } from '@/interfaces/IMashSchedule';
-import { IMashStep, defaultMashStep } from '@/interfaces/IMashStep';
-import { useAppStore } from '@/store/app';
-import { INotification, defaultNotification } from '@/interfaces/INotification';
-import StepEditor from '@/components/StepEditor.vue';
-import NotificationEditor from '@/components/NotificationEditor.vue';
-import { useI18n } from 'vue-i18n';
-const { t } = useI18n({ useScope: 'global' });
+import NotificationEditor from "@/components/NotificationEditor.vue";
+import StepEditor from "@/components/StepEditor.vue";
+import WebConn from "@/helpers/webConn";
+import { IMashSchedule } from "@/interfaces/IMashSchedule";
+import { IMashStep, defaultMashStep } from "@/interfaces/IMashStep";
+import { INotification, defaultNotification } from "@/interfaces/INotification";
+import { useAppStore } from "@/store/app";
+import { mdiDelete, mdiPencil } from "@mdi/js";
+import { computed, inject, ref, watch, watchEffect } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
-const webConn = inject<WebConn>('webConn');
+const webConn = inject<WebConn>("webConn");
 
-const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
+const alert = ref<string>("");
+const alertType = ref<"error" | "success" | "warning" | "info">("info");
 
 const appStore = useAppStore();
 
 // copy settings, we don't want them applied until save is clicked
 const mashSchedules = ref<Array<IMashSchedule>>([...appStore.mashSchedules]);
 
-const currentName = ref<string>('');
+const currentName = ref<string>("");
 const currentBoil = ref<boolean>(false);
 const selectedMashSchedule = ref<IMashSchedule | null>(null);
 
@@ -32,25 +32,31 @@ const getData = async () => {
 
 // Steps
 const tableStepsData = ref<Array<IMashStep>>([]);
-watch(() => selectedMashSchedule.value, () => {
-  if (selectedMashSchedule.value == null) {
-    tableStepsData.value = [];
-    return;
-  }
+watch(
+  () => selectedMashSchedule.value,
+  () => {
+    if (selectedMashSchedule.value == null) {
+      tableStepsData.value = [];
+      return;
+    }
 
-  tableStepsData.value = [...selectedMashSchedule.value.steps];
-});
+    tableStepsData.value = [...selectedMashSchedule.value.steps];
+  },
+);
 
 // Notifications
 const tableNotificationsData = ref<Array<INotification>>([]);
-watch(() => selectedMashSchedule.value, () => {
-  if (selectedMashSchedule.value == null) {
-    tableNotificationsData.value = [];
-    return;
-  }
+watch(
+  () => selectedMashSchedule.value,
+  () => {
+    if (selectedMashSchedule.value == null) {
+      tableNotificationsData.value = [];
+      return;
+    }
 
-  tableNotificationsData.value = [...selectedMashSchedule.value.notifications];
-});
+    tableNotificationsData.value = [...selectedMashSchedule.value.notifications];
+  },
+);
 
 // change name, but copy so user can change it
 watchEffect(() => {
@@ -62,9 +68,9 @@ watchEffect(() => {
 
 const saveSchedule = async () => {
   // atm schedules are in ram so we can't allow crazy amounts, in the future we will need some kinde of cloud storage
-  if ((selectedMashSchedule.value != null && selectedMashSchedule.value.name !== currentName.value) && mashSchedules.value.length >= appStore.maxSchedules.valueOf()) {
-    alert.value = t('mashSchedules.max_schedules_reached').replace('{0}', appStore.maxSchedules.toString());
-    alertType.value = 'warning';
+  if (selectedMashSchedule.value != null && selectedMashSchedule.value.name !== currentName.value && mashSchedules.value.length >= appStore.maxSchedules.valueOf()) {
+    alert.value = t("mashSchedules.max_schedules_reached").replace("{0}", appStore.maxSchedules.toString());
+    alertType.value = "warning";
     return;
   }
 
@@ -77,14 +83,14 @@ const saveSchedule = async () => {
   };
 
   const requestData = {
-    command: 'SaveMashSchedule',
+    command: "SaveMashSchedule",
     data: newSchedule,
   };
 
   const result = await webConn?.doPostRequest(requestData);
 
   if (result?.message != null) {
-    alertType.value = 'warning';
+    alertType.value = "warning";
     alert.value = result?.message;
   }
 
@@ -98,7 +104,7 @@ const deleteSchedule = async () => {
   }
 
   const requestData = {
-    command: 'DeleteMashSchedule',
+    command: "DeleteMashSchedule",
     data: {
       name: selectedMashSchedule.value.name,
     },
@@ -110,7 +116,6 @@ const deleteSchedule = async () => {
 
   getData();
 };
-
 </script>
 
 <template>

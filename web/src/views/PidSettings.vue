@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
-import { mdiHelp } from '@mdi/js';
-import WebConn from '@/helpers/webConn';
-import { IPidSettings } from '@/interfaces/IPidSettings';
+import WebConn from "@/helpers/webConn";
+import { IPidSettings } from "@/interfaces/IPidSettings";
+import { mdiHelp } from "@mdi/js";
+import { inject, onBeforeUnmount, onMounted, ref } from "vue";
 
-const webConn = inject<WebConn>('webConn');
+const webConn = inject<WebConn>("webConn");
 
-const pidSettings = ref<IPidSettings>({ // add default value, vue heeft issues met default null waardes
+const pidSettings = ref<IPidSettings>({
+  // add default value, vue heeft issues met default null waardes
   kP: 0,
   kI: 0,
   kD: 0,
@@ -15,11 +16,12 @@ const pidSettings = ref<IPidSettings>({ // add default value, vue heeft issues m
   boilkD: 0,
   pidLoopTime: 60,
   stepInterval: 60,
+  boostModeUntil: 85,
 });
 
 const getData = async () => {
   const requestData = {
-    command: 'GetPIDSettings',
+    command: "GetPIDSettings",
     data: null,
   };
 
@@ -35,9 +37,7 @@ onMounted(() => {
   getData();
 });
 
-onBeforeUnmount(() => {
-
-});
+onBeforeUnmount(() => {});
 
 const save = async () => {
   if (pidSettings.value == null) {
@@ -48,14 +48,13 @@ const save = async () => {
   pidSettings.value.pidLoopTime = Math.floor(pidSettings.value.pidLoopTime);
 
   const requestData = {
-    command: 'SavePIDSettings',
+    command: "SavePIDSettings",
     data: pidSettings.value,
   };
 
   await webConn?.doPostRequest(requestData);
   // todo capture result and log errors
 };
-
 </script>
 
 <template>
@@ -66,7 +65,7 @@ const save = async () => {
         <v-col cols="12" md="3">
           <v-text-field type="number" v-model.number="pidSettings.pidLoopTime" :label="$t('pidSettings.pidLoopTime')">
             <template v-slot:append>
-              <v-tooltip :text="$t('pidSettings.pidLoopTimeDesc')">
+              <v-tooltip :text="$t('pidSettings.pidLoopTime_tooltip')">
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
@@ -80,7 +79,7 @@ const save = async () => {
         <v-col cols="12" md="3">
           <v-text-field type="number" v-model.number="pidSettings.stepInterval" :label="$t('pidSettings.stepInterval')">
             <template v-slot:append>
-              <v-tooltip :text="$t('pidSettings.stepIntervalDesc')">
+              <v-tooltip :text="$t('pidSettings.stepInterval_tooltip')">
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
@@ -122,11 +121,28 @@ const save = async () => {
         </v-col>
       </v-row>
 
+      <div class="text-subtitle-2 mt-4 mb-2">{{ $t('pidSettings.boost') }}</div>
+
+      <v-row class="mt-4 mb-2">
+        <v-col cols="12" md="3">
+          <v-text-field type="number" v-model.number="pidSettings.boostModeUntil" :label="$t('pidSettings.boost_until')" :min="0" :max="100">
+            <template v-slot:append>
+              <v-tooltip :text="$t('pidSettings.boost_until_tooltip')">
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+            </v-text-field>
+        </v-col>
+      </v-row>
+
       <v-row>
         <v-col cols="12" md="3">
           <v-btn color="success" class="mt-4 mr-2" @click="save"> {{ $t('general.save') }} </v-btn>
         </v-col>
       </v-row>
+
     </v-form>
   </v-container>
 </template>

@@ -1,15 +1,15 @@
 <script lang="ts" setup>
-import { IMashStep, defaultMashStep } from '@/interfaces/IMashStep';
-import { mdiDelete, mdiPencil } from '@mdi/js';
-import { useAppStore } from '@/store/app';
-import { ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
-const { t } = useI18n({ useScope: 'global' });
+import { IMashStep, defaultMashStep } from "@/interfaces/IMashStep";
+import { useAppStore } from "@/store/app";
+import { mdiDelete, mdiPencil } from "@mdi/js";
+import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
 const appStore = useAppStore();
 
 const props = defineProps({
-  label: { type: String, required: false, default: 'Steps' },
+  label: { type: String, required: false, default: "Steps" },
   itemsPerPage: { type: Number, required: false, default: 50 },
   allowNew: { type: Boolean, required: false, default: true },
 });
@@ -18,26 +18,33 @@ const props = defineProps({
 const steps = defineModel<Array<IMashStep>>({ required: true });
 
 const itemsPerPage = ref<number>(props.itemsPerPage);
-watch(() => props.itemsPerPage, () => {
-  itemsPerPage.value = props.itemsPerPage;
-});
+watch(
+  () => props.itemsPerPage,
+  () => {
+    itemsPerPage.value = props.itemsPerPage;
+  },
+);
 
 const allowNew = ref<boolean>(props.allowNew);
-watch(() => props.allowNew, () => {
-  allowNew.value = props.allowNew;
-});
+watch(
+  () => props.allowNew,
+  () => {
+    allowNew.value = props.allowNew;
+  },
+);
 
 // Steps
 const tableStepsHeaders = ref<Array<any>>([
-  { title: t('stepEditor.index'), key: 'index', align: 'start' },
-  { title: t('stepEditor.name'), key: 'name', align: 'start' },
-  { title: `${t('stepEditor.temperature')} ${appStore.tempUnit}`, key: 'temperature', align: 'end' },
-  { title: t('stepEditor.step_time'), key: 'stepTime', align: 'end' },
-  { title: t('stepEditor.extend_step_time'), key: 'extendStepTimeIfNeeded', align: 'end' },
-  { title: t('stepEditor.hold_time'), key: 'time', align: 'end' },
-  { title: t('stepEditor.actions'), key: 'actions', sortable: false },
+  { title: t("stepEditor.index"), key: "index", align: "start" },
+  { title: t("stepEditor.name"), key: "name", align: "start" },
+  { title: `${t("stepEditor.temperature")} ${appStore.tempUnit}`, key: "temperature", align: "end" },
+  { title: t("stepEditor.step_time"), key: "stepTime", align: "end" },
+  { title: t("stepEditor.extend_step_time"), key: "extendStepTimeIfNeeded", align: "end" },
+  { title: t("stepEditor.allow_boost"), key: "allowBoost", align: "end" },
+  { title: t("stepEditor.hold_time"), key: "time", align: "end" },
+  { title: t("stepEditor.actions"), key: "actions", sortable: false },
 ]);
-const sortStepsBy = ref<Array<any>>([{ key: 'index', order: 'asc' }]);
+const sortStepsBy = ref<Array<any>>([{ key: "index", order: "asc" }]);
 
 const showStepDialog = ref<boolean>(false);
 const showStepDeleteDialog = ref<boolean>(false);
@@ -118,6 +125,9 @@ const stepDeleteItemOk = async () => {
                 </v-row>
                 <v-row>
                   <v-checkbox v-model="editingStep.extendStepTimeIfNeeded" :label='t("stepEditor.extend_step_time")' />
+                </v-row>     
+               <v-row>
+                  <v-checkbox v-model="editingStep.allowBoost" :label='t("stepEditor.allow_boost")' />
                 </v-row>
                 <v-row>
                   <v-text-field type="number" v-model.number="editingStep.time" :label='t("stepEditor.hold_time")' />
@@ -152,6 +162,9 @@ const stepDeleteItemOk = async () => {
     </template>
     <template v-slot:[`item.extendStepTimeIfNeeded`]="{ item }">
       <v-checkbox-btn class="align-right justify-center" v-model="item.extendStepTimeIfNeeded" disabled />
+    </template>
+    <template v-slot:[`item.allowBoost`]="{ item }">
+      <v-checkbox-btn class="align-right justify-center" v-model="item.allowBoost" disabled />
     </template>
 
   </v-data-table>

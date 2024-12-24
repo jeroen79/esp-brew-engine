@@ -1,16 +1,16 @@
 {
-    "name": "ESP Brew Engine",
-    "short_name": "Brew Engine",
-    "start_url": ".",
-    "display": "standalone",
-    "background_color": "#0d1117",
-    "description": "ESP Brew Engine is a brew controller for ESP32, it can be used to control maish and cooking.",
-    "icons": [
-        {
-            "src": "logo.svg",
-            "sizes": "48x48 72x72 96x96 128x128 256x256 512x512",
-            "type": "image/svg+xml",
-            "purpose": "any"
-        }
-    ]
+  "name": "ESP Brew Engine",
+  "short_name": "Brew Engine",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "description": "ESP Brew Engine is a brew controller for ESP32, it can be used to control maish and cooking.",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "sizes": "48x48 72x72 96x96 128x128 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }

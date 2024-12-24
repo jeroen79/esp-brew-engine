@@ -1,24 +1,26 @@
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, inject } from 'vue';
-import { mdiEye, mdiEyeOutline, mdiConnection, mdiHelp } from '@mdi/js';
-import WebConn from '@/helpers/webConn';
-import { IWifiSettings } from '@/interfaces/IWifiSettings';
-import { IWifiNetwork } from '@/interfaces/IWifiNetwork';
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n({ useScope: 'global' })
+import WebConn from "@/helpers/webConn";
+import { IWifiNetwork } from "@/interfaces/IWifiNetwork";
+import { IWifiSettings } from "@/interfaces/IWifiSettings";
+import { mdiConnection, mdiEye, mdiEyeOutline, mdiHelp } from "@mdi/js";
+import { inject, onBeforeUnmount, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n({ useScope: "global" });
 
-const webConn = inject<WebConn>('webConn');
+const webConn = inject<WebConn>("webConn");
 
-const wifiSettings = ref<IWifiSettings>({ // add default value, vue has issues with null values atm
-  ssid: '',
-  password: '',
+const wifiSettings = ref<IWifiSettings>({
+  // add default value, vue has issues with null values atm
+  ssid: "",
+  password: "",
   enableAP: true,
   maxPower: 20,
 });
 
-const dialogData = ref<IWifiSettings>({ // add default value, vue has issues with null values atm
-  ssid: '',
-  password: '',
+const dialogData = ref<IWifiSettings>({
+  // add default value, vue has issues with null values atm
+  ssid: "",
+  password: "",
   enableAP: false,
   maxPower: 0,
 });
@@ -26,22 +28,22 @@ const dialogData = ref<IWifiSettings>({ // add default value, vue has issues wit
 const wifiNetworks = ref<Array<IWifiNetwork>>([]);
 
 const networkTableHeaders = ref<Array<any>>([
-  { title: t('wifiSettings.ssid'), key: 'ssid', align: 'start' },
-  { title: t('wifiSettings.rssi'), key: 'rssi', align: 'start' },
-  { title: t('wifiSettings.channel'), key: 'channel', align: 'start' },
-  { title: t('wifiSettings.type'), key: 'authMode', align: 'start' },
-  { title: t('wifiSettings.actions'), key: 'actions', sortable: false },
+  { title: t("wifiSettings.ssid"), key: "ssid", align: "start" },
+  { title: t("wifiSettings.rssi"), key: "rssi", align: "start" },
+  { title: t("wifiSettings.channel"), key: "channel", align: "start" },
+  { title: t("wifiSettings.type"), key: "authMode", align: "start" },
+  { title: t("wifiSettings.actions"), key: "actions", sortable: false },
 ]);
 const connectDialog = ref<boolean>(false);
 
-const alert = ref<string>('');
-const alertType = ref<'error' | 'success' | 'warning' | 'info'>('info');
+const alert = ref<string>("");
+const alertType = ref<"error" | "success" | "warning" | "info">("info");
 
 const hidePwd = ref<boolean>(true);
 
 const getData = async () => {
   const requestData = {
-    command: 'GetWifiSettings',
+    command: "GetWifiSettings",
     data: null,
   };
 
@@ -55,16 +57,16 @@ const getData = async () => {
 
 const scanForNetworks = async () => {
   const requestData = {
-    command: 'ScanWifi',
+    command: "ScanWifi",
     data: null,
   };
 
-  alert.value = t('wifiSettings.msg_wait');
-  alertType.value = 'info';
+  alert.value = t("wifiSettings.msg_wait");
+  alertType.value = "info";
 
   const apiResult = await webConn?.doPostRequest(requestData);
 
-  alert.value = ''; // clear alert
+  alert.value = ""; // clear alert
 
   if (apiResult === undefined || apiResult.success === false) {
     return;
@@ -83,23 +85,23 @@ const save = async () => {
     return;
   }
 
-  if (wifiSettings.value.ssid === '') {
-    alert.value = t('wifiSettings.msg_ssid_empty');
-    alertType.value = 'warning';
+  if (wifiSettings.value.ssid === "") {
+    alert.value = t("wifiSettings.msg_ssid_empty");
+    alertType.value = "warning";
     return;
   }
 
-  alert.value = '';
+  alert.value = "";
 
   const requestData = {
-    command: 'SaveWifiSettings',
+    command: "SaveWifiSettings",
     data: wifiSettings.value,
   };
 
   const result = await webConn?.doPostRequest(requestData);
   if (result?.message != null) {
     alert.value = result?.message;
-    alertType.value = 'warning';
+    alertType.value = "warning";
   }
 };
 
@@ -113,18 +115,15 @@ const closeConnectDialog = async () => {
 
 // we clear the config when the mode is changed, this is less confusing
 const clearConfig = () => {
-  wifiSettings.value.ssid = '';
-  wifiSettings.value.password = '';
+  wifiSettings.value.ssid = "";
+  wifiSettings.value.password = "";
 };
 
 onMounted(() => {
   getData();
 });
 
-onBeforeUnmount(() => {
-
-});
-
+onBeforeUnmount(() => {});
 </script>
 
 <template>

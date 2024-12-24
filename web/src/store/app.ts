@@ -1,18 +1,18 @@
 /* eslint-disable import/prefer-default-export */
-import TemperatureScale from '@/enums/TemperatureScale';
-import WebConn from '@/helpers/webConn';
-import { IMashSchedule } from '@/interfaces/IMashSchedule';
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import TemperatureScale from "@/enums/TemperatureScale";
+import WebConn from "@/helpers/webConn";
+import type { IMashSchedule } from "@/interfaces/IMashSchedule";
+import { defineStore } from "pinia";
+import { ref } from "vue";
 
 export const useAppStore = () => {
-  const innerStore = defineStore('app', () => {
+  const innerStore = defineStore("app", () => {
     const systemSettingsLoaded = ref(false);
     const temperatureScale = ref<TemperatureScale>(TemperatureScale.Celsius);
-    const tempUnit = ref('°C');
+    const tempUnit = ref("°C");
     const rootUrl = ref<string | null>(null);
     const mashSchedules = ref<Array<IMashSchedule>>([]);
-    const maxSchedules = ref<Number>(10);// atm this is fixed to 10
+    const maxSchedules = ref<number>(10); // atm this is fixed to 10
 
     async function getMashSchedules() {
       if (rootUrl.value == null) {
@@ -20,7 +20,7 @@ export const useAppStore = () => {
       }
       // we only need to get the mashschedules once
       const requestData = {
-        command: 'GetMashSchedules',
+        command: "GetMashSchedules",
         data: null,
       };
       const webConn = new WebConn(rootUrl.value);
@@ -40,7 +40,7 @@ export const useAppStore = () => {
 
       const webConn = new WebConn(rootUrl.value);
       const requestData = {
-        command: 'GetSystemSettings',
+        command: "GetSystemSettings",
         data: null,
       };
 
@@ -52,7 +52,7 @@ export const useAppStore = () => {
 
       temperatureScale.value = apiResult.data.temperatureScale;
       if (temperatureScale.value === TemperatureScale.Fahrenheit) {
-        tempUnit.value = '°F';
+        tempUnit.value = "°F";
       }
 
       // also get our schedules
@@ -62,7 +62,14 @@ export const useAppStore = () => {
     }
 
     return {
-      systemSettingsLoaded, rootUrl, temperatureScale, tempUnit, mashSchedules, maxSchedules, getSystemSettings, getMashSchedules,
+      systemSettingsLoaded,
+      rootUrl,
+      temperatureScale,
+      tempUnit,
+      mashSchedules,
+      maxSchedules,
+      getSystemSettings,
+      getMashSchedules,
     };
   });
 

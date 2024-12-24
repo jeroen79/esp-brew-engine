@@ -1,6 +1,6 @@
-import { IImportedBeer } from '@/interfaces/IImportedBeer';
-import { IMashStep } from '@/interfaces/IMashStep';
-import { INotification } from '@/interfaces/INotification';
+import type { IImportedBeer } from "@/interfaces/IImportedBeer";
+import type { IMashStep } from "@/interfaces/IMashStep";
+import type { INotification } from "@/interfaces/INotification";
 
 export default class ImportedBeer implements IImportedBeer {
   public name: string | null = null;
