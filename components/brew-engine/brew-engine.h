@@ -171,6 +171,8 @@ private:
     std::vector<Heater *> heaters; // we support up to 10 heaters
 
     gpio_num_t oneWire_PIN;
+    gpio_num_t displayScl_PIN;
+    gpio_num_t displaySda_PIN;
     gpio_num_t stir_PIN;
     gpio_num_t buzzer_PIN;
 

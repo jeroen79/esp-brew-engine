@@ -95,6 +95,8 @@ void BrewEngine::readSystemSettings()
 
 	// io settings
 	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
+	this->displayScl_PIN = (gpio_num_t)this->settingsManager->Read("displaySclPin", (uint16_t)CONFIG_DISPLAY_SCL);
+	this->displaySda_PIN = (gpio_num_t)this->settingsManager->Read("displaySdaPin", (uint16_t)CONFIG_DISPLAY_SDA);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
 	this->buzzer_PIN = (gpio_num_t)this->settingsManager->Read("buzzerPin", (uint16_t)CONFIG_BUZZER);
 	this->buzzerTime = this->settingsManager->Read("buzzerTime", (uint8_t)2);
@@ -128,6 +130,16 @@ void BrewEngine::saveSystemSettingsJson(const json &config)
 	{
 		this->settingsManager->Write("onewirePin", (uint16_t)config["onewirePin"]);
 		this->oneWire_PIN = (gpio_num_t)config["onewirePin"];
+	}
+	if (!config["displaySclPin"].is_null() && config["displaySclPin"].is_number())
+	{
+		this->settingsManager->Write("displaySclPin", (uint16_t)config["displaySclPin"]);
+		this->displayScl_PIN = (gpio_num_t)config["displaySclPin"];
+	}
+	if (!config["displaySdaPin"].is_null() && config["displaySdaPin"].is_number())
+	{
+		this->settingsManager->Write("displaySdaPin", (uint16_t)config["displaySdaPin"]);
+		this->displaySda_PIN = (gpio_num_t)config["displaySdaPin"];
 	}
 	if (!config["stirPin"].is_null() && config["stirPin"].is_number())
 	{
@@ -2127,6 +2139,8 @@ string BrewEngine::processCommand(const string &payLoad)
 	{
 		resultData = {
 			{"onewirePin", this->oneWire_PIN},
+			{"displaySclPin", this->displayScl_PIN},
+			{"displaySdaPin", this->displaySda_PIN},
 			{"stirPin", this->stir_PIN},
 			{"buzzerPin", this->buzzer_PIN},
 			{"buzzerTime", this->buzzerTime},

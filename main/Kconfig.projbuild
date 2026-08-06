@@ -41,6 +41,18 @@ menu "BrewEngine Config"
         help
             OneWire Pin
 
+    config DISPLAY_SCL
+        int "Display SCL Pin"
+        default 22
+        help
+            Display I2C SCL Pin
+
+    config DISPLAY_SDA
+        int "Display SDA Pin"
+        default 21
+        help
+            Display I2C SDA Pin
+
     config HEAT1
         int "HEAT1 Pin"
         default 32

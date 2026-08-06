@@ -11,6 +11,8 @@ const webConn = inject<WebConn>("webConn");
 const systemSettings = ref<ISystemSettings>({
   // add default value, vue has issues with null values atm
   onewirePin: 0,
+  displaySclPin: 0,
+  displaySdaPin: 0,
   stirPin: 0,
   buzzerPin: 0,
   buzzerTime: 2,
@@ -143,6 +145,31 @@ const scaleChanged = () => {
           <v-text-field requierd v-model.number="systemSettings.onewirePin" :label='t("systemSettings.onewire_pin")'>
             <template v-slot:append>
               <v-tooltip :text='t("systemSettings.onewire_pin_tooltip")'>
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field v-model.number="systemSettings.displaySclPin" :label='t("systemSettings.display_scl_pin")'>
+            <template v-slot:append>
+              <v-tooltip :text='t("systemSettings.display_scl_pin_tooltip")'>
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field v-model.number="systemSettings.displaySdaPin" :label='t("systemSettings.display_sda_pin")'>
+            <template v-slot:append>
+              <v-tooltip :text='t("systemSettings.display_sda_pin_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>

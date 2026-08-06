@@ -16,7 +16,21 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
-#define OneWire_IO (gpio_num_t) CONFIG_OneWire /* gpio number for one wire */
+#ifndef CONFIG_ONEWIRE
+#define CONFIG_ONEWIRE 17
+#endif
+
+#ifndef CONFIG_DISPLAY_SCL
+#define CONFIG_DISPLAY_SCL 22
+#endif
+
+#ifndef CONFIG_DISPLAY_SDA
+#define CONFIG_DISPLAY_SDA 21
+#endif
+
+#define OneWire_IO (gpio_num_t) CONFIG_ONEWIRE /* gpio number for one wire */
+#define DisplaySCL_IO (gpio_num_t) CONFIG_DISPLAY_SCL /* gpio number for display SCL */
+#define DisplaySDA_IO (gpio_num_t) CONFIG_DISPLAY_SDA /* gpio number for display SDA */
 #define Heat1_IO (gpio_num_t) CONFIG_HEAT1     /* gpio number for heater 1  */
 #define Heat2_IO (gpio_num_t) CONFIG_HEAT2     /* gpio number for heater 2 */
 #define Stir_IO (gpio_num_t) CONFIG_STIR       /* gpio number for stir */
