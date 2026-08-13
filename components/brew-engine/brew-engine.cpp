@@ -4,10 +4,22 @@
  */
 #include "brew-engine.h"
 
+#include <cmath>
+#include <cstdio>
+#include "esp_rom_sys.h"
+
 using namespace std;
 using json = nlohmann::json;
 
 static const char *TAG = "BrewEngine";
+
+namespace
+{
+constexpr uint8_t LCD_RS = 0x01;
+constexpr uint8_t LCD_ENABLE = 0x04;
+constexpr uint8_t LCD_BACKLIGHT = 0x08;
+constexpr uint8_t LCD_ROW_OFFSETS[] = {0x00, 0x40, 0x14, 0x54};
+}
 
 // esp http server only works with static handlers, no other option atm then to save a pointer.
 BrewEngine *mainInstance;
@@ -71,6 +83,8 @@ void BrewEngine::Init()
 	this->initMqtt();
 
 	this->run = true;
+	this->initButtons();
+	this->initDisplay();
 
 	xTaskCreate(&this->readLoop, "readloop_task", 4096, this, 5, NULL);
 
@@ -89,6 +103,325 @@ void BrewEngine::initHeaters()
 	}
 }
 
+esp_err_t BrewEngine::displayWriteByte(uint8_t value, bool data)
+{
+	uint8_t mode = LCD_BACKLIGHT | (data ? LCD_RS : 0);
+	uint8_t high = (value & 0xF0) | mode;
+	uint8_t low = ((value << 4) & 0xF0) | mode;
+	uint8_t sequence[] = {
+		high,
+		(uint8_t)(high | LCD_ENABLE),
+		high,
+		low,
+		(uint8_t)(low | LCD_ENABLE),
+		low,
+	};
+
+	return esp_lcd_panel_io_tx_param(this->displayIo, -1, sequence, sizeof(sequence));
+}
+
+esp_err_t BrewEngine::displayWriteLine(uint8_t row, const char *text)
+{
+	if (row >= 4)
+	{
+		return ESP_ERR_INVALID_ARG;
+	}
+
+	esp_err_t err = this->displayWriteByte(0x80 | LCD_ROW_OFFSETS[row], false);
+	bool padding = false;
+	for (size_t column = 0; err == ESP_OK && column < 20; column++)
+	{
+		if (!padding && text[column] == '\0')
+		{
+			padding = true;
+		}
+		uint8_t character = padding ? ' ' : (uint8_t)text[column];
+		err = this->displayWriteByte(character, true);
+	}
+	return err;
+}
+
+void BrewEngine::initDisplay()
+{
+	if (!this->displayScl_PIN || !this->displaySda_PIN)
+	{
+		ESP_LOGI(TAG, "Display is disabled");
+		return;
+	}
+
+	i2c_master_bus_config_t busConfig = {};
+	busConfig.i2c_port = I2C_NUM_0;
+	busConfig.sda_io_num = this->displaySda_PIN;
+	busConfig.scl_io_num = this->displayScl_PIN;
+	busConfig.clk_source = I2C_CLK_SRC_DEFAULT;
+	busConfig.glitch_ignore_cnt = 7;
+	busConfig.flags.enable_internal_pullup = true;
+
+	esp_err_t err = i2c_new_master_bus(&busConfig, &this->displayBus);
+	if (err != ESP_OK)
+	{
+		ESP_LOGE(TAG, "Could not initialize display I2C bus: %s", esp_err_to_name(err));
+		return;
+	}
+
+	esp_lcd_panel_io_i2c_config_t ioConfig = {};
+	ioConfig.dev_addr = this->displayAddress;
+	ioConfig.control_phase_bytes = 1;
+	ioConfig.dc_bit_offset = 0;
+	ioConfig.lcd_cmd_bits = 8;
+	ioConfig.lcd_param_bits = 8;
+	ioConfig.flags.disable_control_phase = true;
+	ioConfig.scl_speed_hz = 100000;
+
+	err = esp_lcd_new_panel_io_i2c(this->displayBus, &ioConfig, &this->displayIo);
+	if (err != ESP_OK)
+	{
+		ESP_LOGE(TAG, "Could not initialize display at 0x%02X: %s", this->displayAddress, esp_err_to_name(err));
+		i2c_del_master_bus(this->displayBus);
+		this->displayBus = NULL;
+		return;
+	}
+
+	// HD44780 4-bit initialization through the common PCF8574 backpack mapping.
+	esp_rom_delay_us(50000);
+	uint8_t initSequence[] = {0x30, 0x30, 0x30, 0x20};
+	for (uint8_t nibble : initSequence)
+	{
+		uint8_t sequence[] = {
+			(uint8_t)(nibble | LCD_BACKLIGHT),
+			(uint8_t)(nibble | LCD_BACKLIGHT | LCD_ENABLE),
+			(uint8_t)(nibble | LCD_BACKLIGHT),
+		};
+		err = esp_lcd_panel_io_tx_param(this->displayIo, -1, sequence, sizeof(sequence));
+		if (err != ESP_OK)
+		{
+			break;
+		}
+		esp_rom_delay_us(5000);
+	}
+
+	if (err == ESP_OK) err = this->displayWriteByte(0x28, false); // 4-bit, 2-line font (also used by 20x4)
+	if (err == ESP_OK) err = this->displayWriteByte(0x08, false); // display off
+	if (err == ESP_OK) err = this->displayWriteByte(0x01, false); // clear
+	esp_rom_delay_us(2000);
+	if (err == ESP_OK) err = this->displayWriteByte(0x06, false); // increment cursor
+	if (err == ESP_OK) err = this->displayWriteByte(0x0C, false); // display on, cursor off
+
+	if (err != ESP_OK)
+	{
+		ESP_LOGE(TAG, "Could not configure display at 0x%02X: %s", this->displayAddress, esp_err_to_name(err));
+		esp_lcd_panel_io_del(this->displayIo);
+		i2c_del_master_bus(this->displayBus);
+		this->displayIo = NULL;
+		this->displayBus = NULL;
+		return;
+	}
+
+	ESP_LOGI(TAG, "2004 display initialized at I2C address 0x%02X", this->displayAddress);
+	xTaskCreate(&this->displayLoop, "display_task", 3072, this, 4, NULL);
+}
+
+void BrewEngine::displayLoop(void *arg)
+{
+	BrewEngine *instance = (BrewEngine *)arg;
+	char tempsLine[21];
+	char stirLine[21];
+	char scheduleLine[21];
+	char outputLine[21];
+
+	while (instance->run)
+	{
+		char scale = instance->temperatureScale == Fahrenheit ? 'F' : 'C';
+		float current = std::isfinite(instance->temperature) ? instance->temperature : 0.0f;
+		float target = std::isfinite(instance->targetTemperature) ? instance->targetTemperature : 0.0f;
+		snprintf(tempsLine, sizeof(tempsLine), "S: %3.1f%c P: %3.1f%c", target, /*(char)0xDF,*/ scale, current, /*(char)0xDF,*/ scale);
+		snprintf(stirLine, sizeof(stirLine), "Stir: %-14.14s", instance->stirStatusText.c_str());
+		snprintf(outputLine, sizeof(outputLine), "Output:%12u%%", (unsigned int)instance->pidOutput);
+		snprintf(scheduleLine, sizeof(scheduleLine), "Schd: %-14.14s", instance->selectedMashScheduleName.c_str());
+
+		if (instance->displayWriteLine(0, tempsLine) != ESP_OK ||
+			instance->displayWriteLine(1, outputLine) != ESP_OK ||
+			instance->displayWriteLine(2, stirLine) != ESP_OK ||
+			instance->displayWriteLine(3, scheduleLine) != ESP_OK)
+		{
+			ESP_LOGW(TAG, "Failed to update display");
+		}
+
+		vTaskDelay(pdMS_TO_TICKS(1000));
+	}
+
+	vTaskDelete(NULL);
+}
+
+void BrewEngine::initButtons()
+{
+	uint64_t pinMask = 0;
+	if (this->stirButton_PIN > GPIO_NUM_0 && this->stirButton_PIN == this->scheduleButton_PIN)
+	{
+		ESP_LOGE(TAG, "Stir and schedule buttons use the same GPIO%d; disabling the schedule button",
+			this->scheduleButton_PIN);
+		this->scheduleButton_PIN = GPIO_NUM_NC;
+	}
+	if (this->nextScheduleButton_PIN > GPIO_NUM_0 &&
+		(this->nextScheduleButton_PIN == this->stirButton_PIN || this->nextScheduleButton_PIN == this->scheduleButton_PIN))
+	{
+		ESP_LOGE(TAG, "Next-schedule button duplicates another button on GPIO%d; disabling it",
+			this->nextScheduleButton_PIN);
+		this->nextScheduleButton_PIN = GPIO_NUM_NC;
+	}
+	auto addButton = [&pinMask](gpio_num_t &pin, const char *name)
+	{
+		if (pin == GPIO_NUM_0)
+		{
+			return;
+		}
+		if (!GPIO_IS_VALID_GPIO(pin) || pin > GPIO_NUM_33)
+		{
+			ESP_LOGE(TAG, "%s button GPIO%d is invalid; disabling it", name, pin);
+			pin = GPIO_NUM_NC;
+			return;
+		}
+		pinMask |= 1ULL << pin;
+	};
+
+	addButton(this->stirButton_PIN, "Stir");
+	addButton(this->scheduleButton_PIN, "Schedule");
+	addButton(this->nextScheduleButton_PIN, "Next-schedule");
+	if (pinMask == 0)
+	{
+		ESP_LOGI(TAG, "Button inputs are disabled");
+		return;
+	}
+
+	gpio_config_t config = {};
+	config.pin_bit_mask = pinMask;
+	config.mode = GPIO_MODE_INPUT;
+	config.pull_up_en = GPIO_PULLUP_ENABLE;
+	config.pull_down_en = GPIO_PULLDOWN_DISABLE;
+	config.intr_type = GPIO_INTR_DISABLE;
+	esp_err_t err = gpio_config(&config);
+	if (err != ESP_OK)
+	{
+		ESP_LOGE(TAG, "Could not initialize button inputs: %s", esp_err_to_name(err));
+		return;
+	}
+
+	ESP_LOGI(TAG, "Button inputs initialized (stir GPIO%d, schedule GPIO%d, next schedule GPIO%d)",
+		this->stirButton_PIN, this->scheduleButton_PIN, this->nextScheduleButton_PIN);
+	xTaskCreate(&this->buttonLoop, "button_task", 4096, this, 4, NULL);
+}
+
+void BrewEngine::buttonLoop(void *arg)
+{
+	BrewEngine *instance = (BrewEngine *)arg;
+	struct ButtonState
+	{
+		gpio_num_t pin;
+		bool candidatePressed = false;
+		bool stablePressed = false;
+		uint8_t stableSamples = 0;
+	};
+
+	ButtonState stirButton = {instance->stirButton_PIN};
+	ButtonState scheduleButton = {instance->scheduleButton_PIN};
+	ButtonState nextScheduleButton = {instance->nextScheduleButton_PIN};
+
+	auto pressed = [](ButtonState &button)
+	{
+		if (button.pin <= GPIO_NUM_0)
+		{
+			return false;
+		}
+
+		bool currentPressed = gpio_get_level(button.pin) == 0;
+		if (currentPressed != button.candidatePressed)
+		{
+			button.candidatePressed = currentPressed;
+			button.stableSamples = 1;
+		}
+		else if (button.stableSamples < 3)
+		{
+			button.stableSamples++;
+		}
+
+		if (button.stableSamples >= 3 && button.stablePressed != button.candidatePressed)
+		{
+			button.stablePressed = button.candidatePressed;
+			return button.stablePressed;
+		}
+		return false;
+	};
+
+	while (instance->run)
+	{
+		if (pressed(stirButton))
+		{
+			if (instance->stirRun)
+			{
+				ESP_LOGI(TAG, "Stir stopped by button");
+				instance->stopStir();
+			}
+			else
+			{
+				ESP_LOGI(TAG, "Stir started by button");
+				json stirConfig = {
+					{"max", instance->stirTimeSpan},
+					{"intervalStart", instance->stirIntervalStart},
+					{"intervalStop", instance->stirIntervalStop},
+				};
+				instance->startStir(stirConfig);
+			}
+		}
+
+		if (pressed(scheduleButton))
+		{
+			if (instance->controlRun)
+			{
+				ESP_LOGI(TAG, "Schedule stopped by button");
+				instance->stop();
+			}
+			else
+			{
+				if (instance->selectedMashScheduleName.empty())
+				{
+					ESP_LOGW(TAG, "No schedule selected; ignoring schedule button");
+				}
+				else
+				{
+					ESP_LOGI(TAG, "Schedule started by button");
+					instance->start();
+				}
+			}
+		}
+
+		if (pressed(nextScheduleButton))
+		{
+			if (instance->controlRun)
+			{
+				ESP_LOGW(TAG, "Schedule is running; ignoring next-schedule button");
+			}
+			else if (instance->mashSchedules.empty())
+			{
+				ESP_LOGW(TAG, "No mash schedules are available; ignoring next-schedule button");
+			}
+			else
+			{
+				auto schedule = instance->mashSchedules.find(instance->selectedMashScheduleName);
+				if (schedule == instance->mashSchedules.end() || ++schedule == instance->mashSchedules.end())
+				{
+					schedule = instance->mashSchedules.begin();
+				}
+				instance->selectedMashScheduleName = schedule->first;
+				ESP_LOGI(TAG, "Selected mash schedule: %s", instance->selectedMashScheduleName.c_str());
+			}
+		}
+
+		vTaskDelay(pdMS_TO_TICKS(20));
+	}
+
+	vTaskDelete(NULL);
+}
+
 void BrewEngine::readSystemSettings()
 {
 	ESP_LOGI(TAG, "Reading System Settings");
@@ -97,7 +430,11 @@ void BrewEngine::readSystemSettings()
 	this->oneWire_PIN = (gpio_num_t)this->settingsManager->Read("onewirePin", (uint16_t)CONFIG_ONEWIRE);
 	this->displayScl_PIN = (gpio_num_t)this->settingsManager->Read("displaySclPin", (uint16_t)CONFIG_DISPLAY_SCL);
 	this->displaySda_PIN = (gpio_num_t)this->settingsManager->Read("displaySdaPin", (uint16_t)CONFIG_DISPLAY_SDA);
+	this->displayAddress = this->settingsManager->Read("displayAddr", (uint8_t)CONFIG_DISPLAY_ADDRESS);
 	this->stir_PIN = (gpio_num_t)this->settingsManager->Read("stirPin", (uint16_t)CONFIG_STIR);
+	this->stirButton_PIN = (gpio_num_t)this->settingsManager->Read("stirButtonPin", (uint16_t)CONFIG_STIR_BUTTON);
+	this->scheduleButton_PIN = (gpio_num_t)this->settingsManager->Read("schedButtonPin", (uint16_t)CONFIG_SCHEDULE_BUTTON);
+	this->nextScheduleButton_PIN = (gpio_num_t)this->settingsManager->Read("nextSchedBtnPin", (uint16_t)CONFIG_NEXT_SCHEDULE_BUTTON);
 	this->buzzer_PIN = (gpio_num_t)this->settingsManager->Read("buzzerPin", (uint16_t)CONFIG_BUZZER);
 	this->buzzerTime = this->settingsManager->Read("buzzerTime", (uint8_t)2);
 
@@ -141,10 +478,46 @@ void BrewEngine::saveSystemSettingsJson(const json &config)
 		this->settingsManager->Write("displaySdaPin", (uint16_t)config["displaySdaPin"]);
 		this->displaySda_PIN = (gpio_num_t)config["displaySdaPin"];
 	}
+	if (!config["displayAddress"].is_null() && config["displayAddress"].is_number_unsigned())
+	{
+		uint8_t address = (uint8_t)config["displayAddress"];
+		if (address >= 0x08 && address <= 0x77)
+		{
+			this->settingsManager->Write("displayAddr", address);
+			this->displayAddress = address;
+		}
+	}
 	if (!config["stirPin"].is_null() && config["stirPin"].is_number())
 	{
 		this->settingsManager->Write("stirPin", (uint16_t)config["stirPin"]);
 		this->stir_PIN = (gpio_num_t)config["stirPin"];
+	}
+	if (!config["stirButtonPin"].is_null() && config["stirButtonPin"].is_number())
+	{
+		int pin = config["stirButtonPin"];
+		if (pin >= 0 && pin <= 33 && (pin == 0 || GPIO_IS_VALID_GPIO(pin)))
+		{
+			this->settingsManager->Write("stirButtonPin", (uint16_t)pin);
+			this->stirButton_PIN = (gpio_num_t)pin;
+		}
+	}
+	if (!config["scheduleButtonPin"].is_null() && config["scheduleButtonPin"].is_number())
+	{
+		int pin = config["scheduleButtonPin"];
+		if (pin >= 0 && pin <= 33 && (pin == 0 || GPIO_IS_VALID_GPIO(pin)))
+		{
+			this->settingsManager->Write("schedButtonPin", (uint16_t)pin);
+			this->scheduleButton_PIN = (gpio_num_t)pin;
+		}
+	}
+	if (!config["nextScheduleButtonPin"].is_null() && config["nextScheduleButtonPin"].is_number())
+	{
+		int pin = config["nextScheduleButtonPin"];
+		if (pin >= 0 && pin <= 33 && (pin == 0 || GPIO_IS_VALID_GPIO(pin)))
+		{
+			this->settingsManager->Write("nextSchedBtnPin", (uint16_t)pin);
+			this->nextScheduleButton_PIN = (gpio_num_t)pin;
+		}
 	}
 	if (!config["buzzerPin"].is_null() && config["buzzerPin"].is_number())
 	{
@@ -2141,7 +2514,11 @@ string BrewEngine::processCommand(const string &payLoad)
 			{"onewirePin", this->oneWire_PIN},
 			{"displaySclPin", this->displayScl_PIN},
 			{"displaySdaPin", this->displaySda_PIN},
+			{"displayAddress", this->displayAddress},
 			{"stirPin", this->stir_PIN},
+			{"stirButtonPin", this->stirButton_PIN},
+			{"scheduleButtonPin", this->scheduleButton_PIN},
+			{"nextScheduleButtonPin", this->nextScheduleButton_PIN},
 			{"buzzerPin", this->buzzer_PIN},
 			{"buzzerTime", this->buzzerTime},
 			{"invertOutputs", this->invertOutputs},

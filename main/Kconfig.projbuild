@@ -53,6 +53,14 @@ menu "BrewEngine Config"
         help
             Display I2C SDA Pin
 
+    config DISPLAY_ADDRESS
+        hex "Display I2C Address"
+        range 0x08 0x77
+        default 0x27
+        help
+            7-bit I2C address of the PCF8574 backpack connected to the
+            HD44780-compatible 2004 display.
+
     config HEAT1
         int "HEAT1 Pin"
         default 32
@@ -73,6 +81,30 @@ menu "BrewEngine Config"
         help
             STIR Pin
             Set to 0 to disable!
+
+    config STIR_BUTTON
+        int "Stir Toggle Button Pin"
+        range 0 33
+        default 13
+        help
+            Active-low button input used to start or stop stirring.
+            The internal pull-up is enabled. Set to 0 to disable.
+
+    config SCHEDULE_BUTTON
+        int "Schedule Start/Stop Button Pin"
+        range 0 33
+        default 14
+        help
+            Active-low button input used to start or stop the selected schedule.
+            The internal pull-up is enabled. Set to 0 to disable.
+
+    config NEXT_SCHEDULE_BUTTON
+        int "Next Mash Schedule Button Pin"
+        range 0 33
+        default 26
+        help
+            Active-low button input used to select the next mash schedule while
+            idle. The internal pull-up is enabled. Set to 0 to disable.
 
      config BUZZER
         int "Buzzer Pin"

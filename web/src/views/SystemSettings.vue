@@ -13,7 +13,11 @@ const systemSettings = ref<ISystemSettings>({
   onewirePin: 0,
   displaySclPin: 0,
   displaySdaPin: 0,
+  displayAddress: 39,
   stirPin: 0,
+  stirButtonPin: 13,
+  scheduleButtonPin: 14,
+  nextScheduleButtonPin: 26,
   buzzerPin: 0,
   buzzerTime: 2,
   invertOutputs: false,
@@ -177,6 +181,18 @@ const scaleChanged = () => {
             </template>
           </v-text-field>
         </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" min="8" max="119" v-model.number="systemSettings.displayAddress"
+            :label='t("systemSettings.display_address")'>
+            <template v-slot:append>
+              <v-tooltip :text='t("systemSettings.display_address_tooltip")'>
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
       </v-row>
 
       <v-row>
@@ -184,6 +200,45 @@ const scaleChanged = () => {
           <v-text-field v-model.number="systemSettings.stirPin" :label='t("systemSettings.stir_pin")'>
             <template v-slot:append>
               <v-tooltip :text='t("systemSettings.stir_pin_tooltip")'>
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" min="0" max="33" v-model.number="systemSettings.stirButtonPin"
+            :label='t("systemSettings.stir_button_pin")'>
+            <template v-slot:append>
+              <v-tooltip :text='t("systemSettings.button_pin_tooltip")'>
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" min="0" max="33" v-model.number="systemSettings.scheduleButtonPin"
+            :label='t("systemSettings.schedule_button_pin")'>
+            <template v-slot:append>
+              <v-tooltip :text='t("systemSettings.button_pin_tooltip")'>
+                <template v-slot:activator="{ props }">
+                  <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
+                </template>
+              </v-tooltip>
+            </template>
+          </v-text-field>
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field type="number" min="0" max="33" v-model.number="systemSettings.nextScheduleButtonPin"
+            :label='t("systemSettings.next_schedule_button_pin")'>
+            <template v-slot:append>
+              <v-tooltip :text='t("systemSettings.button_pin_tooltip")'>
                 <template v-slot:activator="{ props }">
                   <v-icon size="small" v-bind="props">{{ mdiHelp }}</v-icon>
                 </template>
