@@ -224,25 +224,25 @@ void BrewEngine::initDisplay()
 void BrewEngine::displayLoop(void *arg)
 {
 	BrewEngine *instance = (BrewEngine *)arg;
-	char tempsLine[21];
-	char stirLine[21];
-	char scheduleLine[21];
-	char outputLine[21];
+	char oneLine[21];
+	char twoLine[21];
+	char threeLine[21];
+	char fourLine[21];
 
 	while (instance->run)
 	{
 		char scale = instance->temperatureScale == Fahrenheit ? 'F' : 'C';
 		float current = std::isfinite(instance->temperature) ? instance->temperature : 0.0f;
 		float target = std::isfinite(instance->targetTemperature) ? instance->targetTemperature : 0.0f;
-		snprintf(tempsLine, sizeof(tempsLine), "S: %3.1f%c P: %3.1f%c", target, /*(char)0xDF,*/ scale, current, /*(char)0xDF,*/ scale);
-		snprintf(stirLine, sizeof(stirLine), "Stir: %-14.14s", instance->stirStatusText.c_str());
-		snprintf(outputLine, sizeof(outputLine), "Output:%12u%%", (unsigned int)instance->pidOutput);
-		snprintf(scheduleLine, sizeof(scheduleLine), "Schd: %-14.14s", instance->selectedMashScheduleName.c_str());
+		snprintf(oneLine, sizeof(oneLine), "%-7.7s   Set %3.1f%c", instance->controlRun ? "Running" : "Stopped", target, /*(char)0xDF,*/ scale);
+		snprintf(twoLine, sizeof(twoLine), "Out:%4u%% Act %3.1f%c", (unsigned int)instance->pidOutput, current, /*(char)0xDF,*/ scale);
+		snprintf(threeLine, sizeof(threeLine), "Stir: %-14.14s", instance->stirStatusText.c_str());
+		snprintf(fourLine, sizeof(fourLine), "Schd: %-14.14s", instance->selectedMashScheduleName.c_str());
 
-		if (instance->displayWriteLine(0, tempsLine) != ESP_OK ||
-			instance->displayWriteLine(1, outputLine) != ESP_OK ||
-			instance->displayWriteLine(2, stirLine) != ESP_OK ||
-			instance->displayWriteLine(3, scheduleLine) != ESP_OK)
+		if (instance->displayWriteLine(0, oneLine) != ESP_OK ||
+			instance->displayWriteLine(1, twoLine) != ESP_OK ||
+			instance->displayWriteLine(2, threeLine) != ESP_OK ||
+			instance->displayWriteLine(3, fourLine) != ESP_OK)
 		{
 			ESP_LOGW(TAG, "Failed to update display");
 		}
