@@ -25,6 +25,8 @@ It is open source and build in c++ using esp-idf RTOS.
 - Import BeerXML.
 - Dark/Light Theme.
 - 2 PID settings, one for mash and one for boil.
+- (Optional) Hardware I2C 20x4 display.
+- (Optional) Hardware control buttons.
 
 ## Screenshots
 
@@ -93,10 +95,29 @@ To quit Ctrl-T Ctrl-X.
 
 https://github.com/jeroen79/esp-brew-engine/wiki/One-Wire-Sensors
 
+
+## Attaching a 2004 LCD I2C display 
+Displays set target and current temperature once per second, including °C/°F.
+Uses the standard PCF8574 backpack pin mapping.
+- I2C address defaults to 0x27. Address is configurable in Kconfig and System Settings as decimal 39.
+- SCL/SDA set to 0 still disables the display.
+- Default SCL is GPIO22, SDA is GPIO21.
+- It is recommended to use a +5V level shifter for SCL/SDA to the display. 
+
+## Attaching buttons 
+Added three configurable, debounced, active-low button inputs:
+- Defaulted to GPIO 13: toggles stirring.
+- Defaulted to GPIO 14: starts/stops the last selected schedule.
+- Defaulted to GPIO 26: advances to the next schedule in the dropdown list.
+- Internal pull-ups are enabled; wire each momentary button between its GPIO and GND.
+- Set button pin to 0 to disable it.
+- Duplicate button pin assignments disable the schedule button.
+- Schedule start is ignored safely when no schedule has been selected.
+- Pins are configurable through Kconfig and the web System Settings page. Changes require a restart.
+
+
 ## Planned Features (possible)
 - Backup and Restore config data.
 - Resume maish from custom timepoint.
 - Pauze function.
 - Dns server so when in AP mode the resolving the hostname works.
-- HW Display (show temp/target).
-- HW Control Buttons (emergecy stop, stop/start stir?).

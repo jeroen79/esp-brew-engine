@@ -14,6 +14,9 @@
 #include <esp_http_server.h>
 #include "esp_ota_ops.h"
 #include "driver/gpio.h"
+#include "driver/i2c_master.h"
+#include "esp_lcd_io_i2c.h"
+#include "esp_lcd_panel_io.h"
 
 #include <iostream>
 #include <string>
@@ -72,6 +75,8 @@ private:
     static void outputLoop(void *arg);
     static void controlLoop(void *arg);
     static void stirLoop(void *arg);
+    static void displayLoop(void *arg);
+    static void buttonLoop(void *arg);
     static void reboot(void *arg);
     static void factoryReset(void *arg);
     static void buzzer(void *arg);
@@ -81,6 +86,10 @@ private:
     void initOneWire();
     void initMqtt();
     void initHeaters();
+    void initDisplay();
+    void initButtons();
+    esp_err_t displayWriteByte(uint8_t value, bool data);
+    esp_err_t displayWriteLine(uint8_t row, const char *text);
     void readSystemSettings();
     void readSettings();
     void saveMashSchedules();
@@ -171,10 +180,19 @@ private:
     std::vector<Heater *> heaters; // we support up to 10 heaters
 
     gpio_num_t oneWire_PIN;
+    gpio_num_t displayScl_PIN;
+    gpio_num_t displaySda_PIN;
+    uint8_t displayAddress;
     gpio_num_t stir_PIN;
+    gpio_num_t stirButton_PIN;
+    gpio_num_t scheduleButton_PIN;
+    gpio_num_t nextScheduleButton_PIN;
     gpio_num_t buzzer_PIN;
 
     uint8_t buzzerTime; // in seconds
+
+    i2c_master_bus_handle_t displayBus = NULL;
+    esp_lcd_panel_io_handle_t displayIo = NULL;
 
     std::deque<Notification *> notifications;
 
